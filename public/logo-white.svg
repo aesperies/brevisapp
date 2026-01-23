@@ -1,0 +1,36 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- B Letter -->
+  <!-- Vertical line -->
+  <rect x="60" y="60" width="8" height="80" fill="black"/>
+  
+  <!-- Top curve -->
+  <path d="M 68 60 Q 100 60 100 80 Q 100 95 68 95" 
+        stroke="black" 
+        stroke-width="8" 
+        fill="none"
+        stroke-linecap="round"/>
+  
+  <!-- Bottom curve -->
+  <path d="M 68 95 Q 105 95 105 115 Q 105 140 68 140" 
+        stroke="black" 
+        stroke-width="8" 
+        fill="none"
+        stroke-linecap="round"/>
+  
+  <!-- R Letter -->
+  <!-- Vertical line -->
+  <rect x="120" y="60" width="8" height="80" fill="black"/>
+  
+  <!-- Top curve -->
+  <path d="M 128 60 Q 155 60 155 80 Q 155 95 128 95" 
+        stroke="black" 
+        stroke-width="8" 
+        fill="none"
+        stroke-linecap="round"/>
+  
+  <!-- Diagonal leg -->
+  <line x1="128" y1="95" x2="155" y2="140" 
+        stroke="black" 
+        stroke-width="8" 
+        stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="black"/>
+  
+  <!-- Simplified BR monogram for small size -->
+  <!-- B -->
+  <rect x="8" y="8" width="2" height="16" fill="white"/>
+  <path d="M 10 8 Q 14 8 14 12 Q 14 14 10 14" stroke="white" stroke-width="2" fill="none"/>
+  <path d="M 10 14 Q 14 14 14 18 Q 14 24 10 24" stroke="white" stroke-width="2" fill="none"/>
+  
+  <!-- R -->
+  <rect x="18" y="8" width="2" height="16" fill="white"/>
+  <path d="M 20 8 Q 24 8 24 12 Q 24 14 20 14" stroke="white" stroke-width="2" fill="none"/>
+  <line x1="20" y1="14" x2="24" y2="24" stroke="white" stroke-width="2"/>
+</svg>

@@ -1,0 +1,110 @@
+{
+  "app": {
+    "title": "BREVIS",
+    "tagline": "Tu lista de lectura. Curada. Resumida."
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "logout": "Salir",
+    "email": "Email",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "noAccount": "¿No tienes cuenta?",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "passwordMin": "Contraseña (mínimo 8 caracteres)",
+    "loggingIn": "Iniciando sesión...",
+    "creating": "Creando cuenta...",
+    "invalidCredentials": "Credenciales inválidas",
+    "emailTaken": "El email ya está registrado"
+  },
+  "nav": {
+    "search": "Buscar...",
+    "add": "+ Añadir"
+  },
+  "stats": {
+    "total": "Total",
+    "unread": "Sin leer",
+    "read": "Leídos"
+  },
+  "newsletter": {
+    "title": "Título",
+    "from": "De",
+    "content": "Contenido",
+    "url": "URL Original (opcional)",
+    "add": "Añadir Newsletter",
+    "addTitle": "Añadir Newsletter",
+    "titlePlaceholder": "Título del newsletter",
+    "fromPlaceholder": "Remitente <email@ejemplo.com>",
+    "contentPlaceholder": "Pega aquí el contenido del newsletter...",
+    "urlPlaceholder": "https://...",
+    "cancel": "Cancelar",
+    "read": "Leer",
+    "pdf": "PDF",
+    "summary": "Resumen",
+    "original": "Original",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Eliminar este newsletter?",
+    "new": "NUEVO",
+    "generating": "Generando...",
+    "markRead": "Marcar leído",
+    "markUnread": "Marcar sin leer"
+  },
+  "email": {
+    "label": "Email para enviar tus newsletters",
+    "instructions": "Reenvía newsletters a esta dirección y aparecerán automáticamente aquí"
+  },
+  "tags": {
+    "title": "Etiquetas",
+    "add": "Nueva Etiqueta",
+    "name": "Nombre",
+    "color": "Color",
+    "create": "Crear",
+    "manage": "Gestionar Etiquetas",
+    "filterBy": "Filtrar por etiqueta",
+    "all": "Todas",
+    "deleteConfirm": "¿Eliminar esta etiqueta?"
+  },
+  "batch": {
+    "selected": "seleccionados",
+    "selectAll": "Seleccionar todos",
+    "clearSelection": "Limpiar selección",
+    "brief": "Brief Resumen",
+    "report": "Reporte Completo",
+    "generating": "Generando...",
+    "briefTitle": "Brief de {{count}} Newsletters",
+    "reportTitle": "Reporte de {{count}} Newsletters",
+    "download": "Descargar PDF",
+    "close": "Cerrar"
+  },
+  "plans": {
+    "free": "Free",
+    "pro": "Pro",
+    "premium": "Premium",
+    "current": "Plan actual",
+    "upgrade": "Mejorar Plan",
+    "limit": "{{count}} de {{limit}} newsletters",
+    "unlimited": "Newsletters ilimitados",
+    "features": {
+      "newsletters": "{{count}} newsletters/mes",
+      "summaries": "Resúmenes IA",
+      "reports": "Reportes completos",
+      "tags": "Etiquetas",
+      "multiLang": "Multi-idioma"
+    },
+    "upgradePrompt": "Has alcanzado el límite de tu plan",
+    "upgradeButton": "Mejorar a {{plan}}"
+  },
+  "empty": {
+    "title": "Nada aquí todavía",
+    "subtitle": "Reenvía tu primer newsletter para empezar",
+    "noResults": "No hay newsletters que coincidan con tu búsqueda"
+  },
+  "errors": {
+    "generic": "Ha ocurrido un error",
+    "apiKey": "ANTHROPIC_API_KEY no configurada",
+    "limitReached": "Has alcanzado el límite de tu plan",
+    "proRequired": "Esta función requiere el plan Pro",
+    "premiumRequired": "Esta función requiere el plan Premium"
+  }
+}

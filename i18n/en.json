@@ -1,0 +1,110 @@
+{
+  "app": {
+    "title": "BREVIS",
+    "tagline": "Your reading list. Curated. Summarized."
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "passwordMin": "Password (minimum 8 characters)",
+    "loggingIn": "Logging in...",
+    "creating": "Creating account...",
+    "invalidCredentials": "Invalid credentials",
+    "emailTaken": "Email already registered"
+  },
+  "nav": {
+    "search": "Search...",
+    "add": "+ Add"
+  },
+  "stats": {
+    "total": "Total",
+    "unread": "Unread",
+    "read": "Read"
+  },
+  "newsletter": {
+    "title": "Title",
+    "from": "From",
+    "content": "Content",
+    "url": "Original URL (optional)",
+    "add": "Add Newsletter",
+    "addTitle": "Add Newsletter",
+    "titlePlaceholder": "Newsletter title",
+    "fromPlaceholder": "Sender <email@example.com>",
+    "contentPlaceholder": "Paste newsletter content here...",
+    "urlPlaceholder": "https://...",
+    "cancel": "Cancel",
+    "read": "Read",
+    "pdf": "PDF",
+    "summary": "Summary",
+    "original": "Original",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this newsletter?",
+    "new": "NEW",
+    "generating": "Generating...",
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread"
+  },
+  "email": {
+    "label": "Email to forward your newsletters",
+    "instructions": "Forward newsletters to this address and they'll appear here automatically"
+  },
+  "tags": {
+    "title": "Tags",
+    "add": "New Tag",
+    "name": "Name",
+    "color": "Color",
+    "create": "Create",
+    "manage": "Manage Tags",
+    "filterBy": "Filter by tag",
+    "all": "All",
+    "deleteConfirm": "Delete this tag?"
+  },
+  "batch": {
+    "selected": "selected",
+    "selectAll": "Select all",
+    "clearSelection": "Clear selection",
+    "brief": "Brief Summary",
+    "report": "Full Report",
+    "generating": "Generating...",
+    "briefTitle": "Brief from {{count}} Newsletters",
+    "reportTitle": "Report from {{count}} Newsletters",
+    "download": "Download PDF",
+    "close": "Close"
+  },
+  "plans": {
+    "free": "Free",
+    "pro": "Pro",
+    "premium": "Premium",
+    "current": "Current plan",
+    "upgrade": "Upgrade Plan",
+    "limit": "{{count}} of {{limit}} newsletters",
+    "unlimited": "Unlimited newsletters",
+    "features": {
+      "newsletters": "{{count}} newsletters/month",
+      "summaries": "AI Summaries",
+      "reports": "Full Reports",
+      "tags": "Tags",
+      "multiLang": "Multi-language"
+    },
+    "upgradePrompt": "You've reached your plan limit",
+    "upgradeButton": "Upgrade to {{plan}}"
+  },
+  "empty": {
+    "title": "Nothing here yet",
+    "subtitle": "Forward your first newsletter to get started",
+    "noResults": "No newsletters match your search"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "apiKey": "ANTHROPIC_API_KEY not configured",
+    "limitReached": "You've reached your plan limit",
+    "proRequired": "This feature requires the Pro plan",
+    "premiumRequired": "This feature requires the Premium plan"
+  }
+}
