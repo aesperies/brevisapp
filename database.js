@@ -89,11 +89,18 @@ export const dbHelpers = {
         return db.data.users.find(u => u.email_code === emailCode);
     },
     
-    createUser: async (email, passwordHash, name, emailCode) => {
+    verifyPassword: async (plainPassword, hashedPassword) => {
+        return await bcrypt.compare(plainPassword, hashedPassword);
+    },
+    
+    createUser: async (email, password, name) => {
         await db.read();
         const id = db.data.users.length > 0 
             ? Math.max(...db.data.users.map(u => u.id)) + 1 
             : 1;
+        
+        const passwordHash = await bcrypt.hash(password, 10);
+        const emailCode = generateEmailCode();
         
         const user = {
             id,
