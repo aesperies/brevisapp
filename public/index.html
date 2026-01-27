@@ -3,1839 +3,1237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BREVIS - Newsletter Management</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>BREVIS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #FFFFFF;
-            color: #000000;
+            background: #FFF;
+            color: #000;
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
-        
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 260px;
+            background: #FAFAFA;
+            border-right: 1px solid #E5E5E5;
+            padding: 20px 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+        }
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #E5E5E5;
+            margin-bottom: 20px;
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            background: #000;
+            position: relative;
+        }
+        .logo-mark::before, .logo-mark::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: #FFF;
+            top: 6px;
+        }
+        .logo-mark::before { left: 10px; }
+        .logo-mark::after { right: 10px; }
+        .logo-text { font-size: 20px; font-weight: 600; }
+        .sidebar-section { margin-bottom: 24px; }
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-bottom: 8px;
+            padding: 0 20px;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            border-left: 3px solid transparent;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .sidebar-item:hover { background: #F0F0F0; }
+        .sidebar-item.active {
+            background: #F0F0F0;
+            color: #000;
+            border-left-color: #000;
+            font-weight: 500;
+        }
+        .sidebar-item-icon { font-size: 16px; width: 20px; text-align: center; }
+        .sidebar-item-label { flex: 1; }
+        .sidebar-item-count {
+            font-size: 12px;
+            color: #666;
+            background: #E5E5E5;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        .sidebar-item.active .sidebar-item-count { background: #000; color: #FFF; }
+        .sidebar-tag-item { padding-left: 52px; }
+        .sidebar-report-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #333;
+        }
+        .sidebar-report-item:hover { background: #F0F0F0; }
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+        }
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
         }
-        
+        .header {
+            padding: 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #E5E5E5;
+            margin-bottom: 24px;
+        }
+        .tagline { font-size: 14px; color: #666; }
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+        .plan-badge {
+            padding: 4px 12px;
+            background: #000;
+            color: #FFF;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .plan-badge.pro { background: #4A90E2; }
+        .user-name-button {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #E5E5E5;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+        .user-name-button:hover { background: #F5F5F5; }
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: #FFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            min-width: 220px;
+            z-index: 1000;
+        }
+        .user-dropdown-info {
+            padding: 12px 16px;
+            border-bottom: 1px solid #E5E5E5;
+            font-size: 13px;
+        }
+        .user-dropdown-email { font-size: 12px; color: #999; margin-top: 2px; }
+        .user-dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #F0F0F0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+        .user-dropdown-item:last-child { border-bottom: none; border-top: 1px solid #E5E5E5; }
+        .user-dropdown-item:hover { background: #F8F8F8; }
+        .lang-toggle {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #E5E5E5;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid #E5E5E5;
+            border-radius: 4px;
+            background: #FFF;
+            color: #000;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background: #F5F5F5; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: #000; color: #FFF; border-color: #000; }
+        .btn-primary:hover { background: #333; }
+        .btn-small { padding: 8px 16px; font-size: 13px; }
+        .btn-full { width: 100%; }
+        .email-display {
+            background: #F8F8F8;
+            border: 1px solid #E5E5E5;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .email-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .email-code { font-size: 16px; font-weight: 600; font-family: 'Monaco', monospace; }
+        .nav {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            align-items: center;
+        }
+        .search-box { flex: 1; }
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid #E5E5E5;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .selection-bar {
+            background: #F8F8F8;
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .selection-info { font-weight: 500; }
+        .selection-actions { display: flex; gap: 8px; }
+        .newsletter-card {
+            background: #FFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .newsletter-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .newsletter-card.read { opacity: 0.6; }
+        .newsletter-card.selecting { padding-left: 60px; }
+        .newsletter-checkbox {
+            position: absolute;
+            left: 20px;
+            top: 24px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .newsletter-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .newsletter-meta { font-size: 13px; color: #666; }
+        .newsletter-tags {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .newsletter-tag {
+            padding: 4px 10px;
+            border: 1px solid;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .newsletter-content {
+            color: #333;
+            margin: 12px 0;
+            line-height: 1.6;
+            max-height: 100px;
+            overflow: hidden;
+        }
+        .summary-box {
+            background: #F8F8F8;
+            border-left: 3px solid #000;
+            padding: 16px;
+            margin: 12px 0;
+            border-radius: 4px;
+        }
+        .summary-label {
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            color: #666;
+        }
+        .badge {
+            padding: 4px 10px;
+            background: #000;
+            color: #FFF;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .tag-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background: #FFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 6px;
+            padding: 8px 0;
+            min-width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .tag-dropdown-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tag-dropdown-item:hover { background: #F5F5F5; }
+        .tag-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal {
+            background: #FFF;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #E5E5E5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title { font-size: 20px; font-weight: 600; }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .close-btn:hover { background: #F5F5F5; }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #E5E5E5;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .modal-meta { font-size: 14px; color: #666; margin-bottom: 16px; }
+        .modal-content { line-height: 1.8; white-space: pre-wrap; }
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E5E5E5;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-textarea:focus { outline: none; border-color: #000; }
+        .form-textarea { resize: vertical; min-height: 100px; }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+        .empty-text { color: #666; font-size: 14px; }
+        .footer { text-align: center; padding: 40px 20px; color: #999; font-size: 13px; }
+        .upgrade-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #FFF;
+            padding: 20px 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .upgrade-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+        .upgrade-subtitle { font-size: 13px; opacity: 0.9; }
+        .btn-upgrade { background: #FFF; color: #667eea; border: none; font-weight: 600; }
+        .plan-indicator {
+            background: #F8F8F8;
+            border: 1px solid #E5E5E5;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .plan-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .plan-progress { height: 6px; background: #E5E5E5; border-radius: 3px; overflow: hidden; }
+        .plan-progress-bar { height: 100%; background: #4CAF50; transition: width 0.3s; }
+        .plan-progress-bar.warning { background: #FF9800; }
+        .plan-progress-bar.danger { background: #F44336; }
         .auth-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
         .auth-box {
             max-width: 400px;
             width: 100%;
             padding: 48px 32px;
             border: 1px solid #E5E5E5;
         }
-        
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 32px;
-            justify-content: center;
-        }
-        
-        .logo-mark {
-            width: 48px;
-            height: 48px;
-            background: #000000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* B letter - left vertical and curves */
-        .logo-mark::before {
-            content: '';
-            position: absolute;
-            width: 2px;
-            height: 28px;
-            background: #FFFFFF;
-            left: 14px;
-            top: 10px;
-        }
-        
-        /* R letter - diagonal and vertical */
-        .logo-mark::after {
-            content: '';
-            position: absolute;
-            width: 2px;
-            height: 28px;
-            background: #FFFFFF;
-            right: 14px;
-            top: 10px;
-        }
-        
-        /* Top curve for B */
-        .logo-mark {
-            border: 2px solid transparent;
-        }
-        
-        .logo-mark span {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #FFFFFF;
-            border-left: none;
-            border-bottom: none;
-            border-radius: 0 8px 0 0;
-            left: 14px;
-            top: 10px;
-        }
-        
-        .logo-mark span::before {
-            content: '';
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #FFFFFF;
-            border-left: none;
-            border-top: none;
-            border-radius: 0 0 8px 0;
-            left: 0;
-            top: 12px;
-        }
-        
-        /* R diagonal stroke */
-        .logo-mark span::after {
-            content: '';
-            position: absolute;
-            width: 14px;
-            height: 2px;
-            background: #FFFFFF;
-            transform: rotate(45deg);
-            right: -16px;
-            top: 18px;
-            transform-origin: left;
-        }
-        
-        .logo-text {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.2;
-        }
-        
-        .logo-brevis {
-            font-size: 32px;
-            font-weight: 600;
-            letter-spacing: 0.15em;
-            color: #000000;
-            text-transform: uppercase;
-        }
-        
-        .form-group {
-            margin-bottom: 24px;
-        }
-        
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: #000000;
-        }
-        
-        .form-input, .form-textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #E5E5E5;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s;
-        }
-        
-        .form-input:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #000000;
-        }
-        
-        .form-textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        .btn {
-            font-size: 13px;
-            padding: 12px 24px;
-            border: 1px solid #000000;
-            background: transparent;
-            color: #000000;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 400;
-            font-family: 'Inter', sans-serif;
-        }
-        
-        .btn:hover:not(:disabled) {
-            background: #000000;
-            color: #FFFFFF;
-        }
-        
-        .btn-primary {
-            background: #000000;
-            color: #FFFFFF;
-        }
-        
-        .btn-primary:hover:not(:disabled) {
-            background: #333333;
-        }
-        
-        .btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 12px;
-        }
-        
-        .error-message {
-            color: #DC2626;
-            font-size: 13px;
-            margin-top: 8px;
-        }
-        
-        .switch-auth {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 13px;
-            color: #666666;
-        }
-        
-        .switch-link {
-            color: #000000;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-        
-        .header {
-            padding: 48px 0 32px;
-            border-bottom: 1px solid #E5E5E5;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        
-        .user-email {
-            font-size: 13px;
-            color: #666666;
-        }
-        
-        .lang-toggle {
-            font-size: 12px;
-            padding: 6px 12px;
-            border: 1px solid #E5E5E5;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .lang-toggle:hover {
-            border-color: #000000;
-        }
-        
-        .tagline {
-            font-size: 14px;
-            color: #666666;
-            font-weight: 400;
-        }
-        
-        .plan-badge {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            padding: 4px 8px;
-            background: #F5F5F5;
-            color: #000000;
-            font-weight: 600;
-            border-radius: 2px;
-        }
-        
-        .plan-badge.pro {
-            background: #000000;
-            color: #FFFFFF;
-        }
-        
-        .plan-badge.premium {
-            background: #000000;
-            color: #FFFFFF;
-        }
-        
-        .email-display {
-            margin-top: 32px;
-            margin-bottom: 24px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid #E5E5E5;
-        }
-        
-        .email-label {
-            font-size: 14px;
-            color: #000000;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .email-code {
-            font-size: 18px;
-            color: #000000;
-            font-weight: 400;
-            font-family: monospace;
-            letter-spacing: -0.01em;
-        }
-        
-        .nav {
-            display: flex;
-            gap: 16px;
-            padding: 24px 0;
-            border-bottom: 1px solid #E5E5E5;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .search-box {
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: 12px 0;
-            border: none;
-            border-bottom: 1px solid #E5E5E5;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            background: transparent;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        
-        .search-input:focus {
-            border-bottom-color: #000000;
-        }
-        
-        .search-input::placeholder {
-            color: #999999;
-        }
-        
-        .plan-indicator {
-            margin: 32px 0 24px;
-            padding: 20px;
-            background: #FAFAFA;
-            border-left: 2px solid #000000;
-        }
-        
-        .plan-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        
-        .plan-usage {
-            font-size: 13px;
-            color: #666666;
-        }
-        
-        .plan-progress {
-            height: 4px;
-            background: #E5E5E5;
-            margin-top: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .plan-progress-bar {
-            height: 100%;
-            background: #000000;
-            transition: width 0.3s;
-        }
-        
-        .plan-progress-bar.warning {
-            background: #F59E0B;
-        }
-        
-        .plan-progress-bar.danger {
-            background: #DC2626;
-        }
-        
-        .upgrade-banner {
-            background: #000000;
-            color: #FFFFFF;
-            padding: 24px;
-            margin: 24px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
-        }
-        
-        .upgrade-text {
-            flex: 1;
-        }
-        
-        .upgrade-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-        
-        .upgrade-subtitle {
-            font-size: 13px;
-            color: #CCCCCC;
-        }
-        
-        .btn-upgrade {
-            background: #FFFFFF;
-            color: #000000;
-            border: none;
-        }
-        
-        .btn-upgrade:hover {
-            background: #F5F5F5;
-            color: #000000;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin: 48px 0;
-        }
-        
-        .stat-item {
-            background: #FAFAFA;
-            padding: 24px;
-            border-left: 2px solid #E5E5E5;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            text-align: left;
-            width: 100%;
-            font-family: 'Inter', sans-serif;
-        }
-        
-        .stat-item:hover {
-            background: #F0F0F0;
-            border-left: 2px solid #666666;
-        }
-        
-        .stat-item.active {
-            background: #000000;
-            border-left: 2px solid #000000;
-        }
-        
-        .stat-item.active .stat-number {
-            color: #FFFFFF;
-        }
-        
-        .stat-item.active .stat-label {
-            color: #CCCCCC;
-        }
-        
-        .stat-number {
-            font-size: 32px;
-            font-weight: 300;
-            letter-spacing: -0.02em;
-            margin-bottom: 4px;
-            color: #000000;
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            color: #666666;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            font-weight: 500;
-        }
-        
-        .tag-filter {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin: 24px 0;
-            align-items: center;
-        }
-        
-        .tag-chip {
-            font-size: 12px;
-            padding: 6px 12px;
-            border: 1px solid;
-            background: transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 400;
-        }
-        
-        .tag-chip.active {
-            color: #FFFFFF;
-        }
-        
-        .selection-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #000000;
-            color: #FFFFFF;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .selection-info {
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .selection-actions {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .btn-white {
-            background: #FFFFFF;
-            color: #000000;
-            border: 1px solid #FFFFFF;
-        }
-        
-        .btn-white:hover {
-            background: #F5F5F5;
-        }
-        
-        .newsletter-card {
-            border-top: 1px solid #E5E5E5;
-            padding: 48px 0;
-            transition: opacity 0.2s;
-            position: relative;
-        }
-        
-        .newsletter-card.read {
-            opacity: 0.4;
-        }
-        
-        .newsletter-card.selecting {
-            padding-left: 60px;
-        }
-        
-        .newsletter-checkbox {
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        
-        .newsletter-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-            gap: 24px;
-        }
-        
-        .newsletter-title {
-            font-size: 28px;
-            font-weight: 400;
-            letter-spacing: -0.01em;
-            margin-bottom: 12px;
-            line-height: 1.3;
-            flex: 1;
-        }
-        
-        .newsletter-meta {
-            font-size: 13px;
-            color: #666666;
-            margin-bottom: 12px;
-        }
-        
-        .badge {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            font-weight: 600;
-            padding: 4px 8px;
-            background: #000000;
-            color: #FFFFFF;
-            display: inline-block;
-        }
-        
-        .newsletter-tags {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-        }
-        
-        .newsletter-tag {
-            font-size: 11px;
-            padding: 4px 10px;
-            border: 1px solid;
-            font-weight: 500;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        
-        .newsletter-tag:hover {
-            opacity: 0.7;
-        }
-        
-        .newsletter-content {
-            font-size: 15px;
-            line-height: 1.8;
-            color: #333333;
-            margin-bottom: 24px;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        .summary-box {
-            background: #F5F5F5;
-            padding: 20px;
-            margin-bottom: 24px;
-            border-left: 2px solid #000000;
-        }
-        
-        .summary-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-        
-        .summary-text {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #333333;
-        }
-        
-        .actions {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-        
-        .modal {
-            background: #FFFFFF;
-            width: 100%;
-            max-width: 800px;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .modal-header {
-            padding: 32px;
-            border-bottom: 1px solid #E5E5E5;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        
-        .modal-title {
-            font-size: 32px;
-            font-weight: 400;
-            letter-spacing: -0.01em;
-            line-height: 1.3;
-            flex: 1;
-            padding-right: 32px;
-        }
-        
-        .close-btn {
-            font-size: 32px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            color: #000000;
-            transition: opacity 0.2s;
-            line-height: 1;
-            font-weight: 300;
-        }
-        
-        .close-btn:hover {
-            opacity: 0.6;
-        }
-        
-        .modal-body {
-            padding: 32px;
-            overflow-y: auto;
-            flex: 1;
-        }
-        
-        .modal-meta {
-            font-size: 13px;
-            color: #666666;
-            margin-bottom: 32px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid #E5E5E5;
-        }
-        
-        .modal-content {
-            font-size: 16px;
-            line-height: 1.8;
-            white-space: pre-line;
-        }
-        
-        .modal-footer {
-            padding: 24px 32px;
-            border-top: 1px solid #E5E5E5;
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 120px 24px;
-        }
-        
-        .empty-title {
-            font-size: 24px;
-            font-weight: 400;
-            margin-bottom: 8px;
-            color: #000000;
-        }
-        
-        .empty-text {
-            font-size: 14px;
-            color: #666666;
-        }
-        
-        .footer {
-            border-top: 1px solid #E5E5E5;
-            padding: 48px 0;
-            margin-top: 80px;
-            text-align: center;
-        }
-        
-        .footer-text {
-            font-size: 13px;
-            color: #999999;
-            font-weight: 400;
-        }
-        
-        .color-picker {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-        
-        .color-option {
-            width: 32px;
-            height: 32px;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .color-option.selected {
-            border-color: #000000;
-            transform: scale(1.1);
-        }
-        
-        .tag-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        
-        .tag-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border: 1px solid #E5E5E5;
-        }
-        
-        .tag-name {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .tag-color-box {
-            width: 20px;
-            height: 20px;
-        }
-
         @media (max-width: 768px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-            
-            .newsletter-title {
-                font-size: 22px;
-            }
-            
-            .modal-title {
-                font-size: 24px;
-            }
-            
-            .logo-brevis {
-                font-size: 24px;
-            }
-            
-            .logo-mark {
-                width: 40px;
-                height: 40px;
-            }
-            
-            .header {
-                flex-direction: column;
-                gap: 16px;
-                align-items: flex-start;
-            }
-            
-            .selection-bar {
-                flex-direction: column;
-                gap: 16px;
-                align-items: stretch;
-            }
-            
-            .selection-actions {
-                flex-direction: column;
-            }
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
         }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const API_URL = window.location.origin + '/api';
-
-        // Translations
-        const translations = {
-            es: {
-                app: { title: "BREVIS", tagline: "Tu lista de lectura. Curada. Resumida." },
-                auth: {
-                    login: "Iniciar sesión", register: "Registrarse", logout: "Salir",
-                    email: "Email", password: "Contraseña", name: "Nombre",
-                    noAccount: "¿No tienes cuenta?", hasAccount: "¿Ya tienes cuenta?",
-                    passwordMin: "Contraseña (mínimo 8 caracteres)"
-                },
-                nav: { search: "Buscar...", add: "+ Añadir", tags: "Etiquetas" },
-                stats: { total: "Total", unread: "Sin leer", read: "Leídos" },
-                newsletter: {
-                    title: "Título", from: "De", content: "Contenido",
-                    url: "URL Original (opcional)", add: "Añadir Newsletter",
-                    read: "Leer", pdf: "PDF", summary: "Resumen",
-                    delete: "Eliminar", new: "NUEVO", generating: "Generando...",
-                    markRead: "Marcar leído", markUnread: "Marcar sin leer"
-                },
-                email: { label: "Email para enviar tus newsletters" },
-                tags: {
-                    title: "Etiquetas", add: "Nueva Etiqueta", name: "Nombre",
-                    color: "Color", create: "Crear", manage: "Gestionar Etiquetas",
-                    all: "Todas", deleteConfirm: "¿Eliminar esta etiqueta?"
-                },
-                batch: {
-                    selected: "seleccionados", selectAll: "Seleccionar todos",
-                    clearSelection: "Limpiar", brief: "Brief", report: "Reporte",
-                    generating: "Generando...", download: "Descargar PDF", close: "Cerrar"
-                },
-                plans: {
-                    free: "Free", pro: "Pro", premium: "Premium",
-                    current: "Plan actual", upgrade: "Mejorar Plan",
-                    upgradePrompt: "Has alcanzado el límite de tu plan"
-                },
-                empty: { title: "Nada aquí todavía", subtitle: "Reenvía tu primer newsletter" }
-            },
-            en: {
-                app: { title: "BREVIS", tagline: "Your reading list. Curated. Summarized." },
-                auth: {
-                    login: "Log in", register: "Sign up", logout: "Log out",
-                    email: "Email", password: "Password", name: "Name",
-                    noAccount: "Don't have an account?", hasAccount: "Already have an account?",
-                    passwordMin: "Password (minimum 8 characters)"
-                },
-                nav: { search: "Search...", add: "+ Add", tags: "Tags" },
-                stats: { total: "Total", unread: "Unread", read: "Read" },
-                newsletter: {
-                    title: "Title", from: "From", content: "Content",
-                    url: "Original URL (optional)", add: "Add Newsletter",
-                    read: "Read", pdf: "PDF", summary: "Summary",
-                    delete: "Delete", new: "NEW", generating: "Generating...",
-                    markRead: "Mark as read", markUnread: "Mark as unread"
-                },
-                email: { label: "Email to forward your newsletters" },
-                tags: {
-                    title: "Tags", add: "New Tag", name: "Name",
-                    color: "Color", create: "Create", manage: "Manage Tags",
-                    all: "All", deleteConfirm: "Delete this tag?"
-                },
-                batch: {
-                    selected: "selected", selectAll: "Select all",
-                    clearSelection: "Clear", brief: "Brief", report: "Report",
-                    generating: "Generating...", download: "Download PDF", close: "Close"
-                },
-                plans: {
-                    free: "Free", pro: "Pro", premium: "Premium",
-                    current: "Current plan", upgrade: "Upgrade Plan",
-                    upgradePrompt: "You've reached your plan limit"
-                },
-                empty: { title: "Nothing here yet", subtitle: "Forward your first newsletter" }
-            }
-        };
-
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8080/api'
+            : 'https://brevisapp-production.up.railway.app/api';
+        
         function App() {
+            const [language, setLanguage] = useState('es');
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [authMode, setAuthMode] = useState('login');
-            const [language, setLanguage] = useState('es');
-
-            useEffect(() => {
-                checkAuth();
-            }, []);
-
-            useEffect(() => {
-                if (user) {
-                    setLanguage(user.language || 'es');
-                }
-            }, [user]);
-
+            
+            useEffect(() => { checkAuth(); }, []);
+            
             const checkAuth = async () => {
                 try {
-                    const response = await fetch(`${API_URL}/auth/me`, {
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        setUser(data);
-                        setLanguage(data.language || 'es');
-                    }
-                } catch (error) {
-                    console.error('Auth check failed:', error);
+                    const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
+                    if (res.ok) setUser((await res.json()).user);
+                } catch (e) {
+                    console.error('Auth error:', e);
                 } finally {
                     setLoading(false);
                 }
             };
-
-            const logout = async () => {
-                try {
-                    await fetch(`${API_URL}/auth/logout`, {
-                        method: 'POST',
-                        credentials: 'include'
-                    });
-                    setUser(null);
-                } catch (error) {
-                    console.error('Logout failed:', error);
+            
+            if (loading) return <div className="auth-container">Cargando...</div>;
+            if (!user) return <Auth onLogin={checkAuth} language={language} setLanguage={setLanguage} />;
+            return <Dashboard user={user} setUser={setUser} language={language} setLanguage={setLanguage} />;
+        }
+        
+        function Auth({ onLogin, language, setLanguage }) {
+            const [isLogin, setIsLogin] = useState(true);
+            const [formData, setFormData] = useState({ email: '', password: '', name: '' });
+            
+            const t = {
+                es: {
+                    app: { tagline: "Tu lista de lectura. Curada. Resumida." },
+                    auth: {
+                        login: "Iniciar Sesión", register: "Crear Cuenta",
+                        email: "Email", password: "Contraseña", name: "Nombre",
+                        noAccount: "¿No tienes cuenta?", hasAccount: "¿Ya tienes cuenta?",
+                        signUp: "Regístrate", signIn: "Inicia sesión"
+                    }
+                },
+                en: {
+                    app: { tagline: "Your reading list. Curated. Summarized." },
+                    auth: {
+                        login: "Login", register: "Sign Up",
+                        email: "Email", password: "Password", name: "Name",
+                        noAccount: "Don't have an account?", hasAccount: "Already have an account?",
+                        signUp: "Sign up", signIn: "Sign in"
+                    }
                 }
             };
-
-            const t = translations[language] || translations.es;
-
-            if (loading) {
-                return (
-                    <div className="auth-container">
-                        <div className="auth-box">
-                            <div className="logo-container">
-                                <div className="logo-mark"><span></span></div>
-                                <div className="logo-text">
-                                    
-                                    <span className="logo-brevis">BREVIS</span>
-                                </div>
-                            </div>
-                            <div style={{textAlign: 'center', color: '#666'}}>Loading...</div>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (!user) {
-                return authMode === 'login' ? 
-                    <LoginForm setUser={setUser} setAuthMode={setAuthMode} t={t} /> : 
-                    <RegisterForm setUser={setUser} setAuthMode={setAuthMode} t={t} />;
-            }
-
-            return <Dashboard user={user} setUser={setUser} logout={logout} language={language} setLanguage={setLanguage} t={t} />;
-        }
-
-        function LoginForm({ setUser, setAuthMode, t }) {
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            const [error, setError] = useState('');
-            const [loading, setLoading] = useState(false);
-
+            const translations = t[language];
+            
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setError('');
-                setLoading(true);
-
                 try {
-                    const response = await fetch(`${API_URL}/auth/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password }),
-                        credentials: 'include'
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Login error');
-                    }
-
-                    setUser(data.user);
-                } catch (err) {
-                    setError(err.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            return (
-                <div className="auth-container">
-                    <div className="auth-box">
-                        <div className="logo-container">
-                            <div className="logo-mark"><span></span></div>
-                            <div className="logo-text">
-                                
-                                <span className="logo-brevis">BREVIS</span>
-                            </div>
-                        </div>
-                        
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label className="form-label">{t.auth.email}</label>
-                                <input
-                                    type="email"
-                                    className="form-input"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-                            
-                            <div className="form-group">
-                                <label className="form-label">{t.auth.password}</label>
-                                <input
-                                    type="password"
-                                    className="form-input"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            {error && <div className="error-message">{error}</div>}
-
-                            <button type="submit" className="btn btn-primary" style={{width: '100%'}} disabled={loading}>
-                                {loading ? '...' : t.auth.login}
-                            </button>
-                        </form>
-
-                        <div className="switch-auth">
-                            {t.auth.noAccount}{' '}
-                            <span className="switch-link" onClick={() => setAuthMode('register')}>
-                                {t.auth.register}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function RegisterForm({ setUser, setAuthMode, t }) {
-            const [name, setName] = useState('');
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            const [error, setError] = useState('');
-            const [loading, setLoading] = useState(false);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setError('');
-                setLoading(true);
-
-                if (password.length < 8) {
-                    setError(t.auth.passwordMin);
-                    setLoading(false);
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_URL}/auth/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password }),
-                        credentials: 'include'
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Registration error');
-                    }
-
-                    setUser(data.user);
-                } catch (err) {
-                    setError(err.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            return (
-                <div className="auth-container">
-                    <div className="auth-box">
-                        <div className="logo-container">
-                            <div className="logo-mark"><span></span></div>
-                            <div className="logo-text">
-                                
-                                <span className="logo-brevis">BREVIS</span>
-                            </div>
-                        </div>
-                        
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label className="form-label">{t.auth.name}</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">{t.auth.email}</label>
-                                <input
-                                    type="email"
-                                    className="form-input"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            
-                            <div className="form-group">
-                                <label className="form-label">{t.auth.passwordMin}</label>
-                                <input
-                                    type="password"
-                                    className="form-input"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength="8"
-                                />
-                            </div>
-
-                            {error && <div className="error-message">{error}</div>}
-
-                            <button type="submit" className="btn btn-primary" style={{width: '100%'}} disabled={loading}>
-                                {loading ? '...' : t.auth.register}
-                            </button>
-                        </form>
-
-                        <div className="switch-auth">
-                            {t.auth.hasAccount}{' '}
-                            <span className="switch-link" onClick={() => setAuthMode('login')}>
-                                {t.auth.login}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function Dashboard({ user, setUser, logout, language, setLanguage, t }) {
-            const [newsletters, setNewsletters] = React.useState([]);
-            const [tags, setTags] = React.useState([]);
-            const [filter, setFilter] = React.useState('all');
-            const [searchTerm, setSearchTerm] = React.useState('');
-            const [selectedTag, setSelectedTag] = React.useState(null);
-            const [showAddForm, setShowAddForm] = React.useState(false);
-            const [showTagManager, setShowTagManager] = React.useState(false);
-            const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
-            const [readingNewsletter, setReadingNewsletter] = React.useState(null);
-            const [selectionMode, setSelectionMode] = React.useState(false);
-            const [selectedNewsletters, setSelectedNewsletters] = React.useState([]);
-            const [generatingSummary, setGeneratingSummary] = React.useState({});
-            const [generatingBatch, setGeneratingBatch] = React.useState(false);
-            const [showBatchResult, setShowBatchResult] = React.useState(null);
-            const [showTagMenuFor, setShowTagMenuFor] = React.useState(null);
-            const [formData, setFormData] = React.useState({
-                title: '',
-                sender: '',
-                content: '',
-                url: ''
-            });
-
-            React.useEffect(() => {
-                fetchNewsletters();
-                fetchTags();
-            }, []);
-
-            const fetchNewsletters = async () => {
-                try {
-                    const response = await fetch(`${API_URL}/newsletters`, {
-                        credentials: 'include'
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setNewsletters(data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching newsletters:', error);
-                }
-            };
-
-            const fetchTags = async () => {
-                try {
-                    const response = await fetch(`${API_URL}/tags`, {
-                        credentials: 'include'
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setTags(data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching tags:', error);
-                }
-            };
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                
-                if (user.newsletters_limit > 0 && user.newsletters_count >= user.newsletters_limit) {
-                    setShowUpgradeModal(true);
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_URL}/newsletters`, {
+                    const res = await fetch(`${API_URL}/auth/${isLogin ? 'login' : 'register'}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify(formData)
                     });
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        if (error.error === 'Newsletter limit reached') {
-                            setShowUpgradeModal(true);
-                            return;
-                        }
-                        throw new Error(error.error);
-                    }
-
-                    const newNewsletter = await response.json();
-                    setNewsletters([newNewsletter, ...newsletters]);
-                    setFormData({ title: '', sender: '', content: '', url: '' });
-                    setShowAddForm(false);
-                    setUser({...user, newsletters_count: user.newsletters_count + 1});
-                } catch (error) {
-                    console.error('Error adding newsletter:', error);
-                    alert('Error adding newsletter: ' + error.message);
+                    if (res.ok) onLogin();
+                    else alert((await res.json()).error || 'Error');
+                } catch (e) {
+                    alert('Error de conexión');
                 }
             };
-
-            const toggleRead = async (id) => {
+            
+            return (
+                <div className="auth-container">
+                    <div className="auth-box">
+                        <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
+                            <div className="logo-mark"></div>
+                            <div className="logo-text">BREVIS</div>
+                        </div>
+                        <div className="tagline" style={{textAlign: 'center', marginBottom: '32px'}}>{translations.app.tagline}</div>
+                        <form onSubmit={handleSubmit}>
+                            {!isLogin && (
+                                <div className="form-group">
+                                    <label className="form-label">{translations.auth.name}</label>
+                                    <input type="text" className="form-input" value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                                </div>
+                            )}
+                            <div className="form-group">
+                                <label className="form-label">{translations.auth.email}</label>
+                                <input type="email" className="form-input" value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{translations.auth.password}</label>
+                                <input type="password" className="form-input" value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})} required />
+                            </div>
+                            <button type="submit" className="btn btn-primary btn-full">
+                                {isLogin ? translations.auth.login : translations.auth.register}
+                            </button>
+                        </form>
+                        <div style={{textAlign: 'center', marginTop: '24px', fontSize: '14px'}}>
+                            {isLogin ? translations.auth.noAccount : translations.auth.hasAccount}{' '}
+                            <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); }}
+                                style={{color: '#000', fontWeight: '600', textDecoration: 'none'}}>
+                                {isLogin ? translations.auth.signUp : translations.auth.signIn}
+                            </a>
+                        </div>
+                        <div style={{textAlign: 'center', marginTop: '16px'}}>
+                            <button className="lang-toggle" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>
+                                {language === 'es' ? 'EN' : 'ES'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        function Dashboard({ user, setUser, language, setLanguage }) {
+            const [newsletters, setNewsletters] = useState([]);
+            const [tags, setTags] = useState([]);
+            const [savedReports, setSavedReports] = useState([]);
+            const [sidebarView, setSidebarView] = useState('all');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [showTagManager, setShowTagManager] = useState(false);
+            const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+            const [showProfileModal, setShowProfileModal] = useState(false);
+            const [showUserDropdown, setShowUserDropdown] = useState(false);
+            const [readingNewsletter, setReadingNewsletter] = useState(null);
+            const [selectionMode, setSelectionMode] = useState(false);
+            const [selectedNewsletters, setSelectedNewsletters] = useState([]);
+            const [generatingSummary, setGeneratingSummary] = useState({});
+            const [generatingBatch, setGeneratingBatch] = useState(false);
+            const [showBatchResult, setShowBatchResult] = useState(null);
+            const [showTagMenuFor, setShowTagMenuFor] = useState(null);
+            const [formData, setFormData] = useState({ title: '', sender: '', content: '', url: '' });
+            
+            const t = {
+                es: {
+                    app: { tagline: "Tu lista de lectura. Curada. Resumida." },
+                    nav: { search: "Buscar...", add: "+ Añadir", tags: "Etiquetas" },
+                    sidebar: {
+                        main: "Principal", all: "Todo", unread: "Sin leer", read: "Leídos",
+                        tags: "Etiquetas", reports: "Reportes"
+                    },
+                    newsletter: {
+                        title: "Título", from: "De", content: "Contenido", url: "URL (opcional)",
+                        add: "Añadir Newsletter", read: "Leer", summary: "Resumen",
+                        generating: "Generando...", original: "Ver Original", delete: "Eliminar",
+                        markRead: "Marcar como leído", markUnread: "Marcar como no leído", new: "NUEVO"
+                    },
+                    email: { label: "Email para enviar tus newsletters" },
+                    selection: {
+                        selected: "seleccionados", clearSelection: "Limpiar",
+                        brief: "Brief", report: "Reporte"
+                    },
+                    plans: {
+                        free: "Gratis", pro: "Pro", premium: "Premium",
+                        upgrade: "Mejorar Plan", upgradePrompt: "Llegas al límite de tu plan"
+                    },
+                    profile: {
+                        title: "Mi Perfil", name: "Nombre", email: "Email",
+                        newPassword: "Nueva Contraseña", save: "Guardar", cancel: "Cancelar",
+                        plan: "Plan", changePlan: "Cambiar Plan"
+                    },
+                    auth: { logout: "Salir" },
+                    empty: {
+                        title: "No hay newsletters",
+                        subtitle: "Envía tu primer newsletter o añádelo manualmente"
+                    }
+                },
+                en: {
+                    app: { tagline: "Your reading list. Curated. Summarized." },
+                    nav: { search: "Search...", add: "+ Add", tags: "Tags" },
+                    sidebar: {
+                        main: "Main", all: "All", unread: "Unread", read: "Read",
+                        tags: "Tags", reports: "Reports"
+                    },
+                    newsletter: {
+                        title: "Title", from: "From", content: "Content", url: "URL (optional)",
+                        add: "Add Newsletter", read: "Read", summary: "Summary",
+                        generating: "Generating...", original: "View Original", delete: "Delete",
+                        markRead: "Mark as read", markUnread: "Mark as unread", new: "NEW"
+                    },
+                    email: { label: "Email to send your newsletters" },
+                    selection: {
+                        selected: "selected", clearSelection: "Clear",
+                        brief: "Brief", report: "Report"
+                    },
+                    plans: {
+                        free: "Free", pro: "Pro", premium: "Premium",
+                        upgrade: "Upgrade Plan", upgradePrompt: "Reaching your plan limit"
+                    },
+                    profile: {
+                        title: "My Profile", name: "Name", email: "Email",
+                        newPassword: "New Password", save: "Save", cancel: "Cancel",
+                        plan: "Plan", changePlan: "Change Plan"
+                    },
+                    auth: { logout: "Logout" },
+                    empty: {
+                        title: "No newsletters",
+                        subtitle: "Send your first newsletter or add it manually"
+                    }
+                }
+            };
+            const translations = t[language];
+            
+            useEffect(() => {
+                fetchNewsletters();
+                fetchTags();
+                loadSavedReports();
+            }, []);
+            
+            const fetchNewsletters = async () => {
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/${id}/read`, {
-                        method: 'PUT',
-                        credentials: 'include'
+                    const res = await fetch(`${API_URL}/newsletters`, { credentials: 'include' });
+                    if (res.ok) setNewsletters(await res.json());
+                } catch (e) { console.error('Error:', e); }
+            };
+            
+            const fetchTags = async () => {
+                try {
+                    const res = await fetch(`${API_URL}/tags`, { credentials: 'include' });
+                    if (res.ok) setTags(await res.json());
+                } catch (e) { console.error('Error:', e); }
+            };
+            
+            const loadSavedReports = () => {
+                try {
+                    const saved = localStorage.getItem('brevis_saved_reports');
+                    if (saved) setSavedReports(JSON.parse(saved));
+                } catch (e) { console.error('Error:', e); }
+            };
+            
+            const saveReport = (report) => {
+                const newReport = {
+                    id: Date.now(),
+                    name: `${report.type === 'brief' ? 'Brief' : 'Reporte'} - ${new Date().toLocaleDateString()}`,
+                    type: report.type,
+                    content: report.content,
+                    date: new Date().toISOString()
+                };
+                const updated = [...savedReports, newReport];
+                setSavedReports(updated);
+                localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
+            };
+            
+            const deleteReport = (id) => {
+                const updated = savedReports.filter(r => r.id !== id);
+                setSavedReports(updated);
+                localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
+            };
+            
+            const renameReport = (id, newName) => {
+                const updated = savedReports.map(r => r.id === id ? {...r, name: newName} : r);
+                setSavedReports(updated);
+                localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
+            };
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await fetch(`${API_URL}/newsletters`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(formData)
                     });
-                    if (response.ok) {
-                        const updated = await response.json();
-                        setNewsletters(newsletters.map(n => n.id === id ? updated : n));
+                    if (res.ok) {
+                        fetchNewsletters();
+                        setFormData({ title: '', sender: '', content: '', url: '' });
+                        setShowAddForm(false);
+                        setUser({...user, newsletters_count: user.newsletters_count + 1});
+                    }
+                } catch (e) { console.error('Error:', e); }
+            };
+            
+            const toggleRead = async (id) => {
+                const newsletter = newsletters.find(n => n.id === id);
+                try {
+                    const res = await fetch(`${API_URL}/newsletters/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ is_read: newsletter.is_read ? 0 : 1 })
+                    });
+                    if (res.ok) {
+                        setNewsletters(newsletters.map(n => n.id === id ? { ...n, is_read: !n.is_read } : n));
                         if (readingNewsletter?.id === id) {
-                            setReadingNewsletter(updated);
+                            setReadingNewsletter({...readingNewsletter, is_read: !readingNewsletter.is_read});
                         }
                     }
-                } catch (error) {
-                    console.error('Error toggling read:', error);
-                }
+                } catch (e) { console.error('Error:', e); }
             };
-
+            
             const deleteNewsletter = async (id) => {
-                if (!confirm(t.newsletter.delete + '?')) return;
+                if (!confirm('¿Eliminar newsletter?')) return;
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/${id}`, {
+                    const res = await fetch(`${API_URL}/newsletters/${id}`, {
                         method: 'DELETE',
                         credentials: 'include'
                     });
-                    if (response.ok) {
+                    if (res.ok) {
                         setNewsletters(newsletters.filter(n => n.id !== id));
-                        if (readingNewsletter?.id === id) {
-                            setReadingNewsletter(null);
-                        }
+                        if (readingNewsletter?.id === id) setReadingNewsletter(null);
                         setUser({...user, newsletters_count: user.newsletters_count - 1});
                     }
-                } catch (error) {
-                    console.error('Error deleting newsletter:', error);
-                }
+                } catch (e) { console.error('Error:', e); }
             };
-
+            
             const generateSummary = async (id) => {
                 if (user.plan === 'free') {
                     setShowUpgradeModal(true);
                     return;
                 }
-                // Premium and Pro can generate summaries
                 setGeneratingSummary({...generatingSummary, [id]: true});
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/${id}/summary`, {
+                    const res = await fetch(`${API_URL}/newsletters/${id}/summary`, {
                         method: 'POST',
                         credentials: 'include'
                     });
-                    if (!response.ok) {
-                        const error = await response.json();
+                    if (!res.ok) {
+                        const error = await res.json();
                         if (error.plan) {
                             setShowUpgradeModal(true);
                             return;
                         }
                         throw new Error(error.error);
                     }
-                    const data = await response.json();
-                    setNewsletters(newsletters.map(n => 
-                        n.id === id ? { ...n, summary: data.summary } : n
-                    ));
+                    const data = await res.json();
+                    setNewsletters(newsletters.map(n => n.id === id ? { ...n, summary: data.summary } : n));
                     if (readingNewsletter?.id === id) {
                         setReadingNewsletter({...readingNewsletter, summary: data.summary});
                     }
-                } catch (error) {
-                    console.error('Error generating summary:', error);
-                    alert('Error: ' + error.message);
+                } catch (e) {
+                    alert('Error: ' + e.message);
                 } finally {
                     setGeneratingSummary({...generatingSummary, [id]: false});
                 }
             };
-
+            
             const generateBrief = async () => {
                 if (selectedNewsletters.length === 0) return;
                 if (user.plan === 'free') {
                     setShowUpgradeModal(true);
                     return;
                 }
-                
                 setGeneratingBatch(true);
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/brief`, {
+                    const res = await fetch(`${API_URL}/newsletters/brief`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ newsletter_ids: selectedNewsletters })
                     });
-                    
-                    if (!response.ok) throw new Error('Failed to generate brief');
-                    
-                    const data = await response.json();
-                    setShowBatchResult({ type: 'brief', content: data.brief });
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
+                    const result = { type: 'brief', content: data.brief };
+                    setShowBatchResult(result);
+                    saveReport(result);
                     setSelectionMode(false);
                     setSelectedNewsletters([]);
-                } catch (error) {
-                    console.error('Error generating brief:', error);
+                } catch (e) {
                     alert('Error generating brief');
                 } finally {
                     setGeneratingBatch(false);
                 }
             };
-
+            
             const generateReport = async () => {
                 if (selectedNewsletters.length === 0) return;
                 if (user.plan !== 'premium') {
                     setShowUpgradeModal(true);
                     return;
                 }
-                
                 setGeneratingBatch(true);
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/report`, {
+                    const res = await fetch(`${API_URL}/newsletters/report`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ newsletter_ids: selectedNewsletters })
                     });
-                    
-                    if (!response.ok) throw new Error('Failed to generate report');
-                    
-                    const data = await response.json();
-                    setShowBatchResult({ type: 'report', content: data.report });
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
+                    const result = { type: 'report', content: data.report };
+                    setShowBatchResult(result);
+                    saveReport(result);
                     setSelectionMode(false);
                     setSelectedNewsletters([]);
-                } catch (error) {
-                    console.error('Error generating report:', error);
+                } catch (e) {
                     alert('Error generating report');
                 } finally {
                     setGeneratingBatch(false);
                 }
             };
-
+            
             const addTagToNewsletter = async (newsletterId, tagId) => {
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
+                    const res = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
                         method: 'POST',
                         credentials: 'include'
                     });
-                    
-                    if (!response.ok) throw new Error('Failed to add tag');
-                    
-                    const updatedNewsletter = await response.json();
-                    setNewsletters(newsletters.map(n => 
-                        n.id === newsletterId ? updatedNewsletter : n
-                    ));
-                    if (readingNewsletter?.id === newsletterId) {
-                        setReadingNewsletter(updatedNewsletter);
-                    }
-                } catch (error) {
-                    console.error('Error adding tag:', error);
-                }
+                    if (!res.ok) throw new Error('Failed');
+                    const updated = await res.json();
+                    setNewsletters(newsletters.map(n => n.id === newsletterId ? updated : n));
+                    if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
+                } catch (e) { console.error('Error:', e); }
             };
-
+            
             const removeTagFromNewsletter = async (newsletterId, tagId) => {
                 try {
-                    const response = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
+                    const res = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
                         method: 'DELETE',
                         credentials: 'include'
                     });
-                    
-                    if (!response.ok) throw new Error('Failed to remove tag');
-                    
-                    const updatedNewsletter = await response.json();
-                    setNewsletters(newsletters.map(n => 
-                        n.id === newsletterId ? updatedNewsletter : n
-                    ));
-                    if (readingNewsletter?.id === newsletterId) {
-                        setReadingNewsletter(updatedNewsletter);
-                    }
-                } catch (error) {
-                    console.error('Error removing tag:', error);
-                }
+                    if (!res.ok) throw new Error('Failed');
+                    const updated = await res.json();
+                    setNewsletters(newsletters.map(n => n.id === newsletterId ? updated : n));
+                    if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
+                } catch (e) { console.error('Error:', e); }
             };
-
-            const filteredNewsletters = newsletters.filter(n => {
-                const matchesFilter = filter === 'all' || 
-                    (filter === 'unread' && !n.is_read) || 
-                    (filter === 'read' && n.is_read);
-                const matchesSearch = searchTerm === '' || 
-                    n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    n.sender.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesTag = !selectedTag || 
-                    (n.tags && n.tags.some(t => t.id === selectedTag));
-                return matchesFilter && matchesSearch && matchesTag;
-            });
-
+            
+            const logout = async () => {
+                try {
+                    await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+                    setUser(null);
+                } catch (e) { console.error('Error:', e); }
+            };
+            
+            const getFilteredNewsletters = () => {
+                let filtered = newsletters;
+                if (sidebarView === 'unread') filtered = filtered.filter(n => !n.is_read);
+                else if (sidebarView === 'read') filtered = filtered.filter(n => n.is_read);
+                else if (sidebarView.startsWith('tag:')) {
+                    const tagId = parseInt(sidebarView.split(':')[1]);
+                    filtered = filtered.filter(n => n.tags && n.tags.some(t => t.id === tagId));
+                }
+                if (searchTerm) {
+                    filtered = filtered.filter(n => 
+                        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        n.sender.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                }
+                return filtered;
+            };
+            
+            const filteredNewsletters = getFilteredNewsletters();
             const planPercentage = user.newsletters_limit > 0 
                 ? Math.round((user.newsletters_count / user.newsletters_limit) * 100)
                 : 0;
             const showLimitWarning = planPercentage >= 80;
-
+            
             return (
-                <div className="container">
-                    <div className="header">
-                        <div>
-                            <div className="logo-container" style={{marginBottom: '8px', justifyContent: 'flex-start'}}>
-                                <div className="logo-mark"><span></span></div>
-                                <div className="logo-text">
-                                    <span className="logo-brevis">BREVIS</span>
-                                </div>
+                <div className="app-layout">
+                    <div className="sidebar">
+                        <div className="sidebar-logo">
+                            <div className="logo-container">
+                                <div className="logo-mark"></div>
+                                <div className="logo-text">BREVIS</div>
                             </div>
-                            <div className="tagline">{t.app.tagline}</div>
                         </div>
-                        <div className="user-menu">
-                            <span className="plan-badge">{t.plans[user.plan]}</span>
-                            <button className="lang-toggle" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>
-                                {language === 'es' ? 'EN' : 'ES'}
+                        <div className="sidebar-section">
+                            <div className="sidebar-title">{translations.sidebar.main}</div>
+                            <button className={`sidebar-item ${sidebarView === 'all' ? 'active' : ''}`}
+                                onClick={() => setSidebarView('all')}>
+                                <span className="sidebar-item-icon">📧</span>
+                                <span className="sidebar-item-label">{translations.sidebar.all}</span>
+                                <span className="sidebar-item-count">{newsletters.length}</span>
                             </button>
-                            <span className="user-email">{user.email}</span>
-                            <button className="btn btn-small" onClick={logout}>{t.auth.logout}</button>
-                        </div>
-                    </div>
-
-                    {showLimitWarning && (
-                        <div className="upgrade-banner">
-                            <div className="upgrade-text">
-                                <div className="upgrade-title">{t.plans.upgradePrompt}</div>
-                                <div className="upgrade-subtitle">
-                                    {user.newsletters_count} / {user.newsletters_limit} newsletters
-                                </div>
-                            </div>
-                            <button className="btn btn-upgrade" onClick={() => setShowUpgradeModal(true)}>
-                                {t.plans.upgrade}
+                            <button className={`sidebar-item ${sidebarView === 'unread' ? 'active' : ''}`}
+                                onClick={() => setSidebarView('unread')}>
+                                <span className="sidebar-item-icon">●</span>
+                                <span className="sidebar-item-label">{translations.sidebar.unread}</span>
+                                <span className="sidebar-item-count">{newsletters.filter(n => !n.is_read).length}</span>
+                            </button>
+                            <button className={`sidebar-item ${sidebarView === 'read' ? 'active' : ''}`}
+                                onClick={() => setSidebarView('read')}>
+                                <span className="sidebar-item-icon">✓</span>
+                                <span className="sidebar-item-label">{translations.sidebar.read}</span>
+                                <span className="sidebar-item-count">{newsletters.filter(n => n.is_read).length}</span>
                             </button>
                         </div>
-                    )}
-
-                    {user.newsletters_limit > 0 && (
-                        <div className="plan-indicator">
-                            <div className="plan-info">
-                                <div>
-                                    <div style={{fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px'}}>
-                                        {t.plans.current}: {t.plans[user.plan]}
-                                    </div>
-                                    <div className="plan-usage">
-                                        {user.newsletters_count} / {user.newsletters_limit} newsletters
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="plan-progress">
-                                <div 
-                                    className={`plan-progress-bar ${planPercentage >= 90 ? 'danger' : planPercentage >= 80 ? 'warning' : ''}`}
-                                    style={{width: `${Math.min(planPercentage, 100)}%`}}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="email-display">
-                        <div className="email-label">{t.email.label}</div>
-                        <div className="email-code">{user.email_code}@newsletters.brevisapp.com</div>
-                    </div>
-
-                    <div className="nav">
-                        <div className="search-box">
-                            <input
-                                type="text"
-                                className="search-input"
-                                placeholder={t.nav.search}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <button className="btn btn-small" onClick={() => setShowTagManager(true)}>
-                            {t.tags.title}
-                        </button>
-                        <button className="btn btn-small" onClick={() => {
-                            setSelectionMode(!selectionMode);
-                            setSelectedNewsletters([]);
-                        }}>
-                            {selectionMode ? '✓' : '☐'} Select
-                        </button>
-                        <button className="btn btn-small btn-primary" onClick={() => setShowAddForm(true)}>
-                            {t.nav.add}
-                        </button>
-                    </div>
-
-                    {tags.length > 0 && (
-                        <div className="tag-filter">
-                            <button
-                                className={`tag-chip ${!selectedTag ? 'active' : ''}`}
-                                style={{borderColor: '#000', color: !selectedTag ? '#FFF' : '#000', background: !selectedTag ? '#000' : 'transparent'}}
-                                onClick={() => setSelectedTag(null)}
-                            >
-                                {t.tags.all}
-                            </button>
-                            {tags.map(tag => (
-                                <button
-                                    key={tag.id}
-                                    className={`tag-chip ${selectedTag === tag.id ? 'active' : ''}`}
-                                    style={{
-                                        borderColor: tag.color,
-                                        color: selectedTag === tag.id ? '#FFF' : tag.color,
-                                        background: selectedTag === tag.id ? tag.color : 'transparent'
-                                    }}
-                                    onClick={() => setSelectedTag(selectedTag === tag.id ? null : tag.id)}
-                                >
-                                    {tag.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="stats">
-                        <button className={`stat-item ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
-                            <div className="stat-number">{newsletters.length}</div>
-                            <div className="stat-label">{t.stats.total}</div>
-                        </button>
-                        <button className={`stat-item ${filter === 'unread' ? 'active' : ''}`} onClick={() => setFilter('unread')}>
-                            <div className="stat-number">{newsletters.filter(n => !n.is_read).length}</div>
-                            <div className="stat-label">{t.stats.unread}</div>
-                        </button>
-                        <button className={`stat-item ${filter === 'read' ? 'active' : ''}`} onClick={() => setFilter('read')}>
-                            <div className="stat-number">{newsletters.filter(n => n.is_read).length}</div>
-                            <div className="stat-label">{t.stats.read}</div>
-                        </button>
-                    </div>
-
-                    {selectionMode && selectedNewsletters.length > 0 && (
-                        <div className="selection-bar">
-                            <div className="selection-info">
-                                {selectedNewsletters.length} {t.selection.selected}
-                            </div>
-                            <div className="selection-actions">
-                                <button 
-                                    className="btn btn-small" 
-                                    onClick={() => setSelectedNewsletters([])}
-                                >
-                                    {t.selection.clearSelection}
-                                </button>
-                                <button 
-                                    className="btn btn-small" 
-                                    onClick={generateBrief}
-                                    disabled={generatingBatch || user.plan === 'free'}
-                                >
-                                    {generatingBatch ? '⏳' : '📝'} {t.selection.brief}
-                                </button>
-                                {user.plan === 'premium' && (
-                                    <button 
-                                        className="btn btn-small btn-primary" 
-                                        onClick={generateReport}
-                                        disabled={generatingBatch}
-                                    >
-                                        {generatingBatch ? '⏳' : '📊'} {t.selection.report}
+                        {tags.length > 0 && (
+                            <div className="sidebar-section">
+                                <div className="sidebar-title">{translations.sidebar.tags}</div>
+                                {tags.map(tag => (
+                                    <button key={tag.id}
+                                        className={`sidebar-item sidebar-tag-item ${sidebarView === `tag:${tag.id}` ? 'active' : ''}`}
+                                        onClick={() => setSidebarView(`tag:${tag.id}`)}>
+                                        <span className="sidebar-item-icon" style={{color: tag.color}}>●</span>
+                                        <span className="sidebar-item-label">{tag.name}</span>
                                     </button>
-                                )}
+                                ))}
                             </div>
-                        </div>
-                    )}
-
-                    {filteredNewsletters.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="empty-title">{t.empty.title}</div>
-                            <div className="empty-text">{t.empty.subtitle}</div>
-                        </div>
-                    ) : (
-                        filteredNewsletters.map(newsletter => (
-                            <div key={newsletter.id} className={`newsletter-card ${newsletter.is_read ? 'read' : ''} ${selectionMode ? 'selecting' : ''}`}>
-                                {selectionMode && (
-                                    <input
-                                        type="checkbox"
-                                        className="newsletter-checkbox"
-                                        checked={selectedNewsletters.includes(newsletter.id)}
-                                        onChange={() => {
-                                            if (selectedNewsletters.includes(newsletter.id)) {
-                                                setSelectedNewsletters(selectedNewsletters.filter(id => id !== newsletter.id));
-                                            } else {
-                                                setSelectedNewsletters([...selectedNewsletters, newsletter.id]);
-                                            }
-                                        }}
-                                    />
-                                )}
-                                <div className="newsletter-header">
-                                    <div style={{flex: 1}}>
-                                        <h2 className="newsletter-title">{newsletter.title}</h2>
-                                        <div className="newsletter-meta">
-                                            {newsletter.sender} — {new Date(newsletter.date_added).toLocaleDateString()}
-                                        </div>
-                                        {newsletter.tags && newsletter.tags.length > 0 && (
-                                            <div className="newsletter-tags">
-                                                {newsletter.tags.map(tag => (
-                                                    <span key={tag.id} className="newsletter-tag" style={{borderColor: tag.color, color: tag.color}}>
-                                                        {tag.name}
-                                                    </span>
-                                                ))}
+                        )}
+                        {savedReports.length > 0 && (
+                            <div className="sidebar-section">
+                                <div className="sidebar-title">{translations.sidebar.reports}</div>
+                                {savedReports.map(report => (
+                                    <div key={report.id} className="sidebar-report-item"
+                                        onClick={() => setShowBatchResult(report)}>
+                                        <span>{report.type === 'brief' ? '📝' : '📊'}</span>
+                                        <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                            {report.name}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="main-content">
+                        <div className="container">
+                            <div className="header">
+                                <div className="tagline">{translations.app.tagline}</div>
+                                <div className="user-menu">
+                                    <span className="plan-badge">{translations.plans[user.plan]}</span>
+                                    <button className="lang-toggle" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>
+                                        {language === 'es' ? 'EN' : 'ES'}
+                                    </button>
+                                    <button className="user-name-button" onClick={() => setShowUserDropdown(!showUserDropdown)}>
+                                        {user.name} <span>▼</span>
+                                    </button>
+                                    {showUserDropdown && (
+                                        <div className="user-dropdown">
+                                            <div className="user-dropdown-info">
+                                                <div>{user.name}</div>
+                                                <div className="user-dropdown-email">{user.email}</div>
                                             </div>
-                                        )}
-                                        {!newsletter.is_read && <span className="badge">{t.newsletter.new}</span>}
-                                    </div>
-                                </div>
-                                {newsletter.summary && (
-                                    <div className="summary-box">
-                                        <div className="summary-label">{t.newsletter.summary}</div>
-                                        <div className="summary-text">{newsletter.summary}</div>
-                                    </div>
-                                )}
-                                <div className="newsletter-content">{newsletter.content}</div>
-                                <div className="actions">
-                                    <button className="btn btn-primary" onClick={() => setReadingNewsletter(newsletter)}>
-                                        {t.newsletter.read}
-                                    </button>
-                                    {!newsletter.summary && user.plan !== 'free' && (
-                                        <button 
-                                            className="btn" 
-                                            onClick={() => generateSummary(newsletter.id)}
-                                            disabled={generatingSummary[newsletter.id]}
-                                        >
-                                            {generatingSummary[newsletter.id] ? t.newsletter.generating : t.newsletter.summary}
-                                        </button>
-                                    )}
-                                    {newsletter.url && (
-                                        <a href={newsletter.url} target="_blank" rel="noopener noreferrer" className="btn">
-                                            {t.newsletter.original}
-                                        </a>
-                                    )}
-                                    <div style={{position: 'relative'}}>
-                                        <button 
-                                            className="btn" 
-                                            onClick={() => setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id)}
-                                        >
-                                            🏷️ {t.tags.title}
-                                        </button>
-                                        {showTagMenuFor === newsletter.id && tags.length > 0 && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '100%',
-                                                right: 0,
-                                                marginTop: '4px',
-                                                background: '#FFF',
-                                                border: '1px solid #E5E5E5',
-                                                borderRadius: '4px',
-                                                padding: '8px',
-                                                minWidth: '200px',
-                                                zIndex: 10,
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                            <div className="user-dropdown-item" onClick={() => {
+                                                setShowProfileModal(true);
+                                                setShowUserDropdown(false);
                                             }}>
-                                                {tags.map(tag => {
-                                                    const hasTag = newsletter.tags && newsletter.tags.some(t => t.id === tag.id);
-                                                    return (
-                                                        <div 
-                                                            key={tag.id}
-                                                            style={{
-                                                                padding: '8px',
-                                                                cursor: 'pointer',
-                                                                borderRadius: '4px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '8px'
-                                                            }}
-                                                            onClick={() => {
-                                                                if (hasTag) {
-                                                                    removeTagFromNewsletter(newsletter.id, tag.id);
-                                                                } else {
-                                                                    addTagToNewsletter(newsletter.id, tag.id);
-                                                                }
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
-                                                            onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                                        >
-                                                            <span style={{fontSize: '16px'}}>{hasTag ? '✓' : '○'}</span>
-                                                            <span style={{
-                                                                display: 'inline-block',
-                                                                width: '12px',
-                                                                height: '12px',
-                                                                borderRadius: '50%',
-                                                                background: tag.color
-                                                            }}></span>
-                                                            <span>{tag.name}</span>
-                                                        </div>
-                                                    );
-                                                })}
+                                                <span>👤</span>
+                                                <span>{translations.profile.title}</span>
                                             </div>
-                                        )}
-                                    </div>
-                                    <button className="btn" onClick={() => deleteNewsletter(newsletter.id)}>
-                                        {t.newsletter.delete}
-                                    </button>
+                                            <div className="user-dropdown-item" onClick={logout}>
+                                                <span>🚪</span>
+                                                <span>{translations.auth.logout}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        ))
-                    )}
-
-                    <div className="footer">
-                        <div className="footer-text">BREVIS Pro — 2026</div>
+                            {showLimitWarning && (
+                                <div className="upgrade-banner">
+                                    <div>
+                                        <div className="upgrade-title">{translations.plans.upgradePrompt}</div>
+                                        <div className="upgrade-subtitle">
+                                            {user.newsletters_count} / {user.newsletters_limit} newsletters
+                                        </div>
+                                    </div>
+                                    <button className="btn btn-upgrade" onClick={() => setShowUpgradeModal(true)}>
+                                        {translations.plans.upgrade}
+                                    </button>
+                                </div>
+                            )}
+                            {user.newsletters_limit > 0 && (
+                                <div className="plan-indicator">
+                                    <div className="plan-info">
+                                        <div><strong>{user.newsletters_count}</strong> / {user.newsletters_limit} newsletters</div>
+                                        <div>{planPercentage}%</div>
+                                    </div>
+                                    <div className="plan-progress">
+                                        <div className={`plan-progress-bar ${planPercentage >= 90 ? 'danger' : planPercentage >= 80 ? 'warning' : ''}`}
+                                            style={{width: `${planPercentage}%`}}></div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="email-display">
+                                <div className="email-label">{translations.email.label}</div>
+                                <div className="email-code">{user.email_code}@newsletters.brevisapp.com</div>
+                            </div>
+                            <div className="nav">
+                                <div className="search-box">
+                                    <input type="text" className="search-input" placeholder={translations.nav.search}
+                                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                </div>
+                                <button className="btn btn-small" onClick={() => setShowTagManager(true)}>
+                                    {translations.nav.tags}
+                                </button>
+                                <button className="btn btn-small" onClick={() => {
+                                    setSelectionMode(!selectionMode);
+                                    setSelectedNewsletters([]);
+                                }}>
+                                    {selectionMode ? '✓' : '☐'} Select
+                                </button>
+                                <button className="btn btn-small btn-primary" onClick={() => setShowAddForm(true)}>
+                                    {translations.nav.add}
+                                </button>
+                            </div>
+                            {selectionMode && selectedNewsletters.length > 0 && (
+                                <div className="selection-bar">
+                                    <div className="selection-info">
+                                        {selectedNewsletters.length} {translations.selection.selected}
+                                    </div>
+                                    <div className="selection-actions">
+                                        <button className="btn btn-small" onClick={() => setSelectedNewsletters([])}>
+                                            {translations.selection.clearSelection}
+                                        </button>
+                                        {user.plan !== 'free' && (
+                                            <button className="btn btn-small" onClick={generateBrief} disabled={generatingBatch}>
+                                                {generatingBatch ? '⏳' : '📝'} {translations.selection.brief}
+                                            </button>
+                                        )}
+                                        {user.plan === 'premium' && (
+                                            <button className="btn btn-small btn-primary" onClick={generateReport} disabled={generatingBatch}>
+                                                {generatingBatch ? '⏳' : '📊'} {translations.selection.report}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {filteredNewsletters.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-title">{translations.empty.title}</div>
+                                    <div className="empty-text">{translations.empty.subtitle}</div>
+                                </div>
+                            ) : (
+                                filteredNewsletters.map(newsletter => (
+                                    <div key={newsletter.id} className={`newsletter-card ${newsletter.is_read ? 'read' : ''} ${selectionMode ? 'selecting' : ''}`}>
+                                        {selectionMode && (
+                                            <input type="checkbox" className="newsletter-checkbox"
+                                                checked={selectedNewsletters.includes(newsletter.id)}
+                                                onChange={() => {
+                                                    if (selectedNewsletters.includes(newsletter.id)) {
+                                                        setSelectedNewsletters(selectedNewsletters.filter(id => id !== newsletter.id));
+                                                    } else {
+                                                        setSelectedNewsletters([...selectedNewsletters, newsletter.id]);
+                                                    }
+                                                }} />
+                                        )}
+                                        <div>
+                                            <h2 className="newsletter-title">{newsletter.title}</h2>
+                                            <div className="newsletter-meta">
+                                                {newsletter.sender} — {new Date(newsletter.date_added).toLocaleDateString()}
+                                            </div>
+                                            {newsletter.tags && newsletter.tags.length > 0 && (
+                                                <div className="newsletter-tags">
+                                                    {newsletter.tags.map(tag => (
+                                                        <span key={tag.id} className="newsletter-tag"
+                                                            style={{borderColor: tag.color, color: tag.color}}>
+                                                            {tag.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {!newsletter.is_read && <span className="badge">{translations.newsletter.new}</span>}
+                                        </div>
+                                        {newsletter.summary && (
+                                            <div className="summary-box">
+                                                <div className="summary-label">{translations.newsletter.summary}</div>
+                                                <div>{newsletter.summary}</div>
+                                            </div>
+                                        )}
+                                        <div className="newsletter-content">{newsletter.content}</div>
+                                        <div className="actions">
+                                            <button className="btn btn-primary" onClick={() => setReadingNewsletter(newsletter)}>
+                                                {translations.newsletter.read}
+                                            </button>
+                                            {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
+                                                <button className="btn" onClick={() => generateSummary(newsletter.id)}
+                                                    disabled={generatingSummary[newsletter.id]}>
+                                                    {generatingSummary[newsletter.id] ? translations.newsletter.generating : translations.newsletter.summary}
+                                                </button>
+                                            )}
+                                            {newsletter.url && (
+                                                <a href={newsletter.url} target="_blank" rel="noopener noreferrer" className="btn">
+                                                    {translations.newsletter.original}
+                                                </a>
+                                            )}
+                                            <div style={{position: 'relative'}}>
+                                                <button className="btn" onClick={() => setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id)}>
+                                                    🏷️ {translations.nav.tags}
+                                                </button>
+                                                {showTagMenuFor === newsletter.id && tags.length > 0 && (
+                                                    <div className="tag-dropdown">
+                                                        {tags.map(tag => {
+                                                            const hasTag = newsletter.tags && newsletter.tags.some(t => t.id === tag.id);
+                                                            return (
+                                                                <div key={tag.id} className="tag-dropdown-item"
+                                                                    onClick={() => {
+                                                                        if (hasTag) removeTagFromNewsletter(newsletter.id, tag.id);
+                                                                        else addTagToNewsletter(newsletter.id, tag.id);
+                                                                    }}>
+                                                                    <span>{hasTag ? '✓' : '○'}</span>
+                                                                    <span className="tag-color-dot" style={{background: tag.color}}></span>
+                                                                    <span>{tag.name}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button className="btn" onClick={() => deleteNewsletter(newsletter.id)}>
+                                                {translations.newsletter.delete}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                            <div className="footer">BREVIS Pro — 2026</div>
+                        </div>
                     </div>
-
+                    
                     {showAddForm && (
                         <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
-                            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '600px'}}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-header">
-                                    <h2 className="modal-title">{t.newsletter.add}</h2>
+                                    <h2 className="modal-title">{translations.newsletter.add}</h2>
                                     <button className="close-btn" onClick={() => setShowAddForm(false)}>×</button>
                                 </div>
                                 <form onSubmit={handleSubmit}>
                                     <div className="modal-body">
                                         <div className="form-group">
-                                            <label className="form-label">{t.newsletter.title} *</label>
-                                            <input
-                                                type="text"
-                                                className="form-input"
-                                                value={formData.title}
-                                                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                                required
-                                            />
+                                            <label className="form-label">{translations.newsletter.title} *</label>
+                                            <input type="text" className="form-input" value={formData.title}
+                                                onChange={(e) => setFormData({...formData, title: e.target.value})} required />
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label">{t.newsletter.from} *</label>
-                                            <input
-                                                type="text"
-                                                className="form-input"
-                                                value={formData.sender}
-                                                onChange={(e) => setFormData({...formData, sender: e.target.value})}
-                                                required
-                                            />
+                                            <label className="form-label">{translations.newsletter.from} *</label>
+                                            <input type="text" className="form-input" value={formData.sender}
+                                                onChange={(e) => setFormData({...formData, sender: e.target.value})} required />
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label">{t.newsletter.content} *</label>
-                                            <textarea
-                                                className="form-textarea"
-                                                value={formData.content}
-                                                onChange={(e) => setFormData({...formData, content: e.target.value})}
-                                                required
-                                                rows="10"
-                                            />
+                                            <label className="form-label">{translations.newsletter.content} *</label>
+                                            <textarea className="form-textarea" value={formData.content}
+                                                onChange={(e) => setFormData({...formData, content: e.target.value})} required rows="10" />
                                         </div>
                                         <div className="form-group" style={{marginBottom: 0}}>
-                                            <label className="form-label">{t.newsletter.url}</label>
-                                            <input
-                                                type="url"
-                                                className="form-input"
-                                                value={formData.url}
-                                                onChange={(e) => setFormData({...formData, url: e.target.value})}
-                                            />
+                                            <label className="form-label">{translations.newsletter.url}</label>
+                                            <input type="url" className="form-input" value={formData.url}
+                                                onChange={(e) => setFormData({...formData, url: e.target.value})} />
                                         </div>
                                     </div>
                                     <div className="modal-footer">
-                                        <button type="submit" className="btn btn-primary">
-                                            {t.newsletter.add}
-                                        </button>
                                         <button type="button" className="btn" onClick={() => setShowAddForm(false)}>
-                                            Cancel
+                                            {translations.profile.cancel}
+                                        </button>
+                                        <button type="submit" className="btn btn-primary">
+                                            {translations.newsletter.add}
                                         </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
-
+                    
                     {readingNewsletter && (
                         <div className="modal-overlay" onClick={() => setReadingNewsletter(null)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1850,69 +1248,82 @@
                                     </div>
                                     {readingNewsletter.summary && (
                                         <div className="summary-box">
-                                            <div className="summary-label">{t.newsletter.summary}</div>
-                                            <div className="summary-text">{readingNewsletter.summary}</div>
+                                            <div className="summary-label">{translations.newsletter.summary}</div>
+                                            <div>{readingNewsletter.summary}</div>
                                         </div>
                                     )}
                                     <div className="modal-content">{readingNewsletter.content}</div>
                                     {readingNewsletter.url && (
                                         <div style={{marginTop: '24px'}}>
                                             <a href={readingNewsletter.url} target="_blank" rel="noopener noreferrer" className="btn">
-                                                {t.newsletter.original}
+                                                {translations.newsletter.original}
                                             </a>
                                         </div>
                                     )}
                                 </div>
                                 <div className="modal-footer">
-                                    {!readingNewsletter.summary && user.plan !== 'free' && (
-                                        <button 
-                                            className="btn btn-primary" 
-                                            onClick={() => generateSummary(readingNewsletter.id)}
-                                            disabled={generatingSummary[readingNewsletter.id]}
-                                        >
-                                            {generatingSummary[readingNewsletter.id] ? t.newsletter.generating : t.newsletter.summary}
+                                    {!readingNewsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
+                                        <button className="btn btn-primary" onClick={() => generateSummary(readingNewsletter.id)}
+                                            disabled={generatingSummary[readingNewsletter.id]}>
+                                            {generatingSummary[readingNewsletter.id] ? translations.newsletter.generating : translations.newsletter.summary}
                                         </button>
                                     )}
                                     <button className="btn" onClick={() => toggleRead(readingNewsletter.id)}>
-                                        {readingNewsletter.is_read ? t.newsletter.markUnread : t.newsletter.markRead}
+                                        {readingNewsletter.is_read ? translations.newsletter.markUnread : translations.newsletter.markRead}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
-
+                    
+                    {showProfileModal && (
+                        <ProfileModal user={user} onClose={() => setShowProfileModal(false)}
+                            onUpdate={(u) => setUser(u)} onUpgrade={() => {
+                                setShowProfileModal(false);
+                                setShowUpgradeModal(true);
+                            }} translations={translations} />
+                    )}
+                    
+                    {showTagManager && (
+                        <TagManager tags={tags} onClose={() => setShowTagManager(false)}
+                            onUpdate={fetchTags} translations={translations} />
+                    )}
+                    
                     {showUpgradeModal && (
                         <div className="modal-overlay" onClick={() => setShowUpgradeModal(false)}>
-                            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '600px'}}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-header">
-                                    <h2 className="modal-title">{t.plans.upgrade}</h2>
+                                    <h2 className="modal-title">{translations.plans.upgrade}</h2>
                                     <button className="close-btn" onClick={() => setShowUpgradeModal(false)}>×</button>
                                 </div>
                                 <div className="modal-body">
                                     <div style={{marginBottom: '32px'}}>
                                         <h3 style={{marginBottom: '8px'}}>Pro - $9.99/month</h3>
-                                        <ul style={{marginLeft: '20px', marginBottom: '16px'}}>
+                                        <ul style={{marginLeft: '20px'}}>
                                             <li>31 newsletters/month</li>
                                             <li>AI Summaries</li>
+                                            <li>Brief Generation</li>
                                             <li>Unlimited Tags</li>
                                         </ul>
                                     </div>
                                     <div>
                                         <h3 style={{marginBottom: '8px'}}>Premium - $19.99/month</h3>
-                                        <ul style={{marginLeft: '20px', marginBottom: '16px'}}>
+                                        <ul style={{marginLeft: '20px'}}>
                                             <li>Unlimited newsletters</li>
                                             <li>AI Summaries</li>
+                                            <li>Brief & Report Generation</li>
+                                            <li>Unlimited Tags</li>
                                             <li>Priority Support</li>
                                         </ul>
                                     </div>
                                     <p style={{marginTop: '24px', fontSize: '13px', color: '#666'}}>
-                                        Note: This is a demo. In production, this would integrate with Stripe for payments.
+                                        Note: Stripe integration coming soon!
                                     </p>
                                 </div>
                             </div>
                         </div>
                     )}
-
+                    
                     {showBatchResult && (
                         <div className="modal-overlay" onClick={() => setShowBatchResult(null)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>
@@ -1928,6 +1339,27 @@
                                     </div>
                                 </div>
                                 <div className="modal-footer">
+                                    {showBatchResult.id && (
+                                        <>
+                                            <button className="btn" onClick={() => {
+                                                const newName = prompt('Nuevo nombre:', showBatchResult.name);
+                                                if (newName) {
+                                                    renameReport(showBatchResult.id, newName);
+                                                    setShowBatchResult({...showBatchResult, name: newName});
+                                                }
+                                            }}>
+                                                ✏️ Renombrar
+                                            </button>
+                                            <button className="btn" onClick={() => {
+                                                if (confirm('¿Eliminar reporte?')) {
+                                                    deleteReport(showBatchResult.id);
+                                                    setShowBatchResult(null);
+                                                }
+                                            }}>
+                                                🗑️ Eliminar
+                                            </button>
+                                        </>
+                                    )}
                                     <button className="btn" onClick={() => {
                                         const blob = new Blob([showBatchResult.content], { type: 'text/plain' });
                                         const url = URL.createObjectURL(blob);
@@ -1949,7 +1381,139 @@
                 </div>
             );
         }
-
+        
+        function ProfileModal({ user, onClose, onUpdate, onUpgrade, translations }) {
+            const [formData, setFormData] = useState({ name: user.name, email: user.email, newPassword: '' });
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                alert('Profile update coming soon!');
+                onClose();
+            };
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">{translations.profile.title}</h2>
+                            <button className="close-btn" onClick={onClose}>×</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="form-label">{translations.profile.name}</label>
+                                    <input type="text" className="form-input" value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{translations.profile.email}</label>
+                                    <input type="email" className="form-input" value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{translations.profile.newPassword}</label>
+                                    <input type="password" className="form-input" value={formData.newPassword}
+                                        onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
+                                        placeholder="Dejar en blanco para no cambiar" />
+                                </div>
+                                <div className="form-group" style={{marginBottom: 0}}>
+                                    <label className="form-label">{translations.profile.plan}</label>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#F8F8F8', borderRadius: '6px'}}>
+                                        <span style={{fontWeight: '600'}}>{translations.plans[user.plan]}</span>
+                                        <button type="button" className="btn btn-small" onClick={onUpgrade}>
+                                            {translations.profile.changePlan}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn" onClick={onClose}>
+                                    {translations.profile.cancel}
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    {translations.profile.save}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+        
+        function TagManager({ tags, onClose, onUpdate, translations }) {
+            const [newTag, setNewTag] = useState({ name: '', color: '#000000' });
+            const colors = ['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
+            const createTag = async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await fetch(`${API_URL}/tags`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(newTag)
+                    });
+                    if (res.ok) {
+                        setNewTag({ name: '', color: '#000000' });
+                        onUpdate();
+                    }
+                } catch (e) { console.error('Error:', e); }
+            };
+            const deleteTag = async (id) => {
+                if (!confirm('¿Eliminar etiqueta?')) return;
+                try {
+                    const res = await fetch(`${API_URL}/tags/${id}`, { method: 'DELETE', credentials: 'include' });
+                    if (res.ok) onUpdate();
+                } catch (e) { console.error('Error:', e); }
+            };
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">{translations.nav.tags}</h2>
+                            <button className="close-btn" onClick={onClose}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <form onSubmit={createTag} style={{marginBottom: '24px'}}>
+                                <div className="form-group">
+                                    <label className="form-label">Nombre</label>
+                                    <input type="text" className="form-input" value={newTag.name}
+                                        onChange={(e) => setNewTag({...newTag, name: e.target.value})} required />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Color</label>
+                                    <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                        {colors.map(color => (
+                                            <button key={color} type="button" onClick={() => setNewTag({...newTag, color})}
+                                                style={{
+                                                    width: '40px', height: '40px', borderRadius: '50%', background: color,
+                                                    border: newTag.color === color ? '3px solid #000' : '1px solid #E5E5E5',
+                                                    cursor: 'pointer'
+                                                }} />
+                                        ))}
+                                    </div>
+                                </div>
+                                <button type="submit" className="btn btn-primary btn-full">Crear Etiqueta</button>
+                            </form>
+                            {tags.length > 0 && (
+                                <div>
+                                    <h3 style={{marginBottom: '12px', fontSize: '14px', fontWeight: '600'}}>
+                                        Etiquetas existentes
+                                    </h3>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                        {tags.map(tag => (
+                                            <div key={tag.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8F8F8', borderRadius: '6px'}}>
+                                                <span style={{width: '24px', height: '24px', borderRadius: '50%', background: tag.color}} />
+                                                <span style={{flex: 1, fontWeight: '500'}}>{tag.name}</span>
+                                                <button className="btn btn-small" onClick={() => deleteTag(tag.id)}>Eliminar</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
