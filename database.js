@@ -34,8 +34,17 @@ export function getDb() {
     return db;
 }
 
-export function generateEmailCode() {
-    return 'brief-' + Math.random().toString(36).substring(2, 10);
+export function generateEmailCode(email) {
+    // Generate deterministic code from email so it never changes
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+        const char = email.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    // Convert to base36 and take 8 characters
+    const code = Math.abs(hash).toString(36).substring(0, 8).padEnd(8, '0');
+    return 'brief-' + code;
 }
 
 export async function createInitialUser() {
@@ -45,7 +54,7 @@ export async function createInitialUser() {
         const email = 'admin@personalbrief.com';
         const password = 'changeme123';
         const passwordHash = await bcrypt.hash(password, 10);
-        const emailCode = generateEmailCode();
+        const emailCode = generateEmailCode(email);
         
         db.data.users.push({
             id: 1,
@@ -106,7 +115,7 @@ export const dbHelpers = {
             : 1;
         
         const passwordHash = await bcrypt.hash(password, 10);
-        const emailCode = generateEmailCode();
+        const emailCode = generateEmailCode(email);
         
         const user = {
             id,
