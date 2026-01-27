@@ -89,8 +89,14 @@ export const dbHelpers = {
         return db.data.users.find(u => u.email_code === emailCode);
     },
     
-    verifyPassword: async (plainPassword, hashedPassword) => {
-        return await bcrypt.compare(plainPassword, hashedPassword);
+    verifyPassword: async (userId, plainPassword) => {
+        await db.read();
+        const user = db.data.users.find(u => u.id === userId);
+        if (!user || !user.password_hash) {
+            console.log('❌ User not found or no password hash for userId:', userId);
+            return false;
+        }
+        return await bcrypt.compare(plainPassword, user.password_hash);
     },
     
     createUser: async (email, password, name) => {
@@ -133,12 +139,38 @@ export const dbHelpers = {
         return null;
     },
     
+    upgradePlan: async (userId, plan) => {
+        await db.read();
+        const index = db.data.users.findIndex(u => u.id === userId);
+        if (index !== -1) {
+            db.data.users[index].plan = plan;
+            
+            // Update limits based on plan
+            if (plan === 'free') {
+                db.data.users[index].newsletters_limit = 10;
+            } else if (plan === 'pro') {
+                db.data.users[index].newsletters_limit = 31;
+            } else if (plan === 'premium') {
+                db.data.users[index].newsletters_limit = -1; // Unlimited
+            }
+            
+            await db.write();
+            return db.data.users[index];
+        }
+        return null;
+    },
+    
     // Newsletters
-    getUserNewsletters: async (userId) => {
+    getNewsletters: async (userId) => {
         await db.read();
         return db.data.newsletters
             .filter(n => n.user_id === userId)
             .sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
+    },
+    
+    getNewsletter: async (id, userId) => {
+        await db.read();
+        return db.data.newsletters.find(n => n.id === parseInt(id) && n.user_id === userId);
     },
     
     createNewsletter: async (userId, title, sender, content, url) => {
@@ -172,18 +204,6 @@ export const dbHelpers = {
         return newsletter;
     },
     
-    findNewsletter: async (id, userId) => {
-        await db.read();
-        return db.data.newsletters.find(n => n.id === parseInt(id) && n.user_id === userId);
-    },
-    
-    findNewslettersByIds: async (ids, userId) => {
-        await db.read();
-        return db.data.newsletters.filter(n => 
-            ids.includes(n.id) && n.user_id === userId
-        );
-    },
-    
     updateNewsletter: async (id, updates) => {
         await db.read();
         const index = db.data.newsletters.findIndex(n => n.id === parseInt(id));
@@ -215,7 +235,7 @@ export const dbHelpers = {
     },
     
     // Tags
-    getUserTags: async (userId) => {
+    getTags: async (userId) => {
         await db.read();
         return db.data.tags.filter(t => t.user_id === userId);
     },
@@ -287,6 +307,15 @@ export const dbHelpers = {
             .map(nt => nt.tag_id);
         
         return db.data.tags.filter(t => tagIds.includes(t.id));
+    },
+    
+    getNewsletterWithTags: async (newsletterId) => {
+        await db.read();
+        const newsletter = db.data.newsletters.find(n => n.id === parseInt(newsletterId));
+        if (!newsletter) return null;
+        
+        const tags = await dbHelpers.getNewsletterTags(newsletterId);
+        return { ...newsletter, tags };
     },
     
     getNewslettersByTag: async (userId, tagId) => {
