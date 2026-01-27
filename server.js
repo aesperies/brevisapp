@@ -5,7 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { body, validationResult } from 'express-validator';
-import { simpleParser } from 'mailparser';
+import multer from 'multer';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
 import { generateToken, authMiddleware } from './auth.js';
@@ -31,6 +31,9 @@ try {
     console.error('❌ Database initialization failed:', error);
 }
 
+// Configure multer for SendGrid webhook
+const upload = multer();
+
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
@@ -38,7 +41,6 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use(express.text({ type: '*/*', limit: '10mb' }));
 app.use(cookieParser());
 
 // Serve static files
@@ -98,19 +100,33 @@ app.post('/api/auth/register', [
         });
     } catch (error) {
         console.error('❌ Registration error:', error);
-        res.status(500).json({ error: 'Registration failed: ' + error.message });
+        res.status(500).json({ error: 'Registration failed' });
     }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', [
+    body('email').isEmail().normalizeEmail(),
+    body('password').notEmpty()
+], async (req, res) => {
     try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            console.log('❌ Validation errors:', errors.array());
+            return res.status(400).json({ errors: errors.array() });
+        }
+
         const { email, password } = req.body;
         console.log('🔐 Login attempt:', email);
         
         const user = await dbHelpers.findUserByEmail(email);
-        
-        if (!user || !await dbHelpers.verifyPassword(password, user.password_hash)) {
-            console.log('❌ Invalid credentials:', email);
+        if (!user) {
+            console.log('❌ User not found:', email);
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const isValid = await dbHelpers.verifyPassword(user.id, password);
+        if (!isValid) {
+            console.log('❌ Invalid password for:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -137,18 +153,17 @@ app.post('/api/auth/login', async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Login error:', error);
-        res.status(500).json({ error: 'Login failed: ' + error.message });
+        res.status(500).json({ error: 'Login failed' });
     }
-});
-
-app.post('/api/auth/logout', (req, res) => {
-    res.clearCookie('token');
-    res.json({ message: 'Logged out' });
 });
 
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
+        if (!user) {
+            console.log('❌ Get user error: User not found for ID:', req.user.id);
+            return res.status(404).json({ error: 'User not found' });
+        }
         res.json({ 
             user: { 
                 id: user.id, 
@@ -167,26 +182,34 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     }
 });
 
-app.put('/api/auth/settings', authMiddleware, async (req, res) => {
-    try {
-        const { language } = req.body;
-        await dbHelpers.updateUserLanguage(req.user.id, language);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Update settings error:', error);
-        res.status(500).json({ error: 'Failed to update settings' });
-    }
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('token');
+    console.log('✅ User logged out');
+    res.json({ success: true });
 });
 
 // ============= NEWSLETTER ROUTES =============
 
 app.get('/api/newsletters', authMiddleware, async (req, res) => {
     try {
-        const newsletters = await dbHelpers.getNewslettersWithTags(req.user.id);
+        const newsletters = await dbHelpers.getNewsletters(req.user.id);
         res.json(newsletters);
     } catch (error) {
         console.error('❌ Get newsletters error:', error);
         res.status(500).json({ error: 'Failed to get newsletters' });
+    }
+});
+
+app.get('/api/newsletters/:id', authMiddleware, async (req, res) => {
+    try {
+        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+        res.json(newsletter);
+    } catch (error) {
+        console.error('❌ Get newsletter error:', error);
+        res.status(500).json({ error: 'Failed to get newsletter' });
     }
 });
 
@@ -195,26 +218,23 @@ app.post('/api/newsletters', authMiddleware, async (req, res) => {
         const user = await dbHelpers.findUserById(req.user.id);
         
         if (!canUserPerformAction(user, 'add_newsletter')) {
-            return res.status(403).json({ error: 'Newsletter limit reached', plan: user.plan });
+            console.log('❌ Newsletter limit reached for:', user.email);
+            return res.status(403).json({ error: 'Newsletter limit reached' });
         }
 
-        const { title, sender, content, url } = req.body;
-        const newsletter = await dbHelpers.createNewsletter(req.user.id, title, sender, content, url);
+        const { title, source, content, url } = req.body;
+        const newsletter = await dbHelpers.createNewsletter(
+            req.user.id,
+            title,
+            source,
+            content,
+            url
+        );
         console.log('✅ Newsletter created:', title);
         res.json(newsletter);
     } catch (error) {
         console.error('❌ Create newsletter error:', error);
         res.status(500).json({ error: 'Failed to create newsletter' });
-    }
-});
-
-app.put('/api/newsletters/:id/read', authMiddleware, async (req, res) => {
-    try {
-        const newsletter = await dbHelpers.toggleNewsletterRead(parseInt(req.params.id), req.user.id);
-        res.json(newsletter);
-    } catch (error) {
-        console.error('❌ Toggle read error:', error);
-        res.status(500).json({ error: 'Failed to toggle read status' });
     }
 });
 
@@ -229,21 +249,27 @@ app.delete('/api/newsletters/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// ============= AI ROUTES =============
-
 app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
         
         if (!canUserPerformAction(user, 'generate_summary')) {
-            return res.status(403).json({ error: 'Upgrade required', plan: user.plan });
+            return res.status(403).json({ error: 'Upgrade to Pro to generate summaries' });
         }
 
-        const newsletter = await dbHelpers.findNewsletterById(parseInt(req.params.id));
+        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+
+        if (newsletter.summary) {
+            return res.json({ summary: newsletter.summary });
+        }
+
         const summary = await generateSummary(newsletter.content, user.language);
+        await dbHelpers.updateNewsletter(newsletter.id, { summary });
         
-        await dbHelpers.updateNewsletterSummary(newsletter.id, summary);
-        console.log('✅ Summary generated for:', newsletter.title);
+        console.log('✅ Summary generated for newsletter:', newsletter.id);
         res.json({ summary });
     } catch (error) {
         console.error('❌ Generate summary error:', error);
@@ -251,40 +277,68 @@ app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/newsletters/batch/brief', authMiddleware, async (req, res) => {
+app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
         
         if (!canUserPerformAction(user, 'generate_brief')) {
-            return res.status(403).json({ error: 'Upgrade required', plan: user.plan });
+            return res.status(403).json({ error: 'Upgrade to Pro to generate briefs' });
         }
 
-        const { newsletterIds } = req.body;
-        const newsletters = await Promise.all(newsletterIds.map(id => dbHelpers.findNewsletterById(id)));
-        
+        const { newsletter_ids } = req.body;
+        if (!newsletter_ids || newsletter_ids.length === 0) {
+            return res.status(400).json({ error: 'No newsletters selected' });
+        }
+
+        const newsletters = [];
+        for (const id of newsletter_ids) {
+            const newsletter = await dbHelpers.getNewsletter(parseInt(id), req.user.id);
+            if (newsletter) {
+                newsletters.push(newsletter);
+            }
+        }
+
+        if (newsletters.length === 0) {
+            return res.status(404).json({ error: 'No newsletters found' });
+        }
+
         const brief = await generateBatchBrief(newsletters, user.language);
         console.log('✅ Brief generated for', newsletters.length, 'newsletters');
-        res.json({ brief, count: newsletters.length, titles: newsletters.map(n => n.title) });
+        res.json({ brief });
     } catch (error) {
         console.error('❌ Generate brief error:', error);
         res.status(500).json({ error: 'Failed to generate brief' });
     }
 });
 
-app.post('/api/newsletters/batch/report', authMiddleware, async (req, res) => {
+app.post('/api/newsletters/report', authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
         
         if (!canUserPerformAction(user, 'generate_report')) {
-            return res.status(403).json({ error: 'Upgrade required', plan: user.plan });
+            return res.status(403).json({ error: 'Upgrade to Premium to generate reports' });
         }
 
-        const { newsletterIds } = req.body;
-        const newsletters = await Promise.all(newsletterIds.map(id => dbHelpers.findNewsletterById(id)));
-        
+        const { newsletter_ids } = req.body;
+        if (!newsletter_ids || newsletter_ids.length === 0) {
+            return res.status(400).json({ error: 'No newsletters selected' });
+        }
+
+        const newsletters = [];
+        for (const id of newsletter_ids) {
+            const newsletter = await dbHelpers.getNewsletter(parseInt(id), req.user.id);
+            if (newsletter) {
+                newsletters.push(newsletter);
+            }
+        }
+
+        if (newsletters.length === 0) {
+            return res.status(404).json({ error: 'No newsletters found' });
+        }
+
         const report = await generateBatchReport(newsletters, user.language);
         console.log('✅ Report generated for', newsletters.length, 'newsletters');
-        res.json({ report, count: newsletters.length, titles: newsletters.map(n => n.title) });
+        res.json({ report });
     } catch (error) {
         console.error('❌ Generate report error:', error);
         res.status(500).json({ error: 'Failed to generate report' });
@@ -295,7 +349,7 @@ app.post('/api/newsletters/batch/report', authMiddleware, async (req, res) => {
 
 app.get('/api/tags', authMiddleware, async (req, res) => {
     try {
-        const tags = await dbHelpers.getUserTags(req.user.id);
+        const tags = await dbHelpers.getTags(req.user.id);
         res.json(tags);
     } catch (error) {
         console.error('❌ Get tags error:', error);
@@ -396,11 +450,23 @@ app.get('/api/config/email-domain', (req, res) => {
 
 // ============= EMAIL WEBHOOK =============
 
-app.post('/api/webhook/email', async (req, res) => {
+app.post('/api/webhook/email', upload.none(), async (req, res) => {
     try {
-        const parsed = await simpleParser(req.body);
+        console.log('📧 Webhook received from SendGrid');
+        console.log('📦 Body fields:', Object.keys(req.body));
         
-        const toEmail = parsed.to?.text || '';
+        // SendGrid sends data as form fields, not as raw email
+        const toEmail = req.body.to || '';
+        const fromEmail = req.body.from || '';
+        const subject = req.body.subject || 'Sin título';
+        const textContent = req.body.text || '';
+        const htmlContent = req.body.html || '';
+        
+        console.log('📬 To:', toEmail);
+        console.log('📤 From:', fromEmail);
+        console.log('📋 Subject:', subject);
+        
+        // Extract email code from recipient
         const match = toEmail.match(/brief-([a-z0-9]+)@/i);
         
         if (!match) {
@@ -409,6 +475,8 @@ app.post('/api/webhook/email', async (req, res) => {
         }
         
         const emailCode = 'brief-' + match[1].toLowerCase();
+        console.log('🔑 Email code:', emailCode);
+        
         const user = await dbHelpers.findUserByEmailCode(emailCode);
         
         if (!user) {
@@ -416,18 +484,22 @@ app.post('/api/webhook/email', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
         
+        console.log('✅ User found:', user.email);
+        
         if (!canUserPerformAction(user, 'add_newsletter')) {
             console.log('❌ User reached limit:', user.email);
             return res.status(403).json({ error: 'Newsletter limit reached' });
         }
         
-        const urls = extractUrls(parsed.text || parsed.html || '');
+        // Use text content, fallback to HTML if text is empty
+        const content = textContent || htmlContent || '';
+        const urls = extractUrls(content);
         
         await dbHelpers.createNewsletter(
             user.id,
-            parsed.subject || 'Sin título',
-            parsed.from?.text || 'Desconocido',
-            parsed.text || parsed.html || '',
+            subject,
+            fromEmail,
+            content,
             urls[0] || null
         );
         
@@ -435,6 +507,7 @@ app.post('/api/webhook/email', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Webhook error:', error);
+        console.error('Stack:', error.stack);
         res.status(500).json({ error: 'Error processing email' });
     }
 });
