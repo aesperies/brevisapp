@@ -76,7 +76,7 @@ app.post('/api/auth/register', [
         }
 
         const user = await dbHelpers.createUser(email, password, name);
-        const token = generateToken(user.id);
+        const token = generateToken(user);
         
         res.cookie('token', token, { 
             httpOnly: true, 
@@ -130,7 +130,7 @@ app.post('/api/auth/login', [
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const token = generateToken(user.id);
+        const token = generateToken(user);
         res.cookie('token', token, { 
             httpOnly: true, 
             maxAge: 30 * 24 * 60 * 60 * 1000,
