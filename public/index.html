@@ -1211,6 +1211,7 @@
             const [generatingSummary, setGeneratingSummary] = React.useState({});
             const [generatingBatch, setGeneratingBatch] = React.useState(false);
             const [showBatchResult, setShowBatchResult] = React.useState(null);
+            const [showTagMenuFor, setShowTagMenuFor] = React.useState(null);
             const [formData, setFormData] = React.useState({
                 title: '',
                 sender: '',
@@ -1329,6 +1330,7 @@
                     setShowUpgradeModal(true);
                     return;
                 }
+                // Premium and Pro can generate summaries
                 setGeneratingSummary({...generatingSummary, [id]: true});
                 try {
                     const response = await fetch(`${API_URL}/newsletters/${id}/summary`, {
@@ -1355,6 +1357,108 @@
                     alert('Error: ' + error.message);
                 } finally {
                     setGeneratingSummary({...generatingSummary, [id]: false});
+                }
+            };
+
+            const generateBrief = async () => {
+                if (selectedNewsletters.length === 0) return;
+                if (user.plan === 'free') {
+                    setShowUpgradeModal(true);
+                    return;
+                }
+                
+                setGeneratingBatch(true);
+                try {
+                    const response = await fetch(`${API_URL}/newsletters/brief`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ newsletter_ids: selectedNewsletters })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to generate brief');
+                    
+                    const data = await response.json();
+                    setShowBatchResult({ type: 'brief', content: data.brief });
+                    setSelectionMode(false);
+                    setSelectedNewsletters([]);
+                } catch (error) {
+                    console.error('Error generating brief:', error);
+                    alert('Error generating brief');
+                } finally {
+                    setGeneratingBatch(false);
+                }
+            };
+
+            const generateReport = async () => {
+                if (selectedNewsletters.length === 0) return;
+                if (user.plan !== 'premium') {
+                    setShowUpgradeModal(true);
+                    return;
+                }
+                
+                setGeneratingBatch(true);
+                try {
+                    const response = await fetch(`${API_URL}/newsletters/report`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ newsletter_ids: selectedNewsletters })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to generate report');
+                    
+                    const data = await response.json();
+                    setShowBatchResult({ type: 'report', content: data.report });
+                    setSelectionMode(false);
+                    setSelectedNewsletters([]);
+                } catch (error) {
+                    console.error('Error generating report:', error);
+                    alert('Error generating report');
+                } finally {
+                    setGeneratingBatch(false);
+                }
+            };
+
+            const addTagToNewsletter = async (newsletterId, tagId) => {
+                try {
+                    const response = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to add tag');
+                    
+                    const updatedNewsletter = await response.json();
+                    setNewsletters(newsletters.map(n => 
+                        n.id === newsletterId ? updatedNewsletter : n
+                    ));
+                    if (readingNewsletter?.id === newsletterId) {
+                        setReadingNewsletter(updatedNewsletter);
+                    }
+                } catch (error) {
+                    console.error('Error adding tag:', error);
+                }
+            };
+
+            const removeTagFromNewsletter = async (newsletterId, tagId) => {
+                try {
+                    const response = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to remove tag');
+                    
+                    const updatedNewsletter = await response.json();
+                    setNewsletters(newsletters.map(n => 
+                        n.id === newsletterId ? updatedNewsletter : n
+                    ));
+                    if (readingNewsletter?.id === newsletterId) {
+                        setReadingNewsletter(updatedNewsletter);
+                    }
+                } catch (error) {
+                    console.error('Error removing tag:', error);
                 }
             };
 
@@ -1502,6 +1606,38 @@
                         </button>
                     </div>
 
+                    {selectionMode && selectedNewsletters.length > 0 && (
+                        <div className="selection-bar">
+                            <div className="selection-info">
+                                {selectedNewsletters.length} {t.selection.selected}
+                            </div>
+                            <div className="selection-actions">
+                                <button 
+                                    className="btn btn-small" 
+                                    onClick={() => setSelectedNewsletters([])}
+                                >
+                                    {t.selection.clearSelection}
+                                </button>
+                                <button 
+                                    className="btn btn-small" 
+                                    onClick={generateBrief}
+                                    disabled={generatingBatch || user.plan === 'free'}
+                                >
+                                    {generatingBatch ? '⏳' : '📝'} {t.selection.brief}
+                                </button>
+                                {user.plan === 'premium' && (
+                                    <button 
+                                        className="btn btn-small btn-primary" 
+                                        onClick={generateReport}
+                                        disabled={generatingBatch}
+                                    >
+                                        {generatingBatch ? '⏳' : '📊'} {t.selection.report}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {filteredNewsletters.length === 0 ? (
                         <div className="empty-state">
                             <div className="empty-title">{t.empty.title}</div>
@@ -1567,6 +1703,65 @@
                                             {t.newsletter.original}
                                         </a>
                                     )}
+                                    <div style={{position: 'relative'}}>
+                                        <button 
+                                            className="btn" 
+                                            onClick={() => setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id)}
+                                        >
+                                            🏷️ {t.tags.title}
+                                        </button>
+                                        {showTagMenuFor === newsletter.id && tags.length > 0 && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                right: 0,
+                                                marginTop: '4px',
+                                                background: '#FFF',
+                                                border: '1px solid #E5E5E5',
+                                                borderRadius: '4px',
+                                                padding: '8px',
+                                                minWidth: '200px',
+                                                zIndex: 10,
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                            }}>
+                                                {tags.map(tag => {
+                                                    const hasTag = newsletter.tags && newsletter.tags.some(t => t.id === tag.id);
+                                                    return (
+                                                        <div 
+                                                            key={tag.id}
+                                                            style={{
+                                                                padding: '8px',
+                                                                cursor: 'pointer',
+                                                                borderRadius: '4px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '8px'
+                                                            }}
+                                                            onClick={() => {
+                                                                if (hasTag) {
+                                                                    removeTagFromNewsletter(newsletter.id, tag.id);
+                                                                } else {
+                                                                    addTagToNewsletter(newsletter.id, tag.id);
+                                                                }
+                                                            }}
+                                                            onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                                                            onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                                        >
+                                                            <span style={{fontSize: '16px'}}>{hasTag ? '✓' : '○'}</span>
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                width: '12px',
+                                                                height: '12px',
+                                                                borderRadius: '50%',
+                                                                background: tag.color
+                                                            }}></span>
+                                                            <span>{tag.name}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                     <button className="btn" onClick={() => deleteNewsletter(newsletter.id)}>
                                         {t.newsletter.delete}
                                     </button>
@@ -1713,6 +1908,40 @@
                                     <p style={{marginTop: '24px', fontSize: '13px', color: '#666'}}>
                                         Note: This is a demo. In production, this would integrate with Stripe for payments.
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showBatchResult && (
+                        <div className="modal-overlay" onClick={() => setShowBatchResult(null)}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>
+                                <div className="modal-header">
+                                    <h2 className="modal-title">
+                                        {showBatchResult.type === 'brief' ? '📝 Brief Ejecutivo' : '📊 Reporte Completo'}
+                                    </h2>
+                                    <button className="close-btn" onClick={() => setShowBatchResult(null)}>×</button>
+                                </div>
+                                <div className="modal-body">
+                                    <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.8'}}>
+                                        {showBatchResult.content}
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button className="btn" onClick={() => {
+                                        const blob = new Blob([showBatchResult.content], { type: 'text/plain' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `${showBatchResult.type}-${Date.now()}.txt`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    }}>
+                                        📥 Descargar
+                                    </button>
+                                    <button className="btn btn-primary" onClick={() => setShowBatchResult(null)}>
+                                        Cerrar
+                                    </button>
                                 </div>
                             </div>
                         </div>
