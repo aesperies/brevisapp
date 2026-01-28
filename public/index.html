@@ -260,12 +260,22 @@
             background: #FFF;
             border: 1px solid #E5E5E5;
             border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 16px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
             position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
         }
         .newsletter-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .newsletter-card.read .newsletter-title { color: #999; }
+        .newsletter-card-content { flex: 1; min-width: 0; }
+        .newsletter-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+        }
         .newsletter-card.selecting { padding-left: 60px; }
         .newsletter-checkbox {
             position: absolute;
@@ -275,8 +285,9 @@
             height: 18px;
             cursor: pointer;
         }
-        .newsletter-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-        .newsletter-meta { font-size: 13px; color: #666; }
+        .newsletter-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; cursor: pointer; }
+        .newsletter-title:hover { color: #000; text-decoration: underline; }
+        .newsletter-meta { font-size: 12px; color: #888; }
         .newsletter-tags {
             display: flex;
             gap: 6px;
@@ -291,11 +302,13 @@
             font-weight: 500;
         }
         .newsletter-content {
-            color: #333;
-            margin: 12px 0;
-            line-height: 1.6;
-            max-height: 100px;
+            color: #666;
+            font-size: 13px;
+            margin-top: 6px;
+            line-height: 1.5;
+            max-height: 40px;
             overflow: hidden;
+            text-overflow: ellipsis;
         }
         .summary-box {
             background: #F8F8F8;
@@ -344,8 +357,7 @@
         }
         .actions {
             display: flex;
-            gap: 8px;
-            margin-top: 16px;
+            gap: 6px;
             flex-wrap: wrap;
         }
         .tag-dropdown {
@@ -1214,12 +1226,13 @@
                                                     }
                                                 }} />
                                         )}
-                                        <div>
-                                            <h2 className="newsletter-title"
-                                                style={{cursor: 'pointer'}}
-                                                onClick={() => setReadingNewsletter(newsletter)}>
-                                                {cleanTitle(newsletter.title)}
-                                            </h2>
+                                        <div className="newsletter-card-content">
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                                <h2 className="newsletter-title" onClick={() => setReadingNewsletter(newsletter)}>
+                                                    {cleanTitle(newsletter.title)}
+                                                </h2>
+                                                {!newsletter.is_read && <span className="badge">{translations.newsletter.new}</span>}
+                                            </div>
                                             <div className="newsletter-meta">
                                                 {newsletter.sender} — {new Date(newsletter.date_added).toLocaleDateString()}
                                             </div>
@@ -1233,43 +1246,34 @@
                                                     ))}
                                                 </div>
                                             )}
-                                            {!newsletter.is_read && <span className="badge">{translations.newsletter.new}</span>}
+                                            <div className="newsletter-content">{stripHtml(newsletter.content)}</div>
+                                            {newsletter.summary && (
+                                                <div className="summary-box" style={{marginTop: '8px'}}>
+                                                    <div className="summary-header" onClick={() => toggleSummaryCollapse(newsletter.id)}>
+                                                        <span className="summary-label">{translations.newsletter.summary}</span>
+                                                        <button className="summary-toggle">
+                                                            {collapsedSummaries[newsletter.id] ? '▼' : '▲'}
+                                                        </button>
+                                                    </div>
+                                                    <div className={`summary-content ${collapsedSummaries[newsletter.id] ? 'collapsed' : ''}`}>
+                                                        {newsletter.summary}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        {newsletter.summary && (
-                                            <div className="summary-box">
-                                                <div className="summary-header" onClick={() => toggleSummaryCollapse(newsletter.id)}>
-                                                    <span className="summary-label">{translations.newsletter.summary}</span>
-                                                    <button className="summary-toggle">
-                                                        {collapsedSummaries[newsletter.id] ? '▼' : '▲'}
-                                                    </button>
-                                                </div>
-                                                <div className={`summary-content ${collapsedSummaries[newsletter.id] ? 'collapsed' : ''}`}>
-                                                    {newsletter.summary}
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="newsletter-content">{stripHtml(newsletter.content)}</div>
-                                        <div className="actions">
-                                            <button className="btn btn-primary" onClick={() => setReadingNewsletter(newsletter)}>
-                                                {translations.newsletter.read}
-                                            </button>
+                                        <div className="newsletter-card-actions">
                                             {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
-                                                <button className="btn" onClick={() => generateSummary(newsletter.id)}
+                                                <button className="btn btn-small" onClick={() => generateSummary(newsletter.id)}
                                                     disabled={generatingSummary[newsletter.id]}>
-                                                    {generatingSummary[newsletter.id] ? translations.newsletter.generating : translations.newsletter.summary}
+                                                    {generatingSummary[newsletter.id] ? '...' : translations.newsletter.summary}
                                                 </button>
                                             )}
-                                            {newsletter.url && (
-                                                <a href={newsletter.url} target="_blank" rel="noopener noreferrer" className="btn">
-                                                    {translations.newsletter.original}
-                                                </a>
-                                            )}
                                             <div style={{position: 'relative'}} onClick={(e) => e.stopPropagation()}>
-                                                <button className="btn" onClick={(e) => {
+                                                <button className="btn btn-small" onClick={(e) => {
                                                     e.stopPropagation();
                                                     setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id);
                                                 }}>
-                                                    🏷️ {language === 'es' ? 'Añadir Etiquetas' : 'Add Tags'}
+                                                    🏷️
                                                 </button>
                                                 {showTagMenuFor === newsletter.id && (
                                                     <div className="tag-dropdown" onClick={(e) => e.stopPropagation()}>
@@ -1289,14 +1293,14 @@
                                                             );
                                                         }) : (
                                                             <div className="tag-dropdown-empty">
-                                                                {language === 'es' ? 'No hay etiquetas. Créalas en "Etiquetas"' : 'No tags. Create them in "Tags"'}
+                                                                {language === 'es' ? 'No hay etiquetas' : 'No tags'}
                                                             </div>
                                                         )}
                                                     </div>
                                                 )}
                                             </div>
-                                            <button className="btn" onClick={() => deleteNewsletter(newsletter.id)}>
-                                                {translations.newsletter.delete}
+                                            <button className="btn btn-small" onClick={() => deleteNewsletter(newsletter.id)}>
+                                                🗑️
                                             </button>
                                         </div>
                                     </div>
