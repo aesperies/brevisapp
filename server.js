@@ -266,7 +266,7 @@ app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
             return res.json({ summary: newsletter.summary });
         }
 
-        const summary = await generateSummary(newsletter.content, user.language);
+        const summary = await generateSummary(newsletter, user.language);
         await dbHelpers.updateNewsletter(newsletter.id, { summary });
         
         console.log('✅ Summary generated for newsletter:', newsletter.id);

@@ -491,6 +491,15 @@
             ? 'http://localhost:8080/api'
             : 'https://brevisapp-production.up.railway.app/api';
 
+        // Clean email subject prefixes (FWD, RE, etc.)
+        function cleanTitle(title) {
+            if (!title) return '';
+            return title
+                .replace(/^(fwd?|re|rv|fw|aw|wg|tr|r|enc|env):\s*/gi, '')
+                .replace(/^\[.*?\]\s*/, '')
+                .trim();
+        }
+
         function App() {
             const [language, setLanguage] = useState('es');
             const [user, setUser] = useState(null);
@@ -809,18 +818,21 @@
                     });
                     if (!res.ok) {
                         const error = await res.json();
-                        if (error.plan) {
+                        console.error('Summary error response:', error);
+                        if (error.error && error.error.includes('Upgrade')) {
                             setShowUpgradeModal(true);
                             return;
                         }
-                        throw new Error(error.error);
+                        throw new Error(error.error || 'Failed to generate summary');
                     }
                     const data = await res.json();
+                    console.log('Summary response:', data);
                     setNewsletters(newsletters.map(n => n.id === id ? { ...n, summary: data.summary } : n));
                     if (readingNewsletter?.id === id) {
                         setReadingNewsletter({...readingNewsletter, summary: data.summary});
                     }
                 } catch (e) {
+                    console.error('Summary error:', e);
                     alert('Error: ' + e.message);
                 } finally {
                     setGeneratingSummary({...generatingSummary, [id]: false});
@@ -841,15 +853,20 @@
                         credentials: 'include',
                         body: JSON.stringify({ newsletter_ids: selectedNewsletters })
                     });
-                    if (!res.ok) throw new Error('Failed');
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.error || 'Failed');
+                    }
                     const data = await res.json();
+                    console.log('Brief response:', data);
                     const result = { type: 'brief', content: data.brief };
                     setShowBatchResult(result);
                     saveReport(result);
                     setSelectionMode(false);
                     setSelectedNewsletters([]);
                 } catch (e) {
-                    alert('Error generating brief');
+                    console.error('Brief error:', e);
+                    alert('Error generating brief: ' + e.message);
                 } finally {
                     setGeneratingBatch(false);
                 }
@@ -869,15 +886,20 @@
                         credentials: 'include',
                         body: JSON.stringify({ newsletter_ids: selectedNewsletters })
                     });
-                    if (!res.ok) throw new Error('Failed');
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.error || 'Failed');
+                    }
                     const data = await res.json();
+                    console.log('Report response:', data);
                     const result = { type: 'report', content: data.report };
                     setShowBatchResult(result);
                     saveReport(result);
                     setSelectionMode(false);
                     setSelectedNewsletters([]);
                 } catch (e) {
-                    alert('Error generating report');
+                    console.error('Report error:', e);
+                    alert('Error generating report: ' + e.message);
                 } finally {
                     setGeneratingBatch(false);
                 }
@@ -1119,7 +1141,11 @@
                                                 }} />
                                         )}
                                         <div>
-                                            <h2 className="newsletter-title">{newsletter.title}</h2>
+                                            <h2 className="newsletter-title"
+                                                style={{cursor: 'pointer'}}
+                                                onClick={() => setReadingNewsletter(newsletter)}>
+                                                {cleanTitle(newsletter.title)}
+                                            </h2>
                                             <div className="newsletter-meta">
                                                 {newsletter.sender} — {new Date(newsletter.date_added).toLocaleDateString()}
                                             </div>
@@ -1236,14 +1262,14 @@
 
                     {readingNewsletter && (
                         <div className="modal-overlay" onClick={() => setReadingNewsletter(null)}>
-                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal" style={{maxWidth: '800px'}} onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-header">
-                                    <h2 className="modal-title">{readingNewsletter.title}</h2>
+                                    <h2 className="modal-title">{cleanTitle(readingNewsletter.title)}</h2>
                                     <button className="close-btn" onClick={() => setReadingNewsletter(null)}>×</button>
                                 </div>
                                 <div className="modal-body">
                                     <div className="modal-meta">
-                                        {readingNewsletter.sender}<br/>
+                                        <strong>{readingNewsletter.sender}</strong><br/>
                                         {new Date(readingNewsletter.date_added).toLocaleDateString()}
                                     </div>
                                     {readingNewsletter.summary && (
@@ -1252,7 +1278,9 @@
                                             <div>{readingNewsletter.summary}</div>
                                         </div>
                                     )}
-                                    <div className="modal-content">{readingNewsletter.content}</div>
+                                    <div className="modal-content" style={{marginTop: '16px', whiteSpace: 'pre-wrap'}}>
+                                        {readingNewsletter.content || 'Sin contenido disponible'}
+                                    </div>
                                     {readingNewsletter.url && (
                                         <div style={{marginTop: '24px'}}>
                                             <a href={readingNewsletter.url} target="_blank" rel="noopener noreferrer" className="btn">
