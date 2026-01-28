@@ -350,33 +350,55 @@
         }
         .tag-dropdown {
             position: absolute;
-            top: 100%;
+            bottom: 100%;
             right: 0;
-            margin-top: 4px;
+            margin-bottom: 4px;
             background: #FFF;
-            border: 1px solid #E5E5E5;
-            border-radius: 6px;
-            padding: 4px 0;
-            min-width: 160px;
-            max-height: 200px;
+            border: 1px solid #DDD;
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 180px;
+            max-height: 240px;
             overflow-y: auto;
-            z-index: 100;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        }
+        .tag-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+        .tag-dropdown::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .tag-dropdown::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        .tag-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #999;
         }
         .tag-dropdown-item {
-            padding: 8px 12px;
+            padding: 10px 14px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 13px;
+            transition: background 0.15s;
         }
-        .tag-dropdown-item:hover { background: #F5F5F5; }
+        .tag-dropdown-item:hover { background: #F0F0F0; }
         .tag-color-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .tag-dropdown-empty {
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #999;
+            text-align: center;
         }
         .modal-overlay {
             position: fixed;
@@ -1249,9 +1271,9 @@
                                                 }}>
                                                     🏷️ {language === 'es' ? 'Añadir Etiquetas' : 'Add Tags'}
                                                 </button>
-                                                {showTagMenuFor === newsletter.id && tags.length > 0 && (
+                                                {showTagMenuFor === newsletter.id && (
                                                     <div className="tag-dropdown" onClick={(e) => e.stopPropagation()}>
-                                                        {tags.map(tag => {
+                                                        {tags.length > 0 ? tags.map(tag => {
                                                             const hasTag = newsletter.tags && newsletter.tags.some(t => t.id === tag.id);
                                                             return (
                                                                 <div key={tag.id} className="tag-dropdown-item"
@@ -1260,12 +1282,16 @@
                                                                         if (hasTag) removeTagFromNewsletter(newsletter.id, tag.id);
                                                                         else addTagToNewsletter(newsletter.id, tag.id);
                                                                     }}>
-                                                                    <span>{hasTag ? '✓' : '○'}</span>
+                                                                    <span style={{width: '16px'}}>{hasTag ? '✓' : ''}</span>
                                                                     <span className="tag-color-dot" style={{background: tag.color}}></span>
-                                                                    <span>{tag.name}</span>
+                                                                    <span style={{flex: 1}}>{tag.name}</span>
                                                                 </div>
                                                             );
-                                                        })}
+                                                        }) : (
+                                                            <div className="tag-dropdown-empty">
+                                                                {language === 'es' ? 'No hay etiquetas. Créalas en "Etiquetas"' : 'No tags. Create them in "Tags"'}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
