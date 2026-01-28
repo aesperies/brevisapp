@@ -1,38 +1,13 @@
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
+import pg from 'pg';
 import bcrypt from 'bcrypt';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const { Pool } = pg;
 
-// Database schema
-const defaultData = {
-    users: [],
-    newsletters: [],
-    tags: [],
-    newsletterTags: [],
-    subscriptions: []
-};
-
-let db;
-
-export async function setupDatabase() {
-    const file = join(__dirname, 'db.json');
-    const adapter = new JSONFile(file);
-    db = new Low(adapter, defaultData);
-    
-    await db.read();
-    db.data ||= defaultData;
-    await db.write();
-    
-    console.log('✅ Database initialized');
-    return db;
-}
-
-export function getDb() {
-    return db;
-}
+// PostgreSQL connection pool
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 export function generateEmailCode(email) {
     // Generate deterministic code from email so it never changes
@@ -47,294 +22,327 @@ export function generateEmailCode(email) {
     return 'brief-' + code;
 }
 
-export async function createInitialUser() {
-    await db.read();
-    
-    if (db.data.users.length === 0) {
-        const email = 'admin@personalbrief.com';
-        const password = 'changeme123';
-        const passwordHash = await bcrypt.hash(password, 10);
-        const emailCode = generateEmailCode(email);
-        
-        db.data.users.push({
-            id: 1,
-            email,
-            password_hash: passwordHash,
-            name: 'Admin',
-            email_code: emailCode,
-            plan: 'premium',
-            newsletters_count: 0,
-            newsletters_limit: -1,
-            language: 'es',
-            created_at: new Date().toISOString(),
-            is_active: 1
-        });
-        
-        await db.write();
-        
-        console.log('\n🎉 Initial admin user created:');
-        console.log('   Email:', email);
-        console.log('   Password:', password);
-        console.log('   Plan: Premium');
-        console.log('   ⚠️  CHANGE PASSWORD AFTER FIRST LOGIN!\n');
+export async function setupDatabase() {
+    try {
+        // Create tables if they don't exist
+        await pool.query(`
+            -- Users table
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                email_code VARCHAR(50) UNIQUE NOT NULL,
+                plan VARCHAR(20) DEFAULT 'free',
+                newsletters_count INTEGER DEFAULT 0,
+                newsletters_limit INTEGER DEFAULT 10,
+                language VARCHAR(5) DEFAULT 'es',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active INTEGER DEFAULT 1
+            );
+
+            -- Newsletters table
+            CREATE TABLE IF NOT EXISTS newsletters (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                title VARCHAR(500) NOT NULL,
+                sender VARCHAR(255),
+                content TEXT,
+                summary TEXT,
+                url VARCHAR(1000),
+                is_read INTEGER DEFAULT 0,
+                date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- Tags table
+            CREATE TABLE IF NOT EXISTS tags (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                name VARCHAR(100) NOT NULL,
+                color VARCHAR(20) DEFAULT '#000000'
+            );
+
+            -- Newsletter Tags junction table
+            CREATE TABLE IF NOT EXISTS newsletter_tags (
+                newsletter_id INTEGER REFERENCES newsletters(id) ON DELETE CASCADE,
+                tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+                PRIMARY KEY (newsletter_id, tag_id)
+            );
+
+            -- Indexes for better performance
+            CREATE INDEX IF NOT EXISTS idx_newsletters_user ON newsletters(user_id);
+            CREATE INDEX IF NOT EXISTS idx_tags_user ON tags(user_id);
+            CREATE INDEX IF NOT EXISTS idx_newsletter_tags_newsletter ON newsletter_tags(newsletter_id);
+            CREATE INDEX IF NOT EXISTS idx_newsletter_tags_tag ON newsletter_tags(tag_id);
+        `);
+
+        console.log('✅ Database initialized (PostgreSQL)');
+        return pool;
+    } catch (error) {
+        console.error('❌ Database initialization error:', error);
+        throw error;
     }
 }
 
-// Helper functions
+export function getDb() {
+    return pool;
+}
+
+export async function createInitialUser() {
+    try {
+        // Check if any users exist
+        const result = await pool.query('SELECT COUNT(*) FROM users');
+        const count = parseInt(result.rows[0].count);
+
+        if (count === 0) {
+            const email = 'admin@personalbrief.com';
+            const password = 'changeme123';
+            const passwordHash = await bcrypt.hash(password, 10);
+            const emailCode = generateEmailCode(email);
+
+            await pool.query(`
+                INSERT INTO users (email, password_hash, name, email_code, plan, newsletters_count, newsletters_limit, language, is_active)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `, [email, passwordHash, 'Admin', emailCode, 'premium', 0, -1, 'es', 1]);
+
+            console.log('\n🎉 Initial admin user created:');
+            console.log('   Email:', email);
+            console.log('   Password:', password);
+            console.log('   Plan: Premium');
+            console.log('   ⚠️  CHANGE PASSWORD AFTER FIRST LOGIN!\n');
+        }
+    } catch (error) {
+        console.error('❌ Error creating initial user:', error);
+        throw error;
+    }
+}
+
+// Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {
     // Users
     findUserByEmail: async (email) => {
-        await db.read();
-        return db.data.users.find(u => u.email === email);
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        return result.rows[0] || null;
     },
-    
+
     findUserById: async (id) => {
-        await db.read();
-        return db.data.users.find(u => u.id === id);
+        const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        return result.rows[0] || null;
     },
-    
+
     findUserByEmailCode: async (emailCode) => {
-        await db.read();
-        return db.data.users.find(u => u.email_code === emailCode);
+        const result = await pool.query('SELECT * FROM users WHERE email_code = $1', [emailCode]);
+        return result.rows[0] || null;
     },
-    
+
     verifyPassword: async (userId, plainPassword) => {
-        await db.read();
-        const user = db.data.users.find(u => u.id === userId);
-        if (!user || !user.password_hash) {
+        const result = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+        if (result.rows.length === 0 || !result.rows[0].password_hash) {
             console.log('❌ User not found or no password hash for userId:', userId);
             return false;
         }
-        return await bcrypt.compare(plainPassword, user.password_hash);
+        return await bcrypt.compare(plainPassword, result.rows[0].password_hash);
     },
-    
+
     createUser: async (email, password, name) => {
-        await db.read();
-        const id = db.data.users.length > 0 
-            ? Math.max(...db.data.users.map(u => u.id)) + 1 
-            : 1;
-        
         const passwordHash = await bcrypt.hash(password, 10);
         const emailCode = generateEmailCode(email);
-        
-        const user = {
-            id,
-            email,
-            password_hash: passwordHash,
-            name,
-            email_code: emailCode,
-            plan: 'free',
-            newsletters_count: 0,
-            newsletters_limit: 10,
-            language: 'es',
-            created_at: new Date().toISOString(),
-            is_active: 1
-        };
-        
-        db.data.users.push(user);
-        await db.write();
-        
-        return user;
+
+        const result = await pool.query(`
+            INSERT INTO users (email, password_hash, name, email_code, plan, newsletters_count, newsletters_limit, language, is_active)
+            VALUES ($1, $2, $3, $4, 'free', 0, 10, 'es', 1)
+            RETURNING *
+        `, [email, passwordHash, name, emailCode]);
+
+        return result.rows[0];
     },
-    
+
     updateUser: async (id, updates) => {
-        await db.read();
-        const index = db.data.users.findIndex(u => u.id === id);
-        if (index !== -1) {
-            db.data.users[index] = { ...db.data.users[index], ...updates };
-            await db.write();
-            return db.data.users[index];
-        }
-        return null;
+        // Build dynamic update query
+        const fields = Object.keys(updates);
+        if (fields.length === 0) return null;
+
+        const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
+        const values = [id, ...Object.values(updates)];
+
+        const result = await pool.query(
+            `UPDATE users SET ${setClause} WHERE id = $1 RETURNING *`,
+            values
+        );
+        return result.rows[0] || null;
     },
-    
+
     upgradePlan: async (userId, plan) => {
-        await db.read();
-        const index = db.data.users.findIndex(u => u.id === userId);
-        if (index !== -1) {
-            db.data.users[index].plan = plan;
-            
-            // Update limits based on plan
-            if (plan === 'free') {
-                db.data.users[index].newsletters_limit = 10;
-            } else if (plan === 'pro') {
-                db.data.users[index].newsletters_limit = 31;
-            } else if (plan === 'premium') {
-                db.data.users[index].newsletters_limit = -1; // Unlimited
-            }
-            
-            await db.write();
-            return db.data.users[index];
+        let newslettersLimit;
+        if (plan === 'free') {
+            newslettersLimit = 10;
+        } else if (plan === 'pro') {
+            newslettersLimit = 31;
+        } else if (plan === 'premium') {
+            newslettersLimit = -1; // Unlimited
         }
-        return null;
+
+        const result = await pool.query(`
+            UPDATE users SET plan = $1, newsletters_limit = $2 WHERE id = $3 RETURNING *
+        `, [plan, newslettersLimit, userId]);
+
+        return result.rows[0] || null;
     },
-    
+
     // Newsletters
     getNewsletters: async (userId) => {
-        await db.read();
-        return db.data.newsletters
-            .filter(n => n.user_id === userId)
-            .sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
+        const result = await pool.query(`
+            SELECT * FROM newsletters WHERE user_id = $1 ORDER BY date_added DESC
+        `, [userId]);
+        return result.rows;
     },
-    
+
     getNewsletter: async (id, userId) => {
-        await db.read();
-        return db.data.newsletters.find(n => n.id === parseInt(id) && n.user_id === userId);
+        const result = await pool.query(`
+            SELECT * FROM newsletters WHERE id = $1 AND user_id = $2
+        `, [parseInt(id), userId]);
+        return result.rows[0] || null;
     },
-    
+
     createNewsletter: async (userId, title, sender, content, url) => {
-        await db.read();
-        const id = db.data.newsletters.length > 0 
-            ? Math.max(...db.data.newsletters.map(n => n.id)) + 1 
-            : 1;
-        
-        const newsletter = {
-            id,
-            user_id: userId,
-            title,
-            sender,
-            content,
-            summary: null,
-            url: url || null,
-            is_read: 0,
-            date_added: new Date().toISOString()
-        };
-        
-        db.data.newsletters.push(newsletter);
-        await db.write();
-        
-        // Increment user newsletter count
-        const userIndex = db.data.users.findIndex(u => u.id === userId);
-        if (userIndex !== -1) {
-            db.data.users[userIndex].newsletters_count += 1;
-            await db.write();
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Insert newsletter
+            const result = await client.query(`
+                INSERT INTO newsletters (user_id, title, sender, content, url, is_read)
+                VALUES ($1, $2, $3, $4, $5, 0)
+                RETURNING *
+            `, [userId, title, sender, content, url || null]);
+
+            // Increment user newsletter count
+            await client.query(`
+                UPDATE users SET newsletters_count = newsletters_count + 1 WHERE id = $1
+            `, [userId]);
+
+            await client.query('COMMIT');
+            return result.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-        
-        return newsletter;
     },
-    
+
     updateNewsletter: async (id, updates) => {
-        await db.read();
-        const index = db.data.newsletters.findIndex(n => n.id === parseInt(id));
-        if (index !== -1) {
-            db.data.newsletters[index] = { ...db.data.newsletters[index], ...updates };
-            await db.write();
-            return db.data.newsletters[index];
-        }
-        return null;
-    },
-    
-    deleteNewsletter: async (id, userId) => {
-        await db.read();
-        const initialLength = db.data.newsletters.length;
-        db.data.newsletters = db.data.newsletters.filter(
-            n => !(n.id === parseInt(id) && n.user_id === userId)
+        const fields = Object.keys(updates);
+        if (fields.length === 0) return null;
+
+        const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
+        const values = [parseInt(id), ...Object.values(updates)];
+
+        const result = await pool.query(
+            `UPDATE newsletters SET ${setClause} WHERE id = $1 RETURNING *`,
+            values
         );
-        const deleted = initialLength !== db.data.newsletters.length;
-        if (deleted) {
-            await db.write();
-            // Decrement user newsletter count
-            const userIndex = db.data.users.findIndex(u => u.id === userId);
-            if (userIndex !== -1 && db.data.users[userIndex].newsletters_count > 0) {
-                db.data.users[userIndex].newsletters_count -= 1;
-                await db.write();
-            }
-        }
-        return deleted;
+        return result.rows[0] || null;
     },
-    
+
+    deleteNewsletter: async (id, userId) => {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Delete newsletter
+            const result = await client.query(`
+                DELETE FROM newsletters WHERE id = $1 AND user_id = $2 RETURNING id
+            `, [parseInt(id), userId]);
+
+            const deleted = result.rowCount > 0;
+
+            if (deleted) {
+                // Decrement user newsletter count
+                await client.query(`
+                    UPDATE users SET newsletters_count = GREATEST(newsletters_count - 1, 0) WHERE id = $1
+                `, [userId]);
+            }
+
+            await client.query('COMMIT');
+            return deleted;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    },
+
     // Tags
     getTags: async (userId) => {
-        await db.read();
-        return db.data.tags.filter(t => t.user_id === userId);
+        const result = await pool.query('SELECT * FROM tags WHERE user_id = $1', [userId]);
+        return result.rows;
     },
-    
+
     createTag: async (userId, name, color) => {
-        await db.read();
-        const id = db.data.tags.length > 0 
-            ? Math.max(...db.data.tags.map(t => t.id)) + 1 
-            : 1;
-        
-        const tag = {
-            id,
-            user_id: userId,
-            name,
-            color: color || '#000000'
-        };
-        
-        db.data.tags.push(tag);
-        await db.write();
-        
-        return tag;
+        const result = await pool.query(`
+            INSERT INTO tags (user_id, name, color) VALUES ($1, $2, $3) RETURNING *
+        `, [userId, name, color || '#000000']);
+        return result.rows[0];
     },
-    
+
     deleteTag: async (id, userId) => {
-        await db.read();
-        const initialLength = db.data.tags.length;
-        db.data.tags = db.data.tags.filter(
-            t => !(t.id === parseInt(id) && t.user_id === userId)
-        );
-        // Also remove all newsletter-tag associations
-        db.data.newsletterTags = db.data.newsletterTags.filter(
-            nt => nt.tag_id !== parseInt(id)
-        );
-        const deleted = initialLength !== db.data.tags.length;
-        if (deleted) {
-            await db.write();
-        }
-        return deleted;
+        // CASCADE will handle newsletter_tags deletion automatically
+        const result = await pool.query(`
+            DELETE FROM tags WHERE id = $1 AND user_id = $2 RETURNING id
+        `, [parseInt(id), userId]);
+        return result.rowCount > 0;
     },
-    
+
     // Newsletter Tags
     addTagToNewsletter: async (newsletterId, tagId) => {
-        await db.read();
-        const exists = db.data.newsletterTags.find(
-            nt => nt.newsletter_id === newsletterId && nt.tag_id === tagId
-        );
-        
-        if (!exists) {
-            db.data.newsletterTags.push({
-                newsletter_id: newsletterId,
-                tag_id: tagId
-            });
-            await db.write();
+        try {
+            await pool.query(`
+                INSERT INTO newsletter_tags (newsletter_id, tag_id) VALUES ($1, $2)
+                ON CONFLICT (newsletter_id, tag_id) DO NOTHING
+            `, [newsletterId, tagId]);
+        } catch (error) {
+            // Ignore duplicate key errors
+            if (error.code !== '23505') throw error;
         }
     },
-    
+
     removeTagFromNewsletter: async (newsletterId, tagId) => {
-        await db.read();
-        db.data.newsletterTags = db.data.newsletterTags.filter(
-            nt => !(nt.newsletter_id === newsletterId && nt.tag_id === tagId)
-        );
-        await db.write();
+        await pool.query(`
+            DELETE FROM newsletter_tags WHERE newsletter_id = $1 AND tag_id = $2
+        `, [newsletterId, tagId]);
     },
-    
+
     getNewsletterTags: async (newsletterId) => {
-        await db.read();
-        const tagIds = db.data.newsletterTags
-            .filter(nt => nt.newsletter_id === newsletterId)
-            .map(nt => nt.tag_id);
-        
-        return db.data.tags.filter(t => tagIds.includes(t.id));
+        const result = await pool.query(`
+            SELECT t.* FROM tags t
+            INNER JOIN newsletter_tags nt ON t.id = nt.tag_id
+            WHERE nt.newsletter_id = $1
+        `, [newsletterId]);
+        return result.rows;
     },
-    
+
     getNewsletterWithTags: async (newsletterId) => {
-        await db.read();
-        const newsletter = db.data.newsletters.find(n => n.id === parseInt(newsletterId));
-        if (!newsletter) return null;
-        
+        const newsletterResult = await pool.query(`
+            SELECT * FROM newsletters WHERE id = $1
+        `, [parseInt(newsletterId)]);
+
+        if (newsletterResult.rows.length === 0) return null;
+
+        const newsletter = newsletterResult.rows[0];
         const tags = await dbHelpers.getNewsletterTags(newsletterId);
+
         return { ...newsletter, tags };
     },
-    
+
     getNewslettersByTag: async (userId, tagId) => {
-        await db.read();
-        const newsletterIds = db.data.newsletterTags
-            .filter(nt => nt.tag_id === parseInt(tagId))
-            .map(nt => nt.newsletter_id);
-        
-        return db.data.newsletters
-            .filter(n => n.user_id === userId && newsletterIds.includes(n.id))
-            .sort((a, b) => new Date(b.date_added) - new Date(a.date_added));
+        const result = await pool.query(`
+            SELECT n.* FROM newsletters n
+            INNER JOIN newsletter_tags nt ON n.id = nt.newsletter_id
+            WHERE n.user_id = $1 AND nt.tag_id = $2
+            ORDER BY n.date_added DESC
+        `, [userId, parseInt(tagId)]);
+        return result.rows;
     }
 };
