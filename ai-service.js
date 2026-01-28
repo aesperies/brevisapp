@@ -30,14 +30,16 @@ export const PLANS = {
 
 export function canUserPerformAction(user, action) {
     const plan = PLANS[user.plan] || PLANS.free;
-    
+
     switch(action) {
         case 'add_newsletter':
             return plan.limit === -1 || user.newsletters_count < plan.limit;
-        case 'summarize':
+        case 'generate_summary':
             return plan.canSummarize;
-        case 'report':
-            return plan.canReport;
+        case 'generate_brief':
+            return plan.canSummarize; // Pro y Premium pueden generar briefs
+        case 'generate_report':
+            return plan.canReport; // Solo Premium
         default:
             return false;
     }

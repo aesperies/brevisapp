@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #FFF;
             color: #000;
@@ -487,17 +487,17 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const API_URL = window.location.hostname === 'localhost' 
+        const API_URL = window.location.hostname === 'localhost'
             ? 'http://localhost:8080/api'
             : 'https://brevisapp-production.up.railway.app/api';
-        
+
         function App() {
             const [language, setLanguage] = useState('es');
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
-            
+
             useEffect(() => { checkAuth(); }, []);
-            
+
             const checkAuth = async () => {
                 try {
                     const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
@@ -508,16 +508,16 @@
                     setLoading(false);
                 }
             };
-            
+
             if (loading) return <div className="auth-container">Cargando...</div>;
             if (!user) return <Auth onLogin={checkAuth} language={language} setLanguage={setLanguage} />;
             return <Dashboard user={user} setUser={setUser} language={language} setLanguage={setLanguage} />;
         }
-        
+
         function Auth({ onLogin, language, setLanguage }) {
             const [isLogin, setIsLogin] = useState(true);
             const [formData, setFormData] = useState({ email: '', password: '', name: '' });
-            
+
             const t = {
                 es: {
                     app: { tagline: "Tu lista de lectura. Curada. Resumida." },
@@ -539,7 +539,7 @@
                 }
             };
             const translations = t[language];
-            
+
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
@@ -555,7 +555,7 @@
                     alert('Error de conexión');
                 }
             };
-            
+
             return (
                 <div className="auth-container">
                     <div className="auth-box">
@@ -602,7 +602,7 @@
                 </div>
             );
         }
-        
+
         function Dashboard({ user, setUser, language, setLanguage }) {
             const [newsletters, setNewsletters] = useState([]);
             const [tags, setTags] = useState([]);
@@ -622,7 +622,7 @@
             const [showBatchResult, setShowBatchResult] = useState(null);
             const [showTagMenuFor, setShowTagMenuFor] = useState(null);
             const [formData, setFormData] = useState({ title: '', sender: '', content: '', url: '' });
-            
+
             const t = {
                 es: {
                     app: { tagline: "Tu lista de lectura. Curada. Resumida." },
@@ -692,34 +692,34 @@
                 }
             };
             const translations = t[language];
-            
+
             useEffect(() => {
                 fetchNewsletters();
                 fetchTags();
                 loadSavedReports();
             }, []);
-            
+
             const fetchNewsletters = async () => {
                 try {
                     const res = await fetch(`${API_URL}/newsletters`, { credentials: 'include' });
                     if (res.ok) setNewsletters(await res.json());
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const fetchTags = async () => {
                 try {
                     const res = await fetch(`${API_URL}/tags`, { credentials: 'include' });
                     if (res.ok) setTags(await res.json());
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const loadSavedReports = () => {
                 try {
                     const saved = localStorage.getItem('brevis_saved_reports');
                     if (saved) setSavedReports(JSON.parse(saved));
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const saveReport = (report) => {
                 const newReport = {
                     id: Date.now(),
@@ -732,19 +732,19 @@
                 setSavedReports(updated);
                 localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
             };
-            
+
             const deleteReport = (id) => {
                 const updated = savedReports.filter(r => r.id !== id);
                 setSavedReports(updated);
                 localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
             };
-            
+
             const renameReport = (id, newName) => {
                 const updated = savedReports.map(r => r.id === id ? {...r, name: newName} : r);
                 setSavedReports(updated);
                 localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
             };
-            
+
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
@@ -762,7 +762,7 @@
                     }
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const toggleRead = async (id) => {
                 const newsletter = newsletters.find(n => n.id === id);
                 try {
@@ -780,7 +780,7 @@
                     }
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const deleteNewsletter = async (id) => {
                 if (!confirm('¿Eliminar newsletter?')) return;
                 try {
@@ -795,7 +795,7 @@
                     }
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const generateSummary = async (id) => {
                 if (user.plan === 'free') {
                     setShowUpgradeModal(true);
@@ -826,7 +826,7 @@
                     setGeneratingSummary({...generatingSummary, [id]: false});
                 }
             };
-            
+
             const generateBrief = async () => {
                 if (selectedNewsletters.length === 0) return;
                 if (user.plan === 'free') {
@@ -854,7 +854,7 @@
                     setGeneratingBatch(false);
                 }
             };
-            
+
             const generateReport = async () => {
                 if (selectedNewsletters.length === 0) return;
                 if (user.plan !== 'premium') {
@@ -882,7 +882,7 @@
                     setGeneratingBatch(false);
                 }
             };
-            
+
             const addTagToNewsletter = async (newsletterId, tagId) => {
                 try {
                     const res = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
@@ -895,7 +895,7 @@
                     if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const removeTagFromNewsletter = async (newsletterId, tagId) => {
                 try {
                     const res = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
@@ -908,14 +908,14 @@
                     if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const logout = async () => {
                 try {
                     await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
                     setUser(null);
                 } catch (e) { console.error('Error:', e); }
             };
-            
+
             const getFilteredNewsletters = () => {
                 let filtered = newsletters;
                 if (sidebarView === 'unread') filtered = filtered.filter(n => !n.is_read);
@@ -925,20 +925,20 @@
                     filtered = filtered.filter(n => n.tags && n.tags.some(t => t.id === tagId));
                 }
                 if (searchTerm) {
-                    filtered = filtered.filter(n => 
+                    filtered = filtered.filter(n =>
                         n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         n.sender.toLowerCase().includes(searchTerm.toLowerCase())
                     );
                 }
                 return filtered;
             };
-            
+
             const filteredNewsletters = getFilteredNewsletters();
-            const planPercentage = user.newsletters_limit > 0 
+            const planPercentage = user.newsletters_limit > 0
                 ? Math.round((user.newsletters_count / user.newsletters_limit) * 100)
                 : 0;
             const showLimitWarning = planPercentage >= 80;
-            
+
             return (
                 <div className="app-layout">
                     <div className="sidebar">
@@ -1190,7 +1190,7 @@
                             <div className="footer">BREVIS Pro — 2026</div>
                         </div>
                     </div>
-                    
+
                     {showAddForm && (
                         <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1233,7 +1233,7 @@
                             </div>
                         </div>
                     )}
-                    
+
                     {readingNewsletter && (
                         <div className="modal-overlay" onClick={() => setReadingNewsletter(null)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1275,7 +1275,7 @@
                             </div>
                         </div>
                     )}
-                    
+
                     {showProfileModal && (
                         <ProfileModal user={user} onClose={() => setShowProfileModal(false)}
                             onUpdate={(u) => setUser(u)} onUpgrade={() => {
@@ -1283,12 +1283,12 @@
                                 setShowUpgradeModal(true);
                             }} translations={translations} />
                     )}
-                    
+
                     {showTagManager && (
                         <TagManager tags={tags} onClose={() => setShowTagManager(false)}
                             onUpdate={fetchTags} translations={translations} />
                     )}
-                    
+
                     {showUpgradeModal && (
                         <div className="modal-overlay" onClick={() => setShowUpgradeModal(false)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1323,7 +1323,7 @@
                             </div>
                         </div>
                     )}
-                    
+
                     {showBatchResult && (
                         <div className="modal-overlay" onClick={() => setShowBatchResult(null)}>
                             <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>
@@ -1381,7 +1381,7 @@
                 </div>
             );
         }
-        
+
         function ProfileModal({ user, onClose, onUpdate, onUpgrade, translations }) {
             const [formData, setFormData] = useState({ name: user.name, email: user.email, newPassword: '' });
             const handleSubmit = async (e) => {
@@ -1437,7 +1437,7 @@
                 </div>
             );
         }
-        
+
         function TagManager({ tags, onClose, onUpdate, translations }) {
             const [newTag, setNewTag] = useState({ name: '', color: '#000000' });
             const colors = ['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
@@ -1513,7 +1513,7 @@
                 </div>
             );
         }
-        
+
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
