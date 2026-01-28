@@ -6,12 +6,15 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { body, validationResult } from 'express-validator';
 import multer from 'multer';
+import Stripe from 'stripe';
 
 import { simpleParser } from 'mailparser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
 import { generateToken, authMiddleware } from './auth.js';
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
+
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,7 +50,14 @@ app.use(cors({
     ],
     credentials: true
 }));
-app.use(express.json());
+// Parse JSON for all routes except Stripe webhook (needs raw body)
+app.use((req, res, next) => {
+    if (req.originalUrl === '/api/stripe/webhook') {
+        next();
+    } else {
+        express.json()(req, res, next);
+    }
+});
 app.use(cookieParser());
 
 // Serve static files
@@ -148,8 +158,6 @@ app.post('/api/auth/register', [
                 name: user.name,
                 email_code: user.email_code,
                 plan: user.plan,
-                newsletters_count: user.newsletters_count,
-                newsletters_limit: user.newsletters_limit,
                 language: user.language
             } 
         });
@@ -201,8 +209,6 @@ app.post('/api/auth/login', [
                 name: user.name,
                 email_code: user.email_code,
                 plan: user.plan,
-                newsletters_count: user.newsletters_count,
-                newsletters_limit: user.newsletters_limit,
                 language: user.language
             } 
         });
@@ -226,8 +232,6 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
                 name: user.name,
                 email_code: user.email_code,
                 plan: user.plan,
-                newsletters_count: user.newsletters_count,
-                newsletters_limit: user.newsletters_limit,
                 language: user.language
             } 
         });
@@ -270,13 +274,6 @@ app.get('/api/newsletters/:id', authMiddleware, async (req, res) => {
 
 app.post('/api/newsletters', authMiddleware, async (req, res) => {
     try {
-        const user = await dbHelpers.findUserById(req.user.id);
-        
-        if (!canUserPerformAction(user, 'add_newsletter')) {
-            console.log('❌ Newsletter limit reached for:', user.email);
-            return res.status(403).json({ error: 'Newsletter limit reached' });
-        }
-
         const { title, source, content, url } = req.body;
         const newsletter = await dbHelpers.createNewsletter(
             req.user.id,
@@ -484,37 +481,168 @@ app.get('/api/plans', (req, res) => {
     res.json(PLANS);
 });
 
-app.get('/api/plans/current', authMiddleware, async (req, res) => {
+// ============= STRIPE ROUTES =============
+
+const STRIPE_PRICES = {
+    pro_month: process.env.STRIPE_PRICE_PRO_MONTHLY,
+    pro_year: process.env.STRIPE_PRICE_PRO_ANNUAL,
+    premium_month: process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+    premium_year: process.env.STRIPE_PRICE_PREMIUM_ANNUAL
+};
+
+app.post('/api/stripe/checkout', authMiddleware, async (req, res) => {
     try {
+        if (!stripe) {
+            return res.status(500).json({ error: 'Stripe not configured' });
+        }
+
+        const { plan, interval } = req.body; // plan: 'pro'|'premium', interval: 'month'|'year'
+        const priceId = STRIPE_PRICES[`${plan}_${interval}`];
+
+        if (!priceId) {
+            return res.status(400).json({ error: 'Invalid plan or interval' });
+        }
+
         const user = await dbHelpers.findUserById(req.user.id);
-        const plan = PLANS[user.plan];
-        
-        res.json({
-            current: user.plan,
-            details: plan,
-            usage: {
-                newsletters_count: user.newsletters_count,
-                newsletters_limit: user.newsletters_limit,
-                percentage: user.newsletters_limit > 0 
-                    ? Math.round((user.newsletters_count / user.newsletters_limit) * 100)
-                    : 0
-            }
+
+        // Create or reuse Stripe customer
+        let customerId = user.stripe_customer_id;
+        if (!customerId) {
+            const customer = await stripe.customers.create({
+                email: user.email,
+                name: user.name,
+                metadata: { user_id: user.id.toString() }
+            });
+            customerId = customer.id;
+            await dbHelpers.updateUser(user.id, { stripe_customer_id: customerId });
+        }
+
+        const baseUrl = req.headers.origin || `https://brevisapp.com`;
+
+        const session = await stripe.checkout.sessions.create({
+            customer: customerId,
+            mode: 'subscription',
+            line_items: [{ price: priceId, quantity: 1 }],
+            success_url: `${baseUrl}?checkout=success`,
+            cancel_url: `${baseUrl}?checkout=cancel`,
+            metadata: { user_id: user.id.toString(), plan }
         });
+
+        console.log('✅ Checkout session created for:', user.email, plan, interval);
+        res.json({ url: session.url });
     } catch (error) {
-        console.error('❌ Get current plan error:', error);
-        res.status(500).json({ error: 'Failed to get plan' });
+        console.error('❌ Stripe checkout error:', error);
+        res.status(500).json({ error: 'Failed to create checkout session' });
     }
 });
 
-app.post('/api/plans/upgrade', authMiddleware, async (req, res) => {
+app.post('/api/stripe/portal', authMiddleware, async (req, res) => {
     try {
-        const { plan } = req.body;
-        await dbHelpers.upgradePlan(req.user.id, plan);
-        console.log('✅ Plan upgraded to:', plan);
-        res.json({ success: true, plan });
+        if (!stripe) {
+            return res.status(500).json({ error: 'Stripe not configured' });
+        }
+
+        const user = await dbHelpers.findUserById(req.user.id);
+        if (!user.stripe_customer_id) {
+            return res.status(400).json({ error: 'No subscription found' });
+        }
+
+        const baseUrl = req.headers.origin || `https://brevisapp.com`;
+
+        const session = await stripe.billingPortal.sessions.create({
+            customer: user.stripe_customer_id,
+            return_url: baseUrl
+        });
+
+        console.log('✅ Portal session created for:', user.email);
+        res.json({ url: session.url });
     } catch (error) {
-        console.error('❌ Upgrade plan error:', error);
-        res.status(500).json({ error: 'Failed to upgrade plan' });
+        console.error('❌ Stripe portal error:', error);
+        res.status(500).json({ error: 'Failed to create portal session' });
+    }
+});
+
+// Stripe webhook - must use raw body, placed before express.json()
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        if (!stripe) {
+            return res.status(500).json({ error: 'Stripe not configured' });
+        }
+
+        let event;
+        const sig = req.headers['stripe-signature'];
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+        if (webhookSecret && sig) {
+            try {
+                event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+            } catch (err) {
+                console.error('❌ Stripe webhook signature error:', err.message);
+                return res.status(400).json({ error: 'Webhook signature verification failed' });
+            }
+        } else {
+            event = JSON.parse(req.body);
+        }
+
+        console.log('📦 Stripe event:', event.type);
+
+        switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object;
+                const userId = parseInt(session.metadata?.user_id);
+                const plan = session.metadata?.plan;
+
+                if (userId && plan) {
+                    await dbHelpers.updateUser(userId, {
+                        plan,
+                        stripe_subscription_id: session.subscription
+                    });
+                    console.log('✅ Plan upgraded via checkout:', userId, plan);
+                }
+                break;
+            }
+
+            case 'customer.subscription.updated': {
+                const subscription = event.data.object;
+                const user = await dbHelpers.findUserByStripeCustomerId(subscription.customer);
+
+                if (user && subscription.status === 'active') {
+                    // Determine plan from price
+                    const priceId = subscription.items?.data?.[0]?.price?.id;
+                    let plan = 'free';
+                    if (priceId === STRIPE_PRICES.pro_month || priceId === STRIPE_PRICES.pro_year) {
+                        plan = 'pro';
+                    } else if (priceId === STRIPE_PRICES.premium_month || priceId === STRIPE_PRICES.premium_year) {
+                        plan = 'premium';
+                    }
+                    await dbHelpers.updateUser(user.id, {
+                        plan,
+                        stripe_subscription_id: subscription.id
+                    });
+                    console.log('✅ Subscription updated:', user.email, plan);
+                }
+                break;
+            }
+
+            case 'customer.subscription.deleted': {
+                const subscription = event.data.object;
+                const user = await dbHelpers.findUserByStripeCustomerId(subscription.customer);
+
+                if (user) {
+                    await dbHelpers.updateUser(user.id, {
+                        plan: 'free',
+                        stripe_subscription_id: null
+                    });
+                    console.log('✅ Subscription cancelled, downgraded:', user.email);
+                }
+                break;
+            }
+        }
+
+        res.json({ received: true });
+    } catch (error) {
+        console.error('❌ Stripe webhook error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
 
@@ -597,11 +725,6 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
 
         console.log('✅ User found:', user.email);
 
-        if (!canUserPerformAction(user, 'add_newsletter')) {
-            console.log('❌ User reached limit:', user.email);
-            return res.status(403).json({ error: 'Newsletter limit reached' });
-        }
-
         const urls = extractUrls(content);
 
         const newsletter = await dbHelpers.createNewsletter(
@@ -639,13 +762,13 @@ app.listen(PORT, '0.0.0.0', () => {
 ║                    BREVIS Server                       ║
 ╠════════════════════════════════════════════════════════╣
 ║   Server: http://0.0.0.0:${PORT}                         ║
-║   Database: JSON (db.json)                            ║
-║   Features: ✅ Tags ✅ AI ✅ Plans ✅ Multi-lang       ║
+║   Database: PostgreSQL                                ║
+║   Stripe: ${stripe ? '✅ Connected' : '❌ Not configured'}                              ║
 ║                                                        ║
-║   Plans:                                               ║
-║   • Free: 10 newsletters/month                        ║
-║   • Pro: 31 newsletters + summaries ($9.99)           ║
-║   • Premium: Unlimited + reports ($19.99)             ║
+║   Plans (unlimited newsletters):                       ║
+║   • Free: No AI features                              ║
+║   • Pro: Summaries + Briefs ($7.99/mo)                ║
+║   • Premium: + Reports ($9.99/mo)                     ║
 ╚════════════════════════════════════════════════════════╝
     `);
 });

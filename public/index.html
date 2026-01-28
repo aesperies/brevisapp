@@ -706,6 +706,46 @@
                 setCollapsedSummaries(prev => ({...prev, [id]: !prev[id]}));
             };
 
+            const [billingInterval, setBillingInterval] = useState('month');
+
+            const handleCheckout = async (plan) => {
+                try {
+                    const res = await fetch(`${API_URL}/stripe/checkout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ plan, interval: billingInterval })
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        alert(data.error || 'Error creating checkout');
+                    }
+                } catch (e) {
+                    console.error('Checkout error:', e);
+                    alert('Error connecting to payment system');
+                }
+            };
+
+            const handleManageSubscription = async () => {
+                try {
+                    const res = await fetch(`${API_URL}/stripe/portal`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include'
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        alert(data.error || 'Error opening portal');
+                    }
+                } catch (e) {
+                    console.error('Portal error:', e);
+                }
+            };
+
             const t = {
                 es: {
                     app: { tagline: "Tu lista de lectura. Curada. Resumida." },
@@ -841,7 +881,7 @@
                         fetchNewsletters();
                         setFormData({ title: '', sender: '', content: '', url: '' });
                         setShowAddForm(false);
-                        setUser({...user, newsletters_count: user.newsletters_count + 1});
+                        // Newsletter created successfully
                     }
                 } catch (e) { console.error('Error:', e); }
             };
@@ -874,7 +914,7 @@
                     if (res.ok) {
                         setNewsletters(newsletters.filter(n => n.id !== id));
                         if (readingNewsletter?.id === id) setReadingNewsletter(null);
-                        setUser({...user, newsletters_count: user.newsletters_count - 1});
+                        // Newsletter deleted successfully
                     }
                 } catch (e) { console.error('Error:', e); }
             };
@@ -1046,10 +1086,6 @@
             };
 
             const filteredNewsletters = getFilteredNewsletters();
-            const planPercentage = user.newsletters_limit > 0
-                ? Math.round((user.newsletters_count / user.newsletters_limit) * 100)
-                : 0;
-            const showLimitWarning = planPercentage >= 80;
 
             return (
                 <div className="app-layout">
@@ -1142,31 +1178,6 @@
                                     )}
                                 </div>
                             </div>
-                            {showLimitWarning && (
-                                <div className="upgrade-banner">
-                                    <div>
-                                        <div className="upgrade-title">{translations.plans.upgradePrompt}</div>
-                                        <div className="upgrade-subtitle">
-                                            {user.newsletters_count} / {user.newsletters_limit} newsletters
-                                        </div>
-                                    </div>
-                                    <button className="btn btn-upgrade" onClick={() => setShowUpgradeModal(true)}>
-                                        {translations.plans.upgrade}
-                                    </button>
-                                </div>
-                            )}
-                            {user.newsletters_limit > 0 && (
-                                <div className="plan-indicator">
-                                    <div className="plan-info">
-                                        <div><strong>{user.newsletters_count}</strong> / {user.newsletters_limit} newsletters</div>
-                                        <div>{planPercentage}%</div>
-                                    </div>
-                                    <div className="plan-progress">
-                                        <div className={`plan-progress-bar ${planPercentage >= 90 ? 'danger' : planPercentage >= 80 ? 'warning' : ''}`}
-                                            style={{width: `${planPercentage}%`}}></div>
-                                    </div>
-                                </div>
-                            )}
                             <div className="email-display">
                                 <div className="email-label">{translations.email.label}</div>
                                 <div className="email-code">{user.email_code}@newsletters.brevisapp.com</div>
@@ -1444,34 +1455,104 @@
 
                     {showUpgradeModal && (
                         <div className="modal-overlay" onClick={() => setShowUpgradeModal(false)}>
-                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '520px'}}>
                                 <div className="modal-header">
                                     <h2 className="modal-title">{translations.plans.upgrade}</h2>
                                     <button className="close-btn" onClick={() => setShowUpgradeModal(false)}>×</button>
                                 </div>
                                 <div className="modal-body">
-                                    <div style={{marginBottom: '32px'}}>
-                                        <h3 style={{marginBottom: '8px'}}>Pro - $9.99/month</h3>
-                                        <ul style={{marginLeft: '20px'}}>
-                                            <li>31 newsletters/month</li>
-                                            <li>AI Summaries</li>
-                                            <li>Brief Generation</li>
-                                            <li>Unlimited Tags</li>
-                                        </ul>
+                                    {/* Billing toggle */}
+                                    <div style={{display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '0', background: '#F0F0F0', borderRadius: '8px', padding: '3px'}}>
+                                        <button onClick={() => setBillingInterval('month')}
+                                            style={{flex: 1, padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                                                background: billingInterval === 'month' ? '#000' : 'transparent',
+                                                color: billingInterval === 'month' ? '#FFF' : '#666'}}>
+                                            {language === 'es' ? 'Mensual' : 'Monthly'}
+                                        </button>
+                                        <button onClick={() => setBillingInterval('year')}
+                                            style={{flex: 1, padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                                                background: billingInterval === 'year' ? '#000' : 'transparent',
+                                                color: billingInterval === 'year' ? '#FFF' : '#666'}}>
+                                            {language === 'es' ? 'Anual (-27%)' : 'Annual (-27%)'}
+                                        </button>
                                     </div>
-                                    <div>
-                                        <h3 style={{marginBottom: '8px'}}>Premium - $19.99/month</h3>
-                                        <ul style={{marginLeft: '20px'}}>
-                                            <li>Unlimited newsletters</li>
-                                            <li>AI Summaries</li>
-                                            <li>Brief & Report Generation</li>
-                                            <li>Unlimited Tags</li>
-                                            <li>Priority Support</li>
-                                        </ul>
+
+                                    {/* Plan cards */}
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+                                        {/* Free */}
+                                        <div style={{padding: '16px', border: '1px solid #E5E5E5', borderRadius: '8px', opacity: user.plan === 'free' ? 0.6 : 1}}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                                <div>
+                                                    <h3 style={{margin: 0, fontSize: '16px'}}>Free</h3>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#888'}}>
+                                                        {language === 'es' ? 'Newsletters ilimitadas' : 'Unlimited newsletters'}
+                                                    </p>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <div style={{fontSize: '20px', fontWeight: '700'}}>$0</div>
+                                                    {user.plan === 'free' && <span style={{fontSize: '11px', color: '#888'}}>{language === 'es' ? 'Plan actual' : 'Current'}</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Pro */}
+                                        <div style={{padding: '16px', border: user.plan === 'pro' ? '2px solid #000' : '1px solid #E5E5E5', borderRadius: '8px'}}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
+                                                <div>
+                                                    <h3 style={{margin: 0, fontSize: '16px'}}>Pro</h3>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#888'}}>
+                                                        {language === 'es' ? 'Resúmenes AI + Briefs' : 'AI Summaries + Briefs'}
+                                                    </p>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <div style={{fontSize: '20px', fontWeight: '700'}}>
+                                                        ${billingInterval === 'month' ? '7.99' : '69.99'}
+                                                    </div>
+                                                    <span style={{fontSize: '11px', color: '#888'}}>
+                                                        /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {user.plan === 'pro' ? (
+                                                <button className="btn btn-full" onClick={handleManageSubscription}>
+                                                    {language === 'es' ? 'Gestionar suscripción' : 'Manage subscription'}
+                                                </button>
+                                            ) : user.plan === 'premium' ? null : (
+                                                <button className="btn btn-primary btn-full" onClick={() => handleCheckout('pro')}>
+                                                    {language === 'es' ? 'Suscribirse a Pro' : 'Subscribe to Pro'}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Premium */}
+                                        <div style={{padding: '16px', border: user.plan === 'premium' ? '2px solid #000' : '1px solid #E5E5E5', borderRadius: '8px'}}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
+                                                <div>
+                                                    <h3 style={{margin: 0, fontSize: '16px'}}>Premium</h3>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#888'}}>
+                                                        {language === 'es' ? 'Todo de Pro + Reports' : 'Everything in Pro + Reports'}
+                                                    </p>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <div style={{fontSize: '20px', fontWeight: '700'}}>
+                                                        ${billingInterval === 'month' ? '9.99' : '89.99'}
+                                                    </div>
+                                                    <span style={{fontSize: '11px', color: '#888'}}>
+                                                        /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {user.plan === 'premium' ? (
+                                                <button className="btn btn-full" onClick={handleManageSubscription}>
+                                                    {language === 'es' ? 'Gestionar suscripción' : 'Manage subscription'}
+                                                </button>
+                                            ) : (
+                                                <button className="btn btn-primary btn-full" onClick={() => handleCheckout('premium')}>
+                                                    {language === 'es' ? 'Suscribirse a Premium' : 'Subscribe to Premium'}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <p style={{marginTop: '24px', fontSize: '13px', color: '#666'}}>
-                                        Note: Stripe integration coming soon!
-                                    </p>
                                 </div>
                             </div>
                         </div>

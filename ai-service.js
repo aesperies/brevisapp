@@ -3,28 +3,28 @@ import fetch from 'node-fetch';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
-// Plan limits
+// Plan definitions
 export const PLANS = {
     free: {
         name: 'Free',
-        limit: 10,
         canSummarize: false,
         canReport: false,
-        price: 0
+        priceMonthly: 0,
+        priceAnnual: 0
     },
     pro: {
         name: 'Pro',
-        limit: 31,
         canSummarize: true,
         canReport: false,
-        price: 9.99
+        priceMonthly: 7.99,
+        priceAnnual: 69.99
     },
     premium: {
         name: 'Premium',
-        limit: -1, // unlimited
         canSummarize: true,
         canReport: true,
-        price: 19.99
+        priceMonthly: 9.99,
+        priceAnnual: 89.99
     }
 };
 
@@ -32,14 +32,12 @@ export function canUserPerformAction(user, action) {
     const plan = PLANS[user.plan] || PLANS.free;
 
     switch(action) {
-        case 'add_newsletter':
-            return plan.limit === -1 || user.newsletters_count < plan.limit;
         case 'generate_summary':
             return plan.canSummarize;
         case 'generate_brief':
-            return plan.canSummarize; // Pro y Premium pueden generar briefs
+            return plan.canSummarize;
         case 'generate_report':
-            return plan.canReport; // Solo Premium
+            return plan.canReport;
         default:
             return false;
     }
@@ -49,7 +47,7 @@ export async function generateSummary(newsletter, language = 'es') {
     if (!ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY not configured');
     }
-    
+
     const prompts = {
         es: `Crea un resumen en 4-6 bullet points del siguiente newsletter para ayudar al lector a decidir si quiere leerlo completo.
 
@@ -78,7 +76,7 @@ Content: ${newsletter.content}
 
 Summary (4-6 bullets):`
     };
-    
+
     try {
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
@@ -96,12 +94,12 @@ Summary (4-6 bullets):`
                 }]
             })
         });
-        
+
         if (!response.ok) {
             const error = await response.text();
             throw new Error(`Claude API error: ${error}`);
         }
-        
+
         const data = await response.json();
         return data.content[0].text;
     } catch (error) {
@@ -150,7 +148,7 @@ ${newsletterList}
 
 Executive brief:`
     };
-    
+
     try {
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
@@ -168,11 +166,11 @@ Executive brief:`
                 }]
             })
         });
-        
+
         if (!response.ok) {
             throw new Error('Claude API error');
         }
-        
+
         const data = await response.json();
         return data.content[0].text;
     } catch (error) {
@@ -229,7 +227,7 @@ ${newsletterList}
 
 Report:`
     };
-    
+
     try {
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
@@ -247,11 +245,11 @@ Report:`
                 }]
             })
         });
-        
+
         if (!response.ok) {
             throw new Error('Claude API error');
         }
-        
+
         const data = await response.json();
         return data.content[0].text;
     } catch (error) {

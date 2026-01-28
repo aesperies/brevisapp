@@ -36,6 +36,8 @@ export async function setupDatabase() {
                 plan VARCHAR(20) DEFAULT 'free',
                 newsletters_count INTEGER DEFAULT 0,
                 newsletters_limit INTEGER DEFAULT 10,
+                stripe_customer_id VARCHAR(255),
+                stripe_subscription_id VARCHAR(255),
                 language VARCHAR(5) DEFAULT 'es',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_active INTEGER DEFAULT 1
@@ -74,6 +76,12 @@ export async function setupDatabase() {
             CREATE INDEX IF NOT EXISTS idx_tags_user ON tags(user_id);
             CREATE INDEX IF NOT EXISTS idx_newsletter_tags_newsletter ON newsletter_tags(newsletter_id);
             CREATE INDEX IF NOT EXISTS idx_newsletter_tags_tag ON newsletter_tags(tag_id);
+        `);
+
+        // Add Stripe columns if they don't exist (migration for existing databases)
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
         `);
 
         console.log('✅ Database initialized (PostgreSQL)');
@@ -173,19 +181,14 @@ export const dbHelpers = {
     },
 
     upgradePlan: async (userId, plan) => {
-        let newslettersLimit;
-        if (plan === 'free') {
-            newslettersLimit = 10;
-        } else if (plan === 'pro') {
-            newslettersLimit = 31;
-        } else if (plan === 'premium') {
-            newslettersLimit = -1; // Unlimited
-        }
-
         const result = await pool.query(`
-            UPDATE users SET plan = $1, newsletters_limit = $2 WHERE id = $3 RETURNING *
-        `, [plan, newslettersLimit, userId]);
+            UPDATE users SET plan = $1 WHERE id = $2 RETURNING *
+        `, [plan, userId]);
+        return result.rows[0] || null;
+    },
 
+    findUserByStripeCustomerId: async (stripeCustomerId) => {
+        const result = await pool.query('SELECT * FROM users WHERE stripe_customer_id = $1', [stripeCustomerId]);
         return result.rows[0] || null;
     },
 
@@ -205,30 +208,12 @@ export const dbHelpers = {
     },
 
     createNewsletter: async (userId, title, sender, content, url) => {
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-
-            // Insert newsletter
-            const result = await client.query(`
-                INSERT INTO newsletters (user_id, title, sender, content, url, is_read)
-                VALUES ($1, $2, $3, $4, $5, 0)
-                RETURNING *
-            `, [userId, title, sender, content, url || null]);
-
-            // Increment user newsletter count
-            await client.query(`
-                UPDATE users SET newsletters_count = newsletters_count + 1 WHERE id = $1
-            `, [userId]);
-
-            await client.query('COMMIT');
-            return result.rows[0];
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
+        const result = await pool.query(`
+            INSERT INTO newsletters (user_id, title, sender, content, url, is_read)
+            VALUES ($1, $2, $3, $4, $5, 0)
+            RETURNING *
+        `, [userId, title, sender, content, url || null]);
+        return result.rows[0];
     },
 
     updateNewsletter: async (id, updates) => {
@@ -246,32 +231,10 @@ export const dbHelpers = {
     },
 
     deleteNewsletter: async (id, userId) => {
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-
-            // Delete newsletter
-            const result = await client.query(`
-                DELETE FROM newsletters WHERE id = $1 AND user_id = $2 RETURNING id
-            `, [parseInt(id), userId]);
-
-            const deleted = result.rowCount > 0;
-
-            if (deleted) {
-                // Decrement user newsletter count
-                await client.query(`
-                    UPDATE users SET newsletters_count = GREATEST(newsletters_count - 1, 0) WHERE id = $1
-                `, [userId]);
-            }
-
-            await client.query('COMMIT');
-            return deleted;
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
+        const result = await pool.query(`
+            DELETE FROM newsletters WHERE id = $1 AND user_id = $2 RETURNING id
+        `, [parseInt(id), userId]);
+        return result.rowCount > 0;
     },
 
     // Tags
