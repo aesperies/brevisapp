@@ -454,17 +454,21 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
     try {
         console.log('📧 Webhook received from SendGrid');
         console.log('📦 Body fields:', Object.keys(req.body));
-        
+        console.log('📦 Full body:', JSON.stringify(req.body, null, 2).substring(0, 2000));
+
         // SendGrid sends data as form fields, not as raw email
         const toEmail = req.body.to || '';
         const fromEmail = req.body.from || '';
         const subject = req.body.subject || 'Sin título';
         const textContent = req.body.text || '';
         const htmlContent = req.body.html || '';
-        
+
         console.log('📬 To:', toEmail);
         console.log('📤 From:', fromEmail);
         console.log('📋 Subject:', subject);
+        console.log('📝 Text content length:', textContent.length);
+        console.log('📝 HTML content length:', htmlContent.length);
+        console.log('📝 Text preview:', textContent.substring(0, 200));
         
         // Extract email code from recipient
         const match = toEmail.match(/brief-([a-z0-9]+)@/i);
@@ -494,16 +498,20 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
         // Use text content, fallback to HTML if text is empty
         const content = textContent || htmlContent || '';
         const urls = extractUrls(content);
-        
-        await dbHelpers.createNewsletter(
+
+        console.log('💾 Saving newsletter with content length:', content.length);
+        console.log('💾 Content preview:', content.substring(0, 300));
+
+        const newsletter = await dbHelpers.createNewsletter(
             user.id,
             subject,
             fromEmail,
             content,
             urls[0] || null
         );
-        
+
         console.log('✅ Newsletter added via email for:', user.email);
+        console.log('✅ Saved newsletter ID:', newsletter.id, 'content length:', newsletter.content?.length || 0);
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Webhook error:', error);
