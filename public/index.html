@@ -289,17 +289,11 @@
         .newsletter-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; cursor: pointer; }
         .newsletter-title:hover { color: #000; text-decoration: underline; }
         .newsletter-meta { font-size: 12px; color: #888; }
-        .newsletter-tags {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-            flex-wrap: wrap;
-        }
         .newsletter-tag {
-            padding: 4px 10px;
+            padding: 2px 8px;
             border: 1px solid;
-            border-radius: 12px;
-            font-size: 11px;
+            border-radius: 10px;
+            font-size: 10px;
             font-weight: 500;
         }
         .newsletter-content {
@@ -1228,25 +1222,21 @@
                                                 }} />
                                         )}
                                         <div className="newsletter-card-content">
-                                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
                                                 <h2 className="newsletter-title" onClick={() => setReadingNewsletter(newsletter)}>
                                                     {cleanTitle(newsletter.title)}
                                                 </h2>
                                                 {!newsletter.is_read && <span className="badge">{translations.newsletter.new}</span>}
+                                                {newsletter.tags && newsletter.tags.length > 0 && newsletter.tags.map(tag => (
+                                                    <span key={tag.id} className="newsletter-tag"
+                                                        style={{borderColor: tag.color, color: tag.color}}>
+                                                        {tag.name}
+                                                    </span>
+                                                ))}
                                             </div>
                                             <div className="newsletter-meta">
                                                 {newsletter.sender} — {new Date(newsletter.date_added).toLocaleDateString()}
                                             </div>
-                                            {newsletter.tags && newsletter.tags.length > 0 && (
-                                                <div className="newsletter-tags">
-                                                    {newsletter.tags.map(tag => (
-                                                        <span key={tag.id} className="newsletter-tag"
-                                                            style={{borderColor: tag.color, color: tag.color}}>
-                                                            {tag.name}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
                                             <div className="newsletter-content">{stripHtml(newsletter.content)}</div>
                                             {newsletter.summary && (
                                                 <div className="summary-box" style={{marginTop: '8px'}}>
