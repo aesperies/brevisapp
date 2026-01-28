@@ -265,7 +265,7 @@
             position: relative;
         }
         .newsletter-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .newsletter-card.read { opacity: 0.6; }
+        .newsletter-card.read .newsletter-title { color: #999; }
         .newsletter-card.selecting { padding-left: 60px; }
         .newsletter-checkbox {
             position: absolute;
@@ -1240,17 +1240,21 @@
                                                     {translations.newsletter.original}
                                                 </a>
                                             )}
-                                            <div style={{position: 'relative'}}>
-                                                <button className="btn" onClick={() => setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id)}>
-                                                    🏷️ {translations.nav.tags}
+                                            <div style={{position: 'relative'}} onClick={(e) => e.stopPropagation()}>
+                                                <button className="btn" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id);
+                                                }}>
+                                                    🏷️ {language === 'es' ? 'Añadir Etiquetas' : 'Add Tags'}
                                                 </button>
                                                 {showTagMenuFor === newsletter.id && tags.length > 0 && (
-                                                    <div className="tag-dropdown">
+                                                    <div className="tag-dropdown" onClick={(e) => e.stopPropagation()}>
                                                         {tags.map(tag => {
                                                             const hasTag = newsletter.tags && newsletter.tags.some(t => t.id === tag.id);
                                                             return (
                                                                 <div key={tag.id} className="tag-dropdown-item"
-                                                                    onClick={() => {
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
                                                                         if (hasTag) removeTagFromNewsletter(newsletter.id, tag.id);
                                                                         else addTagToNewsletter(newsletter.id, tag.id);
                                                                     }}>
