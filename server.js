@@ -7,6 +7,8 @@ import cookieParser from 'cookie-parser';
 import { body, validationResult } from 'express-validator';
 import multer from 'multer';
 
+import { simpleParser } from 'mailparser';
+
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
 import { generateToken, authMiddleware } from './auth.js';
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
@@ -454,53 +456,64 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
     try {
         console.log('📧 Webhook received from SendGrid');
         console.log('📦 Body fields:', Object.keys(req.body));
-        console.log('📦 Full body:', JSON.stringify(req.body, null, 2).substring(0, 2000));
 
-        // SendGrid sends data as form fields, not as raw email
-        const toEmail = req.body.to || '';
-        const fromEmail = req.body.from || '';
-        const subject = req.body.subject || 'Sin título';
-        const textContent = req.body.text || '';
-        const htmlContent = req.body.html || '';
+        let toEmail, fromEmail, subject, content;
+
+        // SendGrid can send parsed fields (text/html) or raw email in 'email' field
+        if (req.body.text || req.body.html) {
+            // Parsed mode: text and html are separate fields
+            toEmail = req.body.to || '';
+            fromEmail = req.body.from || '';
+            subject = req.body.subject || 'Sin título';
+            content = req.body.text || req.body.html || '';
+            console.log('📨 Using parsed mode (text/html fields)');
+        } else if (req.body.email) {
+            // Raw mode: full MIME email in 'email' field - parse it
+            console.log('📨 Using raw mode (email field), parsing with mailparser...');
+            const parsed = await simpleParser(req.body.email);
+            toEmail = req.body.to || parsed.to?.text || '';
+            fromEmail = req.body.from || parsed.from?.text || '';
+            subject = req.body.subject || parsed.subject || 'Sin título';
+            content = parsed.text || parsed.html || '';
+            console.log('📨 Parsed email - text length:', parsed.text?.length || 0, 'html length:', parsed.html?.length || 0);
+        } else {
+            toEmail = req.body.to || '';
+            fromEmail = req.body.from || '';
+            subject = req.body.subject || 'Sin título';
+            content = '';
+        }
 
         console.log('📬 To:', toEmail);
         console.log('📤 From:', fromEmail);
         console.log('📋 Subject:', subject);
-        console.log('📝 Text content length:', textContent.length);
-        console.log('📝 HTML content length:', htmlContent.length);
-        console.log('📝 Text preview:', textContent.substring(0, 200));
-        
+        console.log('📝 Content length:', content.length);
+
         // Extract email code from recipient
         const match = toEmail.match(/brief-([a-z0-9]+)@/i);
-        
+
         if (!match) {
             console.log('❌ Invalid recipient format:', toEmail);
             return res.status(400).json({ error: 'Invalid recipient format' });
         }
-        
+
         const emailCode = 'brief-' + match[1].toLowerCase();
         console.log('🔑 Email code:', emailCode);
-        
+
         const user = await dbHelpers.findUserByEmailCode(emailCode);
-        
+
         if (!user) {
             console.log('❌ User not found for code:', emailCode);
             return res.status(404).json({ error: 'User not found' });
         }
-        
+
         console.log('✅ User found:', user.email);
-        
+
         if (!canUserPerformAction(user, 'add_newsletter')) {
             console.log('❌ User reached limit:', user.email);
             return res.status(403).json({ error: 'Newsletter limit reached' });
         }
-        
-        // Use text content, fallback to HTML if text is empty
-        const content = textContent || htmlContent || '';
-        const urls = extractUrls(content);
 
-        console.log('💾 Saving newsletter with content length:', content.length);
-        console.log('💾 Content preview:', content.substring(0, 300));
+        const urls = extractUrls(content);
 
         const newsletter = await dbHelpers.createNewsletter(
             user.id,
@@ -510,8 +523,7 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
             urls[0] || null
         );
 
-        console.log('✅ Newsletter added via email for:', user.email);
-        console.log('✅ Saved newsletter ID:', newsletter.id, 'content length:', newsletter.content?.length || 0);
+        console.log('✅ Newsletter added via email for:', user.email, '- content length:', newsletter.content?.length || 0);
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Webhook error:', error);
