@@ -272,9 +272,10 @@
         .newsletter-card-content { flex: 1; min-width: 0; }
         .newsletter-card-actions {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 6px;
             flex-shrink: 0;
+            align-items: flex-start;
         }
         .newsletter-card.selecting { padding-left: 60px; }
         .newsletter-checkbox {
@@ -1273,7 +1274,7 @@
                                                     e.stopPropagation();
                                                     setShowTagMenuFor(showTagMenuFor === newsletter.id ? null : newsletter.id);
                                                 }}>
-                                                    🏷️
+                                                    {language === 'es' ? 'Etiquetas' : 'Tags'}
                                                 </button>
                                                 {showTagMenuFor === newsletter.id && (
                                                     <div className="tag-dropdown" onClick={(e) => e.stopPropagation()}>
@@ -1300,7 +1301,7 @@
                                                 )}
                                             </div>
                                             <button className="btn btn-small" onClick={() => deleteNewsletter(newsletter.id)}>
-                                                🗑️
+                                                {translations.newsletter.delete}
                                             </button>
                                         </div>
                                     </div>
