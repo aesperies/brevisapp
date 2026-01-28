@@ -43,18 +43,14 @@
             width: 32px;
             height: 32px;
             background: #000;
-            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFF;
+            letter-spacing: -0.5px;
         }
-        .logo-mark::before, .logo-mark::after {
-            content: '';
-            position: absolute;
-            width: 2px;
-            height: 20px;
-            background: #FFF;
-            top: 6px;
-        }
-        .logo-mark::before { left: 10px; }
-        .logo-mark::after { right: 10px; }
         .logo-text { font-size: 20px; font-weight: 600; }
         .sidebar-section { margin-bottom: 24px; }
         .sidebar-title {
@@ -569,7 +565,7 @@
                 <div className="auth-container">
                     <div className="auth-box">
                         <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
-                            <div className="logo-mark"></div>
+                            <div className="logo-mark">BR</div>
                             <div className="logo-text">BREVIS</div>
                         </div>
                         <div className="tagline" style={{textAlign: 'center', marginBottom: '32px'}}>{translations.app.tagline}</div>
@@ -966,7 +962,7 @@
                     <div className="sidebar">
                         <div className="sidebar-logo">
                             <div className="logo-container">
-                                <div className="logo-mark"></div>
+                                <div className="logo-mark">BR</div>
                                 <div className="logo-text">BREVIS</div>
                             </div>
                         </div>
