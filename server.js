@@ -54,6 +54,54 @@ function extractUrls(text) {
     return text.match(urlRegex) || [];
 }
 
+function cleanForwardedContent(html) {
+    if (!html) return '';
+
+    // Remove common forwarding headers and signatures
+    let cleaned = html;
+
+    // Remove Gmail forwarding header
+    cleaned = cleaned.replace(/---------- Forwarded message ---------[\s\S]*?<br\s*\/?>\s*<br\s*\/?>/gi, '');
+    cleaned = cleaned.replace(/<div[^>]*>---------- Forwarded message ---------<\/div>[\s\S]*?(?=<div|<table|<p|$)/gi, '');
+
+    // Remove "From:", "Date:", "Subject:", "To:" lines at the beginning (forwarding metadata)
+    cleaned = cleaned.replace(/<div[^>]*>From:[\s\S]*?<\/div>/gi, '');
+    cleaned = cleaned.replace(/<div[^>]*>Date:[\s\S]*?<\/div>/gi, '');
+    cleaned = cleaned.replace(/<div[^>]*>Subject:[\s\S]*?<\/div>/gi, '');
+    cleaned = cleaned.replace(/<div[^>]*>To:[\s\S]*?<\/div>/gi, '');
+
+    // Remove blockquote wrapping (often used for forwarded content)
+    cleaned = cleaned.replace(/<blockquote[^>]*class="[^"]*gmail_quote[^"]*"[^>]*>([\s\S]*?)<\/blockquote>/gi, '$1');
+
+    // Remove empty divs and excessive whitespace
+    cleaned = cleaned.replace(/<div[^>]*>\s*<\/div>/gi, '');
+    cleaned = cleaned.replace(/<br\s*\/?>\s*<br\s*\/?>\s*<br\s*\/?>/gi, '<br><br>');
+
+    return cleaned.trim();
+}
+
+function cleanTextContent(text) {
+    if (!text) return '';
+
+    let cleaned = text;
+
+    // Remove forwarding headers
+    cleaned = cleaned.replace(/---------- Forwarded message ---------[\s\S]*?\n\n/gi, '');
+    cleaned = cleaned.replace(/^From:.*\n/gim, '');
+    cleaned = cleaned.replace(/^Date:.*\n/gim, '');
+    cleaned = cleaned.replace(/^Subject:.*\n/gim, '');
+    cleaned = cleaned.replace(/^To:.*\n/gim, '');
+
+    // Remove image placeholders like [image: description] or [cid:...]
+    cleaned = cleaned.replace(/\[image:[^\]]*\]/gi, '');
+    cleaned = cleaned.replace(/\[cid:[^\]]*\]/gi, '');
+
+    // Remove excessive newlines
+    cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
+
+    return cleaned.trim();
+}
+
 // ============= AUTH ROUTES =============
 
 app.post('/api/auth/register', [
@@ -459,13 +507,17 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
 
         let toEmail, fromEmail, subject, content;
 
+        let htmlContent = '';
+        let textContent = '';
+
         // SendGrid can send parsed fields (text/html) or raw email in 'email' field
         if (req.body.text || req.body.html) {
             // Parsed mode: text and html are separate fields
             toEmail = req.body.to || '';
             fromEmail = req.body.from || '';
             subject = req.body.subject || 'Sin título';
-            content = req.body.text || req.body.html || '';
+            htmlContent = req.body.html || '';
+            textContent = req.body.text || '';
             console.log('📨 Using parsed mode (text/html fields)');
         } else if (req.body.email) {
             // Raw mode: full MIME email in 'email' field - parse it
@@ -474,12 +526,23 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
             toEmail = req.body.to || parsed.to?.text || '';
             fromEmail = req.body.from || parsed.from?.text || '';
             subject = req.body.subject || parsed.subject || 'Sin título';
-            content = parsed.text || parsed.html || '';
-            console.log('📨 Parsed email - text length:', parsed.text?.length || 0, 'html length:', parsed.html?.length || 0);
+            htmlContent = parsed.html || '';
+            textContent = parsed.text || '';
+            console.log('📨 Parsed email - text length:', textContent.length, 'html length:', htmlContent.length);
         } else {
             toEmail = req.body.to || '';
             fromEmail = req.body.from || '';
             subject = req.body.subject || 'Sin título';
+        }
+
+        // Prefer HTML content (cleaned), fallback to cleaned text
+        if (htmlContent) {
+            content = cleanForwardedContent(htmlContent);
+            console.log('📨 Using cleaned HTML content');
+        } else if (textContent) {
+            content = cleanTextContent(textContent);
+            console.log('📨 Using cleaned text content');
+        } else {
             content = '';
         }
 
