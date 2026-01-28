@@ -39,7 +39,12 @@ const upload = multer();
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+        'https://brevisapp.com',
+        'https://www.brevisapp.com',
+        'https://brevisapp-production.up.railway.app',
+        process.env.FRONTEND_URL || 'http://localhost:3000'
+    ],
     credentials: true
 }));
 app.use(express.json());

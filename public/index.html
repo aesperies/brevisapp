@@ -541,9 +541,7 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const API_URL = window.location.hostname === 'localhost'
-            ? 'http://localhost:8080/api'
-            : 'https://brevisapp-production.up.railway.app/api';
+        const API_URL = window.location.origin + '/api';
 
         // Clean email subject prefixes (FWD, RE, etc.)
         function cleanTitle(title) {
