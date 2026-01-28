@@ -921,13 +921,21 @@
                     setShowUpgradeModal(true);
                     return;
                 }
+
+                const purpose = prompt(
+                    language === 'es'
+                        ? '¿Para qué quieres este brief? (ej: preparar una reunión, investigar un tema, tomar una decisión...)'
+                        : 'What do you need this brief for? (e.g., prepare a meeting, research a topic, make a decision...)'
+                );
+                if (purpose === null) return; // User cancelled
+
                 setGeneratingBatch(true);
                 try {
                     const res = await fetch(`${API_URL}/newsletters/brief`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({ newsletter_ids: selectedNewsletters })
+                        body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
                     });
                     if (!res.ok) {
                         const error = await res.json();
@@ -935,7 +943,7 @@
                     }
                     const data = await res.json();
                     console.log('Brief response:', data);
-                    const result = { type: 'brief', content: data.brief };
+                    const result = { type: 'brief', content: data.brief, purpose };
                     setShowBatchResult(result);
                     saveReport(result);
                     setSelectionMode(false);
@@ -954,13 +962,21 @@
                     setShowUpgradeModal(true);
                     return;
                 }
+
+                const purpose = prompt(
+                    language === 'es'
+                        ? '¿Para qué quieres este reporte? (ej: presentar a mi equipo, escribir un artículo, análisis de mercado...)'
+                        : 'What do you need this report for? (e.g., present to my team, write an article, market analysis...)'
+                );
+                if (purpose === null) return; // User cancelled
+
                 setGeneratingBatch(true);
                 try {
                     const res = await fetch(`${API_URL}/newsletters/report`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({ newsletter_ids: selectedNewsletters })
+                        body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
                     });
                     if (!res.ok) {
                         const error = await res.json();
@@ -968,7 +984,7 @@
                     }
                     const data = await res.json();
                     console.log('Report response:', data);
-                    const result = { type: 'report', content: data.report };
+                    const result = { type: 'report', content: data.report, purpose };
                     setShowBatchResult(result);
                     saveReport(result);
                     setSelectionMode(false);

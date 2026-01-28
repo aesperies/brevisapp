@@ -51,30 +51,32 @@ export async function generateSummary(newsletter, language = 'es') {
     }
     
     const prompts = {
-        es: `Por favor, crea un resumen ejecutivo conciso del siguiente newsletter. 
-El resumen debe:
-- Tener máximo 3-4 párrafos
-- Capturar las ideas principales y puntos clave
-- Ser claro y directo
-- Estar en español
+        es: `Crea un resumen en 4-6 bullet points del siguiente newsletter para ayudar al lector a decidir si quiere leerlo completo.
+
+Reglas:
+- Exactamente 4-6 bullet points
+- Cada punto debe ser una frase corta y directa
+- Captura solo las ideas más importantes
+- En español
 
 Newsletter:
 Título: ${newsletter.title}
 Contenido: ${newsletter.content}
 
-Resumen ejecutivo:`,
-        en: `Please create a concise executive summary of the following newsletter.
-The summary should:
-- Be maximum 3-4 paragraphs
-- Capture main ideas and key points
-- Be clear and direct
-- Be in English
+Resumen (4-6 bullets):`,
+        en: `Create a summary in 4-6 bullet points of the following newsletter to help the reader decide if they want to read the full article.
+
+Rules:
+- Exactly 4-6 bullet points
+- Each point should be a short, direct sentence
+- Capture only the most important ideas
+- In English
 
 Newsletter:
 Title: ${newsletter.title}
 Content: ${newsletter.content}
 
-Executive summary:`
+Summary (4-6 bullets):`
     };
     
     try {
@@ -108,18 +110,21 @@ Executive summary:`
     }
 }
 
-export async function generateBatchBrief(newsletters, language = 'es') {
+export async function generateBatchBrief(newsletters, language = 'es', purpose = '') {
     if (!ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY not configured');
     }
-    
-    const newsletterList = newsletters.map((n, i) => 
+
+    const newsletterList = newsletters.map((n, i) =>
         `${i + 1}. ${n.title}\n   De: ${n.sender}\n   ${n.content.substring(0, 500)}...`
     ).join('\n\n');
-    
+
+    const purposeText = purpose ? `\nPropósito del brief: ${purpose}\nEnfoca el contenido hacia este objetivo.\n` : '';
+    const purposeTextEn = purpose ? `\nPurpose of this brief: ${purpose}\nFocus the content towards this goal.\n` : '';
+
     const prompts = {
         es: `He aquí ${newsletters.length} newsletters. Crea un "brief" ejecutivo con los puntos clave de todos ellos.
-
+${purposeText}
 Formato:
 - Usa bullet points
 - Agrupa por temas si es posible
@@ -132,7 +137,7 @@ ${newsletterList}
 
 Brief ejecutivo:`,
         en: `Here are ${newsletters.length} newsletters. Create an executive "brief" with key points from all of them.
-
+${purposeTextEn}
 Format:
 - Use bullet points
 - Group by themes if possible
@@ -176,18 +181,21 @@ Executive brief:`
     }
 }
 
-export async function generateBatchReport(newsletters, language = 'es') {
+export async function generateBatchReport(newsletters, language = 'es', purpose = '') {
     if (!ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY not configured');
     }
-    
-    const newsletterList = newsletters.map((n, i) => 
+
+    const newsletterList = newsletters.map((n, i) =>
         `## Newsletter ${i + 1}: ${n.title}\nDe: ${n.sender}\n\n${n.content.substring(0, 1000)}...`
     ).join('\n\n---\n\n');
-    
+
+    const purposeText = purpose ? `\nPropósito del reporte: ${purpose}\nEnfoca el análisis y conclusiones hacia este objetivo.\n` : '';
+    const purposeTextEn = purpose ? `\nPurpose of this report: ${purpose}\nFocus the analysis and conclusions towards this goal.\n` : '';
+
     const prompts = {
         es: `He aquí ${newsletters.length} newsletters. Crea un reporte/artículo extenso que:
-
+${purposeText}
 1. Analice los temas principales
 2. Identifique tendencias y patrones
 3. Sintetice insights clave
@@ -204,7 +212,7 @@ ${newsletterList}
 
 Reporte:`,
         en: `Here are ${newsletters.length} newsletters. Create an extensive report/article that:
-
+${purposeTextEn}
 1. Analyzes main themes
 2. Identifies trends and patterns
 3. Synthesizes key insights

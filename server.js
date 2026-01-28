@@ -351,12 +351,12 @@ app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
 app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
-        
+
         if (!canUserPerformAction(user, 'generate_brief')) {
             return res.status(403).json({ error: 'Upgrade to Pro to generate briefs' });
         }
 
-        const { newsletter_ids } = req.body;
+        const { newsletter_ids, purpose } = req.body;
         if (!newsletter_ids || newsletter_ids.length === 0) {
             return res.status(400).json({ error: 'No newsletters selected' });
         }
@@ -373,8 +373,8 @@ app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'No newsletters found' });
         }
 
-        const brief = await generateBatchBrief(newsletters, user.language);
-        console.log('✅ Brief generated for', newsletters.length, 'newsletters');
+        const brief = await generateBatchBrief(newsletters, user.language, purpose || '');
+        console.log('✅ Brief generated for', newsletters.length, 'newsletters, purpose:', purpose || 'none');
         res.json({ brief });
     } catch (error) {
         console.error('❌ Generate brief error:', error);
@@ -385,12 +385,12 @@ app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
 app.post('/api/newsletters/report', authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
-        
+
         if (!canUserPerformAction(user, 'generate_report')) {
             return res.status(403).json({ error: 'Upgrade to Premium to generate reports' });
         }
 
-        const { newsletter_ids } = req.body;
+        const { newsletter_ids, purpose } = req.body;
         if (!newsletter_ids || newsletter_ids.length === 0) {
             return res.status(400).json({ error: 'No newsletters selected' });
         }
@@ -407,8 +407,8 @@ app.post('/api/newsletters/report', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'No newsletters found' });
         }
 
-        const report = await generateBatchReport(newsletters, user.language);
-        console.log('✅ Report generated for', newsletters.length, 'newsletters');
+        const report = await generateBatchReport(newsletters, user.language, purpose || '');
+        console.log('✅ Report generated for', newsletters.length, 'newsletters, purpose:', purpose || 'none');
         res.json({ report });
     } catch (error) {
         console.error('❌ Generate report error:', error);
