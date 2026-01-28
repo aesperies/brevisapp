@@ -300,17 +300,38 @@
         .summary-box {
             background: #F8F8F8;
             border-left: 3px solid #000;
-            padding: 16px;
+            padding: 12px 16px;
             margin: 12px 0;
             border-radius: 4px;
         }
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
         .summary-label {
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 8px;
             color: #666;
+        }
+        .summary-toggle {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+        }
+        .summary-content {
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+        .summary-content.collapsed {
+            display: none;
         }
         .badge {
             padding: 4px 10px;
@@ -650,6 +671,11 @@
             const [showBatchResult, setShowBatchResult] = useState(null);
             const [showTagMenuFor, setShowTagMenuFor] = useState(null);
             const [formData, setFormData] = useState({ title: '', sender: '', content: '', url: '' });
+            const [collapsedSummaries, setCollapsedSummaries] = useState({});
+
+            const toggleSummaryCollapse = (id) => {
+                setCollapsedSummaries(prev => ({...prev, [id]: !prev[id]}));
+            };
 
             const t = {
                 es: {
@@ -1099,6 +1125,11 @@
                             <div className="email-display">
                                 <div className="email-label">{translations.email.label}</div>
                                 <div className="email-code">{user.email_code}@newsletters.brevisapp.com</div>
+                                <div style={{marginTop: '8px', fontSize: '12px', color: '#888'}}>
+                                    {language === 'es'
+                                        ? 'Guárdalo como "BREVIS" en tus contactos para enviarlo más rápidamente'
+                                        : 'Save it as "BREVIS" in your contacts for faster forwarding'}
+                                </div>
                             </div>
                             <div className="nav">
                                 <div className="search-box">
@@ -1182,8 +1213,15 @@
                                         </div>
                                         {newsletter.summary && (
                                             <div className="summary-box">
-                                                <div className="summary-label">{translations.newsletter.summary}</div>
-                                                <div>{newsletter.summary}</div>
+                                                <div className="summary-header" onClick={() => toggleSummaryCollapse(newsletter.id)}>
+                                                    <span className="summary-label">{translations.newsletter.summary}</span>
+                                                    <button className="summary-toggle">
+                                                        {collapsedSummaries[newsletter.id] ? '▼' : '▲'}
+                                                    </button>
+                                                </div>
+                                                <div className={`summary-content ${collapsedSummaries[newsletter.id] ? 'collapsed' : ''}`}>
+                                                    {newsletter.summary}
+                                                </div>
                                             </div>
                                         )}
                                         <div className="newsletter-content">{stripHtml(newsletter.content)}</div>
@@ -1293,16 +1331,23 @@
                                     </div>
                                     {readingNewsletter.summary && (
                                         <div className="summary-box">
-                                            <div className="summary-label">{translations.newsletter.summary}</div>
-                                            <div>{readingNewsletter.summary}</div>
+                                            <div className="summary-header" onClick={() => toggleSummaryCollapse('modal-' + readingNewsletter.id)}>
+                                                <span className="summary-label">{translations.newsletter.summary}</span>
+                                                <button className="summary-toggle">
+                                                    {collapsedSummaries['modal-' + readingNewsletter.id] ? '▼' : '▲'}
+                                                </button>
+                                            </div>
+                                            <div className={`summary-content ${collapsedSummaries['modal-' + readingNewsletter.id] ? 'collapsed' : ''}`}>
+                                                {readingNewsletter.summary}
+                                            </div>
                                         </div>
                                     )}
                                     {readingNewsletter.content ? (
                                         readingNewsletter.content.includes('<') ? (
                                             <iframe
                                                 className="newsletter-iframe"
-                                                srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;padding:0;margin:0;}img{max-width:100%;height:auto;}a{color:#0066cc;}</style></head><body>${readingNewsletter.content}</body></html>`}
-                                                sandbox="allow-same-origin"
+                                                srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;padding:0;margin:0;}img{max-width:100%;height:auto;}a{color:#0066cc;}</style></head><body>${readingNewsletter.content}</body></html>`}
+                                                sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                                                 title="Newsletter content"
                                                 onLoad={(e) => {
                                                     const iframe = e.target;

@@ -288,6 +288,27 @@ app.post('/api/newsletters', authMiddleware, async (req, res) => {
     }
 });
 
+app.patch('/api/newsletters/:id', authMiddleware, async (req, res) => {
+    try {
+        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+
+        const updates = {};
+        if (req.body.is_read !== undefined) {
+            updates.is_read = req.body.is_read;
+        }
+
+        const updated = await dbHelpers.updateNewsletter(parseInt(req.params.id), updates);
+        console.log('✅ Newsletter updated:', req.params.id, updates);
+        res.json(updated);
+    } catch (error) {
+        console.error('❌ Update newsletter error:', error);
+        res.status(500).json({ error: 'Failed to update newsletter' });
+    }
+});
+
 app.delete('/api/newsletters/:id', authMiddleware, async (req, res) => {
     try {
         await dbHelpers.deleteNewsletter(parseInt(req.params.id), req.user.id);
