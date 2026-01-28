@@ -356,25 +356,27 @@
             background: #FFF;
             border: 1px solid #E5E5E5;
             border-radius: 6px;
-            padding: 8px 0;
-            min-width: 200px;
-            max-height: 300px;
+            padding: 4px 0;
+            min-width: 160px;
+            max-height: 200px;
             overflow-y: auto;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .tag-dropdown-item {
-            padding: 10px 16px;
+            padding: 8px 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            font-size: 13px;
         }
         .tag-dropdown-item:hover { background: #F5F5F5; }
         .tag-color-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
         .modal-overlay {
             position: fixed;
@@ -1402,7 +1404,7 @@
 
                     {showTagManager && (
                         <TagManager tags={tags} onClose={() => setShowTagManager(false)}
-                            onUpdate={fetchTags} translations={translations} />
+                            onUpdate={fetchTags} translations={translations} language={language} />
                     )}
 
                     {showUpgradeModal && (
@@ -1554,9 +1556,16 @@
             );
         }
 
-        function TagManager({ tags, onClose, onUpdate, translations }) {
+        function TagManager({ tags, onClose, onUpdate, translations, language }) {
             const [newTag, setNewTag] = useState({ name: '', color: '#000000' });
             const colors = ['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
+
+            const t = {
+                es: { name: 'Nombre', color: 'Color', create: 'Crear Etiqueta', existing: 'Etiquetas existentes', delete: 'Eliminar', confirmDelete: '¿Eliminar etiqueta?' },
+                en: { name: 'Name', color: 'Color', create: 'Create Tag', existing: 'Existing tags', delete: 'Delete', confirmDelete: 'Delete tag?' }
+            };
+            const txt = t[language] || t.es;
+
             const createTag = async (e) => {
                 e.preventDefault();
                 try {
@@ -1573,7 +1582,7 @@
                 } catch (e) { console.error('Error:', e); }
             };
             const deleteTag = async (id) => {
-                if (!confirm('¿Eliminar etiqueta?')) return;
+                if (!confirm(txt.confirmDelete)) return;
                 try {
                     const res = await fetch(`${API_URL}/tags/${id}`, { method: 'DELETE', credentials: 'include' });
                     if (res.ok) onUpdate();
@@ -1589,12 +1598,12 @@
                         <div className="modal-body">
                             <form onSubmit={createTag} style={{marginBottom: '24px'}}>
                                 <div className="form-group">
-                                    <label className="form-label">Nombre</label>
+                                    <label className="form-label">{txt.name}</label>
                                     <input type="text" className="form-input" value={newTag.name}
                                         onChange={(e) => setNewTag({...newTag, name: e.target.value})} required />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Color</label>
+                                    <label className="form-label">{txt.color}</label>
                                     <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                                         {colors.map(color => (
                                             <button key={color} type="button" onClick={() => setNewTag({...newTag, color})}
@@ -1606,19 +1615,19 @@
                                         ))}
                                     </div>
                                 </div>
-                                <button type="submit" className="btn btn-primary btn-full">Crear Etiqueta</button>
+                                <button type="submit" className="btn btn-primary btn-full">{txt.create}</button>
                             </form>
                             {tags.length > 0 && (
                                 <div>
                                     <h3 style={{marginBottom: '12px', fontSize: '14px', fontWeight: '600'}}>
-                                        Etiquetas existentes
+                                        {txt.existing}
                                     </h3>
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                         {tags.map(tag => (
                                             <div key={tag.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8F8F8', borderRadius: '6px'}}>
                                                 <span style={{width: '24px', height: '24px', borderRadius: '50%', background: tag.color}} />
                                                 <span style={{flex: 1, fontWeight: '500'}}>{tag.name}</span>
-                                                <button className="btn btn-small" onClick={() => deleteTag(tag.id)}>Eliminar</button>
+                                                <button className="btn btn-small" onClick={() => deleteTag(tag.id)}>{txt.delete}</button>
                                             </div>
                                         ))}
                                     </div>
