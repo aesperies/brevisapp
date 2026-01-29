@@ -684,6 +684,35 @@
             color: #A0AEC0;
             margin-top: 8px;
         }
+        .landing-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+            max-width: 380px;
+            width: 100%;
+            color: #A0AEC0;
+            font-size: 13px;
+        }
+        .landing-divider::before,
+        .landing-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #E8ECF0;
+        }
+        .landing-waitlist-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #5A6B7B;
+            margin-bottom: 10px;
+        }
+        .landing-success {
+            color: #10B981;
+            font-size: 14px;
+            font-weight: 500;
+            height: 20px;
+        }
         /* Mockup */
         .landing-mockup {
             margin-top: 48px;
@@ -830,6 +859,9 @@
         function LandingPage({ onAccess }) {
             const [code, setCode] = useState('');
             const [error, setError] = useState('');
+            const [waitlistEmail, setWaitlistEmail] = useState('');
+            const [waitlistStatus, setWaitlistStatus] = useState('idle');
+            const [waitlistError, setWaitlistError] = useState('');
 
             const handleSubmit = (e) => {
                 e.preventDefault();
@@ -838,6 +870,29 @@
                     onAccess();
                 } else {
                     setError('Incorrect code');
+                }
+            };
+
+            const handleWaitlist = async (e) => {
+                e.preventDefault();
+                setWaitlistStatus('submitting');
+                setWaitlistError('');
+                try {
+                    const res = await fetch('/api/waitlist', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: waitlistEmail })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        setWaitlistStatus('success');
+                    } else {
+                        setWaitlistError(data.error || 'Something went wrong');
+                        setWaitlistStatus('idle');
+                    }
+                } catch {
+                    setWaitlistError('Something went wrong. Please try again.');
+                    setWaitlistStatus('idle');
                 }
             };
 
@@ -872,6 +927,30 @@
                         </form>
                         <div className="landing-error">{error || '\u00A0'}</div>
                         <div className="landing-hint">Request your code to get early access</div>
+
+                        <div className="landing-divider">or</div>
+
+                        {waitlistStatus === 'success' ? (
+                            <div className="landing-success">You're on the list! We'll be in touch.</div>
+                        ) : (
+                            <>
+                                <div className="landing-waitlist-label">Join the waitlist</div>
+                                <form onSubmit={handleWaitlist} className="landing-form">
+                                    <input
+                                        type="email"
+                                        className="landing-input"
+                                        placeholder="Enter your email"
+                                        value={waitlistEmail}
+                                        onChange={(e) => { setWaitlistEmail(e.target.value); setWaitlistError(''); }}
+                                        required
+                                    />
+                                    <button type="submit" className="landing-btn" disabled={waitlistStatus === 'submitting'}>
+                                        {waitlistStatus === 'submitting' ? '...' : 'Join'}
+                                    </button>
+                                </form>
+                                <div className="landing-error">{waitlistError || '\u00A0'}</div>
+                            </>
+                        )}
 
                         <div className="landing-mockup">
                             <div className="mockup-card">

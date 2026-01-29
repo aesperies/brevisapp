@@ -1012,6 +1012,24 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
 });
 
 // Health check
+// ============= WAITLIST =============
+
+app.post('/api/waitlist', [
+    body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: 'Please enter a valid email address' });
+        }
+        await dbHelpers.addToWaitlist(req.body.email);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Waitlist error:', error);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
+});
+
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'BREVIS is running' });
 });

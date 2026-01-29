@@ -86,6 +86,15 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
         `);
 
+        // Waitlist table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS waitlist (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
         // Subscriptions table for RSS feeds
         await pool.query(`
             CREATE TABLE IF NOT EXISTS subscriptions (
@@ -325,5 +334,15 @@ export const dbHelpers = {
             ORDER BY n.date_added DESC
         `, [userId, parseInt(tagId)]);
         return result.rows;
+    },
+
+    // Waitlist
+    addToWaitlist: async (email) => {
+        const result = await pool.query(`
+            INSERT INTO waitlist (email) VALUES ($1)
+            ON CONFLICT (email) DO NOTHING
+            RETURNING *
+        `, [email.toLowerCase().trim()]);
+        return result.rows[0] || null;
     }
 };
