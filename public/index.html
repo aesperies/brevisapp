@@ -822,6 +822,25 @@
                 loadSavedReports();
             }, []);
 
+            // Close tag dropdown when clicking outside
+            useEffect(() => {
+                if (!showTagMenuFor) return;
+
+                const handleClickOutside = (e) => {
+                    // Check if click is outside the tag dropdown and its button
+                    const tagDropdown = e.target.closest('.tag-dropdown');
+                    const tagButton = e.target.closest('button');
+                    const isTagButton = tagButton && tagButton.textContent.includes('Etiquetas') || tagButton && tagButton.textContent.includes('Tags');
+
+                    if (!tagDropdown && !isTagButton) {
+                        setShowTagMenuFor(null);
+                    }
+                };
+
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, [showTagMenuFor]);
+
             const fetchNewsletters = async () => {
                 try {
                     const res = await fetch(`${API_URL}/newsletters`, { credentials: 'include' });
