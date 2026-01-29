@@ -346,13 +346,14 @@
             display: none;
         }
         .badge {
-            padding: 4px 10px;
+            padding: 2px 6px;
             background: #2BBCC0;
             color: #FFF;
-            border-radius: 4px;
-            font-size: 11px;
+            border-radius: 3px;
+            font-size: 9px;
             font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
         .actions {
             display: flex;
@@ -561,6 +562,94 @@
             border-radius: 12px;
             box-shadow: 0 4px 24px rgba(44,53,68,0.08);
         }
+        .landing-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFF;
+        }
+        .landing-box {
+            max-width: 420px;
+            width: 100%;
+            padding: 60px 32px;
+            text-align: center;
+        }
+        .landing-logo-mark {
+            width: 56px;
+            height: 56px;
+            background: #2C3544;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #FFF;
+            margin-bottom: 16px;
+        }
+        .landing-title {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: #2C3544;
+            margin-bottom: 12px;
+        }
+        .landing-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            background: #2BBCC0;
+            color: #FFF;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 12px;
+        }
+        .landing-subtitle {
+            font-size: 15px;
+            color: #7A8599;
+            line-height: 1.6;
+            margin-bottom: 36px;
+        }
+        .landing-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .landing-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #E8ECF0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            text-align: center;
+        }
+        .landing-input:focus {
+            outline: none;
+            border-color: #2BBCC0;
+        }
+        .landing-btn {
+            padding: 12px 24px;
+            background: #2C3544;
+            color: #FFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .landing-btn:hover {
+            background: #3D4D5C;
+        }
+        .landing-error {
+            color: #EF4444;
+            font-size: 13px;
+            margin-top: 4px;
+        }
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main-content { margin-left: 0; }
@@ -599,12 +688,53 @@
                 .substring(0, 300);
         }
 
+        function LandingPage({ onAccess }) {
+            const [code, setCode] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (code.trim() === 'trybrevis14') {
+                    localStorage.setItem('brevis_access', 'true');
+                    onAccess();
+                } else {
+                    setError('Incorrect code');
+                }
+            };
+
+            return (
+                <div className="landing-container">
+                    <div className="landing-box">
+                        <div className="landing-logo-mark">B</div>
+                        <div className="landing-title">BREVIS</div>
+                        <div className="landing-badge">Coming Soon</div>
+                        <div className="landing-subtitle">
+                            Your reading list. Curated. Summarized.<br/>
+                            Tu lista de lectura. Curada. Resumida.
+                        </div>
+                        <form onSubmit={handleSubmit} className="landing-form">
+                            <input
+                                type="text"
+                                className="landing-input"
+                                placeholder="Access code"
+                                value={code}
+                                onChange={(e) => { setCode(e.target.value); setError(''); }}
+                            />
+                            <button type="submit" className="landing-btn">Enter</button>
+                        </form>
+                        {error && <div className="landing-error">{error}</div>}
+                    </div>
+                </div>
+            );
+        }
+
         function App() {
+            const [hasAccess, setHasAccess] = useState(localStorage.getItem('brevis_access') === 'true');
             const [language, setLanguage] = useState('es');
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
 
-            useEffect(() => { checkAuth(); }, []);
+            useEffect(() => { if (hasAccess) checkAuth(); else setLoading(false); }, [hasAccess]);
 
             const checkAuth = async () => {
                 try {
@@ -617,6 +747,7 @@
                 }
             };
 
+            if (!hasAccess) return <LandingPage onAccess={() => setHasAccess(true)} />;
             if (loading) return <div className="auth-container">Cargando...</div>;
             if (!user) return <Auth onLogin={checkAuth} language={language} setLanguage={setLanguage} />;
             return <Dashboard user={user} setUser={setUser} language={language} setLanguage={setLanguage} />;
