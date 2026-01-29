@@ -86,6 +86,19 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
         `);
 
+        // Subscriptions table for RSS feeds
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                url VARCHAR(500) NOT NULL,
+                name VARCHAR(255),
+                last_fetched TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
+        `);
+
         console.log('✅ Database initialized (PostgreSQL)');
         return pool;
     } catch (error) {

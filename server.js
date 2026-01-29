@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
 import OpenAI from 'openai';
+import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
 import { generateToken, authMiddleware } from './auth.js';
@@ -327,6 +328,84 @@ app.post('/api/auth/logout', (req, res) => {
     res.clearCookie('token');
     console.log('✅ User logged out');
     res.json({ success: true });
+});
+
+// ============= GOOGLE OAUTH =============
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/auth/google/callback`;
+
+app.get('/api/auth/google', (req, res) => {
+    if (!GOOGLE_CLIENT_ID) {
+        return res.status(500).json({ error: 'Google OAuth not configured' });
+    }
+    const params = new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        response_type: 'code',
+        scope: 'openid email profile',
+        access_type: 'offline',
+        prompt: 'select_account'
+    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+    try {
+        const { code } = req.query;
+        if (!code) return res.redirect('/?error=google_auth_failed');
+
+        // Exchange code for tokens
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                client_id: GOOGLE_CLIENT_ID,
+                client_secret: GOOGLE_CLIENT_SECRET,
+                redirect_uri: GOOGLE_REDIRECT_URI,
+                grant_type: 'authorization_code'
+            })
+        });
+        const tokens = await tokenRes.json();
+        if (!tokens.access_token) {
+            console.error('❌ Google token exchange failed:', tokens);
+            return res.redirect('/?error=google_auth_failed');
+        }
+
+        // Get user profile
+        const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokens.access_token}` }
+        });
+        const profile = await profileRes.json();
+        if (!profile.email) {
+            return res.redirect('/?error=google_auth_failed');
+        }
+
+        console.log('🔐 Google login for:', profile.email);
+
+        // Find or create user
+        let user = await dbHelpers.findUserByEmail(profile.email);
+        if (!user) {
+            const randomPass = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0]);
+            console.log('✅ New user created via Google:', profile.email);
+        }
+
+        const token = generateToken(user);
+        res.cookie('token', token, {
+            httpOnly: true,
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+            sameSite: 'lax'
+        });
+
+        console.log('✅ Google login successful:', profile.email);
+        res.redirect('/');
+    } catch (error) {
+        console.error('❌ Google OAuth error:', error);
+        res.redirect('/?error=google_auth_failed');
+    }
 });
 
 // ============= NEWSLETTER ROUTES =============
@@ -936,6 +1015,148 @@ app.post('/api/webhook/email', upload.none(), async (req, res) => {
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'BREVIS is running' });
 });
+
+// ============= SUBSCRIPTION / RSS ROUTES =============
+
+const rssParser = new Parser();
+
+app.get('/api/subscriptions', authMiddleware, async (req, res) => {
+    try {
+        const db = dbHelpers.getDb();
+        const result = await db.query('SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+        res.json(result.rows);
+    } catch (e) {
+        console.error('❌ Get subscriptions error:', e);
+        res.status(500).json({ error: 'Failed to get subscriptions' });
+    }
+});
+
+app.post('/api/subscriptions', authMiddleware, async (req, res) => {
+    try {
+        let { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'URL is required' });
+
+        // Normalize URL: add /feed if it's a substack URL without it
+        url = url.trim().replace(/\/+$/, '');
+        if (url.includes('substack.com') && !url.endsWith('/feed')) {
+            url = url + '/feed';
+        }
+        if (!url.startsWith('http')) url = 'https://' + url;
+
+        // Validate it's a working RSS feed
+        let feedName;
+        try {
+            const feed = await rssParser.parseURL(url);
+            feedName = feed.title || url.replace(/https?:\/\//, '').split('/')[0];
+        } catch (e) {
+            return res.status(400).json({ error: 'Could not read RSS feed. Make sure the URL is correct.' });
+        }
+
+        const db = dbHelpers.getDb();
+        // Check for duplicates
+        const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
+        if (existing.rows.length > 0) return res.status(400).json({ error: 'Already subscribed' });
+
+        const result = await db.query(
+            'INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3) RETURNING *',
+            [req.user.id, url, feedName]
+        );
+        console.log('✅ Subscription added:', feedName, 'for user', req.user.id);
+        res.json(result.rows[0]);
+    } catch (e) {
+        console.error('❌ Add subscription error:', e);
+        res.status(500).json({ error: 'Failed to add subscription' });
+    }
+});
+
+app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+        const opmlContent = req.file.buffer.toString('utf-8');
+        // Simple OPML parser: extract xmlUrl attributes
+        const urlMatches = opmlContent.match(/xmlUrl="([^"]+)"/gi) || [];
+        const urls = urlMatches.map(m => m.match(/xmlUrl="([^"]+)"/i)[1]);
+
+        if (urls.length === 0) return res.status(400).json({ error: 'No feeds found in OPML file' });
+
+        const db = dbHelpers.getDb();
+        let added = 0;
+        for (const url of urls) {
+            try {
+                const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
+                if (existing.rows.length > 0) continue;
+
+                let feedName = url.replace(/https?:\/\//, '').split('/')[0];
+                try {
+                    const feed = await rssParser.parseURL(url);
+                    if (feed.title) feedName = feed.title;
+                } catch (e) { /* use URL as name */ }
+
+                await db.query('INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3)', [req.user.id, url, feedName]);
+                added++;
+            } catch (e) { /* skip invalid feeds */ }
+        }
+
+        console.log('✅ OPML import: added', added, 'feeds for user', req.user.id);
+        res.json({ added, total: urls.length });
+    } catch (e) {
+        console.error('❌ OPML import error:', e);
+        res.status(500).json({ error: 'Failed to import OPML' });
+    }
+});
+
+app.delete('/api/subscriptions/:id', authMiddleware, async (req, res) => {
+    try {
+        const db = dbHelpers.getDb();
+        await db.query('DELETE FROM subscriptions WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        res.json({ success: true });
+    } catch (e) {
+        console.error('❌ Delete subscription error:', e);
+        res.status(500).json({ error: 'Failed to delete subscription' });
+    }
+});
+
+// RSS fetch cron - runs every 30 minutes
+async function fetchAllRSSFeeds() {
+    try {
+        const db = dbHelpers.getDb();
+        const subs = await db.query('SELECT s.*, u.id as uid FROM subscriptions s JOIN users u ON s.user_id = u.id');
+
+        for (const sub of subs.rows) {
+            try {
+                const feed = await rssParser.parseURL(sub.url);
+                const sender = feed.title || sub.name || 'RSS Feed';
+
+                for (const item of (feed.items || []).slice(0, 10)) {
+                    // Check if already exists (by title and user)
+                    const existing = await db.query(
+                        'SELECT id FROM newsletters WHERE user_id = $1 AND title = $2 AND sender = $3',
+                        [sub.user_id, item.title || 'Untitled', sender]
+                    );
+                    if (existing.rows.length > 0) continue;
+
+                    await db.query(
+                        'INSERT INTO newsletters (user_id, title, sender, content, url, is_read) VALUES ($1, $2, $3, $4, $5, 0)',
+                        [sub.user_id, item.title || 'Untitled', sender, item.content || item.contentSnippet || '', item.link || '']
+                    );
+                }
+
+                await db.query('UPDATE subscriptions SET last_fetched = NOW() WHERE id = $1', [sub.id]);
+            } catch (e) {
+                console.error('⚠️  RSS fetch error for', sub.url, ':', e.message);
+            }
+        }
+        console.log('✅ RSS feeds fetched at', new Date().toISOString());
+    } catch (e) {
+        console.error('❌ RSS cron error:', e);
+    }
+}
+
+// Run RSS fetch every 30 minutes
+setInterval(fetchAllRSSFeeds, 30 * 60 * 1000);
+// Also run once on startup (after 10 seconds delay)
+setTimeout(fetchAllRSSFeeds, 10000);
 
 // SPA fallback - serve index.html for all other routes
 app.get('*', (req, res) => {

@@ -1031,7 +1031,23 @@
                                 {isLogin ? translations.auth.login : translations.auth.register}
                             </button>
                         </form>
-                        <div style={{textAlign: 'center', marginTop: '24px', fontSize: '14px'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '12px', margin: '24px 0'}}>
+                            <div style={{flex: 1, height: '1px', background: '#E8ECF0'}} />
+                            <span style={{fontSize: '12px', color: '#7A8599', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                                {language === 'es' ? 'o' : 'or'}
+                            </span>
+                            <div style={{flex: 1, height: '1px', background: '#E8ECF0'}} />
+                        </div>
+                        <a href="/api/auth/google" className="btn btn-full" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', textDecoration: 'none'}}>
+                            <svg width="18" height="18" viewBox="0 0 24 24">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            </svg>
+                            {language === 'es' ? 'Continuar con Google' : 'Continue with Google'}
+                        </a>
+                        <div style={{textAlign: 'center', marginTop: '20px', fontSize: '14px'}}>
                             {isLogin ? translations.auth.noAccount : translations.auth.hasAccount}{' '}
                             <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); }}
                                 style={{color: '#2BBCC0', fontWeight: '600', textDecoration: 'none'}}>
@@ -1056,6 +1072,8 @@
             const [searchTerm, setSearchTerm] = useState('');
             const [showAddForm, setShowAddForm] = useState(false);
             const [showTagManager, setShowTagManager] = useState(false);
+            const [showSubscriptions, setShowSubscriptions] = useState(false);
+            const [subscriptions, setSubscriptions] = useState([]);
             const [showUpgradeModal, setShowUpgradeModal] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
             const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -1189,6 +1207,7 @@
             useEffect(() => {
                 fetchNewsletters();
                 fetchTags();
+                fetchSubscriptions();
                 loadSavedReports();
             }, []);
 
@@ -1240,6 +1259,13 @@
                 try {
                     const res = await fetch(`${API_URL}/tags`, { credentials: 'include' });
                     if (res.ok) setTags(await res.json());
+                } catch (e) { console.error('Error:', e); }
+            };
+
+            const fetchSubscriptions = async () => {
+                try {
+                    const res = await fetch(`${API_URL}/subscriptions`, { credentials: 'include' });
+                    if (res.ok) setSubscriptions(await res.json());
                 } catch (e) { console.error('Error:', e); }
             };
 
@@ -1582,6 +1608,16 @@
                                 ))}
                             </div>
                         )}
+                        <div className="sidebar-section">
+                            <div className="sidebar-title">{language === 'es' ? 'Suscripciones' : 'Subscriptions'}</div>
+                            <button className="sidebar-item" onClick={() => setShowSubscriptions(true)}>
+                                <span className="sidebar-item-icon">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 5c7.18 0 13 5.82 13 13M6 11c3.87 0 7 3.13 7 7M6 17h.01"/></svg>
+                                </span>
+                                <span className="sidebar-item-label">{language === 'es' ? 'Gestionar feeds' : 'Manage feeds'}</span>
+                                {subscriptions.length > 0 && <span className="sidebar-item-count">{subscriptions.length}</span>}
+                            </button>
+                        </div>
                         {savedReports.length > 0 && (
                             <div className="sidebar-section">
                                 <div className="sidebar-title">{translations.sidebar.reports}</div>
@@ -1923,7 +1959,7 @@
                     )}
 
                     {showProfileModal && (
-                        <ProfileModal user={user} onClose={() => setShowProfileModal(false)}
+                        <ProfileModal user={user} language={language} onClose={() => setShowProfileModal(false)}
                             onUpdate={(u) => setUser(u)} onUpgrade={() => {
                                 setShowProfileModal(false);
                                 setShowUpgradeModal(true);
@@ -1933,6 +1969,110 @@
                     {showTagManager && (
                         <TagManager tags={tags} onClose={() => setShowTagManager(false)}
                             onUpdate={fetchTags} translations={translations} language={language} />
+                    )}
+
+                    {showSubscriptions && (
+                        <div className="modal-overlay" onClick={() => setShowSubscriptions(false)}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <h2 className="modal-title">{language === 'es' ? 'Suscripciones RSS' : 'RSS Subscriptions'}</h2>
+                                    <button className="close-btn" onClick={() => setShowSubscriptions(false)}>×</button>
+                                </div>
+                                <div className="modal-body">
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        const input = e.target.elements.subUrl;
+                                        const url = input.value.trim();
+                                        if (!url) return;
+                                        try {
+                                            const res = await fetch(`${API_URL}/subscriptions`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                credentials: 'include',
+                                                body: JSON.stringify({ url })
+                                            });
+                                            if (res.ok) {
+                                                input.value = '';
+                                                fetchSubscriptions();
+                                            } else {
+                                                const err = await res.json();
+                                                alert(err.error || 'Error');
+                                            }
+                                        } catch (err) { alert('Error adding subscription'); }
+                                    }} style={{marginBottom: '20px'}}>
+                                        <div className="form-group" style={{marginBottom: '8px'}}>
+                                            <label className="form-label">{language === 'es' ? 'Añadir feed RSS o URL de Substack' : 'Add RSS feed or Substack URL'}</label>
+                                            <div style={{display: 'flex', gap: '8px'}}>
+                                                <input name="subUrl" type="text" className="form-input" placeholder="newsletter.substack.com" style={{flex: 1}} />
+                                                <button type="submit" className="btn btn-primary">
+                                                    {language === 'es' ? 'Añadir' : 'Add'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <div style={{marginBottom: '20px'}}>
+                                        <label className="btn btn-small" style={{cursor: 'pointer'}}>
+                                            {language === 'es' ? 'Importar OPML' : 'Import OPML'}
+                                            <input type="file" accept=".opml,.xml" style={{display: 'none'}} onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (!file) return;
+                                                const formData = new FormData();
+                                                formData.append('file', file);
+                                                try {
+                                                    const res = await fetch(`${API_URL}/subscriptions/import-opml`, {
+                                                        method: 'POST',
+                                                        credentials: 'include',
+                                                        body: formData
+                                                    });
+                                                    const data = await res.json();
+                                                    if (res.ok) {
+                                                        alert(`${language === 'es' ? 'Importados' : 'Imported'}: ${data.added}/${data.total} feeds`);
+                                                        fetchSubscriptions();
+                                                    } else {
+                                                        alert(data.error || 'Error');
+                                                    }
+                                                } catch (err) { alert('Error importing OPML'); }
+                                                e.target.value = '';
+                                            }} />
+                                        </label>
+                                    </div>
+                                    {subscriptions.length > 0 ? (
+                                        <div>
+                                            <h3 style={{fontSize: '14px', fontWeight: '600', marginBottom: '12px'}}>
+                                                {language === 'es' ? 'Feeds activos' : 'Active feeds'} ({subscriptions.length})
+                                            </h3>
+                                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                                {subscriptions.map(sub => (
+                                                    <div key={sub.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8FAFB', borderRadius: '6px'}}>
+                                                        <svg width="16" height="16" fill="none" stroke="#2BBCC0" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 5c7.18 0 13 5.82 13 13M6 11c3.87 0 7 3.13 7 7M6 17h.01"/></svg>
+                                                        <div style={{flex: 1, minWidth: 0}}>
+                                                            <div style={{fontWeight: '500', fontSize: '14px'}}>{sub.name}</div>
+                                                            <div style={{fontSize: '11px', color: '#7A8599', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                                                {sub.url}
+                                                                {sub.last_fetched && ` — ${language === 'es' ? 'Última sync' : 'Last sync'}: ${new Date(sub.last_fetched).toLocaleDateString()}`}
+                                                            </div>
+                                                        </div>
+                                                        <button className="btn btn-small" onClick={async () => {
+                                                            if (!confirm(language === 'es' ? '¿Eliminar suscripción?' : 'Remove subscription?')) return;
+                                                            await fetch(`${API_URL}/subscriptions/${sub.id}`, { method: 'DELETE', credentials: 'include' });
+                                                            fetchSubscriptions();
+                                                        }}>
+                                                            {language === 'es' ? 'Eliminar' : 'Remove'}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{textAlign: 'center', padding: '20px', color: '#7A8599', fontSize: '14px'}}>
+                                            {language === 'es'
+                                                ? 'No hay suscripciones. Añade una URL de Substack o importa un archivo OPML.'
+                                                : 'No subscriptions. Add a Substack URL or import an OPML file.'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {showUpgradeModal && (
@@ -2098,12 +2238,31 @@
             );
         }
 
-        function ProfileModal({ user, onClose, onUpdate, onUpgrade, translations }) {
-            const [formData, setFormData] = useState({ name: user.name, email: user.email, newPassword: '' });
+        function ProfileModal({ user, language, onClose, onUpdate, onUpgrade, translations }) {
+            const [formData, setFormData] = useState({ name: user.name, email: user.email, newPassword: '', kindle_email: user.kindle_email || '' });
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                alert('Profile update coming soon!');
-                onClose();
+                try {
+                    const body = { name: formData.name, kindle_email: formData.kindle_email };
+                    if (formData.newPassword) body.password = formData.newPassword;
+                    const res = await fetch(`${API_URL}/auth/profile`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(body)
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        onUpdate(data.user);
+                        onClose();
+                    } else {
+                        const err = await res.json();
+                        alert(err.error || 'Error updating profile');
+                    }
+                } catch (e) {
+                    console.error('Profile update error:', e);
+                    alert('Error updating profile');
+                }
             };
             return (
                 <div className="modal-overlay" onClick={onClose}>
@@ -2129,6 +2288,17 @@
                                     <input type="password" className="form-input" value={formData.newPassword}
                                         onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
                                         placeholder="Dejar en blanco para no cambiar" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Kindle Email</label>
+                                    <input type="email" className="form-input" value={formData.kindle_email}
+                                        onChange={(e) => setFormData({...formData, kindle_email: e.target.value})}
+                                        placeholder="your-name@kindle.com" />
+                                    <div style={{fontSize: '12px', color: '#7A8599', marginTop: '4px'}}>
+                                        {language === 'es'
+                                            ? 'Tu email de Kindle para enviar newsletters directamente'
+                                            : 'Your Kindle email to send newsletters directly'}
+                                    </div>
                                 </div>
                                 <div className="form-group" style={{marginBottom: 0}}>
                                     <label className="form-label">{translations.profile.plan}</label>
