@@ -38,6 +38,7 @@ export async function setupDatabase() {
                 newsletters_limit INTEGER DEFAULT 10,
                 stripe_customer_id VARCHAR(255),
                 stripe_subscription_id VARCHAR(255),
+                kindle_email VARCHAR(255),
                 language VARCHAR(5) DEFAULT 'es',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_active INTEGER DEFAULT 1
@@ -82,6 +83,7 @@ export async function setupDatabase() {
         await pool.query(`
             ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
         `);
 
         console.log('✅ Database initialized (PostgreSQL)');
@@ -127,6 +129,9 @@ export async function createInitialUser() {
 
 // Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {
+    // Database pool access
+    getDb: () => pool,
+
     // Users
     findUserByEmail: async (email) => {
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
