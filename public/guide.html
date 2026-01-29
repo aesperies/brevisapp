@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BREVIS - How to Add Content</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; color: #2C3544; background: #FAFBFC; line-height: 1.6; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); z-index: 100; }
+        .nav img { height: 32px; }
+        .nav a { font-size: 14px; font-weight: 600; color: #2C3544; text-decoration: none; }
+        .nav a:hover { color: #2BBCC0; }
+        .container { max-width: 720px; margin: 0 auto; padding: 120px 24px 80px; }
+        h1 { font-size: 36px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+        .subtitle { font-size: 16px; color: #7A8599; margin-bottom: 48px; }
+        .method { margin-bottom: 48px; }
+        .method-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .method-number { width: 32px; height: 32px; background: #2C3544; color: #FFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+        .method-title { font-size: 20px; font-weight: 700; }
+        .method-body { padding-left: 44px; }
+        .method-body p { margin-bottom: 12px; color: #4A5568; font-size: 15px; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tag-all { background: rgba(43,188,192,0.1); color: #2BBCC0; }
+        .tag-twitter { background: rgba(29,155,240,0.1); color: #1D9BF0; }
+        .tag-linkedin { background: rgba(0,119,181,0.1); color: #0077B5; }
+        .steps { list-style: none; margin: 12px 0; }
+        .steps li { position: relative; padding: 8px 0 8px 24px; font-size: 14px; color: #4A5568; }
+        .steps li::before { content: ''; position: absolute; left: 0; top: 16px; width: 8px; height: 8px; background: #2BBCC0; border-radius: 50%; }
+        .code { background: #F0F4F7; padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: #2C3544; margin: 12px 0; word-break: break-all; }
+        .divider { border: none; border-top: 1px solid #E8ECF0; margin: 48px 0; }
+        .footer { text-align: center; font-size: 13px; color: #7A8599; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/"><img src="/logo-new.png" alt="brevis"></a>
+        <a href="/">Back to app</a>
+    </div>
+    <div class="container">
+        <h1>How to add content to BREVIS</h1>
+        <p class="subtitle">Five ways to get newsletters, threads, and posts into your reading list.</p>
+
+        <div class="method">
+            <div class="method-header">
+                <div class="method-number">1</div>
+                <div class="method-title">Email forwarding</div>
+            </div>
+            <div class="method-body">
+                <p><span class="tag tag-all">All plans</span></p>
+                <p>Every BREVIS account gets a unique email address. Forward any newsletter to it and it appears in your dashboard automatically.</p>
+                <ol class="steps">
+                    <li>Find your personal BREVIS email in the dashboard (looks like <code>brief-xxxxxxxx@newsletters.brevisapp.com</code>)</li>
+                    <li>Forward any newsletter email to that address</li>
+                    <li>It shows up in your inbox within seconds</li>
+                </ol>
+                <p>Tip: save your BREVIS email as a contact so forwarding is one tap.</p>
+            </div>
+        </div>
+
+        <div class="method">
+            <div class="method-header">
+                <div class="method-number">2</div>
+                <div class="method-title">RSS / Substack feeds</div>
+            </div>
+            <div class="method-body">
+                <p><span class="tag tag-all">All plans</span></p>
+                <p>Subscribe to RSS feeds and Substack newsletters directly. BREVIS checks for new posts every 30 minutes.</p>
+                <ol class="steps">
+                    <li>Go to <strong>Manage feeds</strong> in the sidebar</li>
+                    <li>Paste a Substack URL (e.g. <code>newsletter.substack.com</code>) or any RSS feed URL</li>
+                    <li>You can also import an OPML file to add multiple feeds at once</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="method">
+            <div class="method-header">
+                <div class="method-number">3</div>
+                <div class="method-title">Import from Twitter / X</div>
+            </div>
+            <div class="method-body">
+                <p><span class="tag tag-twitter">Twitter / X</span></p>
+                <p>Save any tweet or thread as a newsletter entry by pasting the URL.</p>
+                <ol class="steps">
+                    <li>Click <strong>+ Add</strong> in the dashboard</li>
+                    <li>In the <strong>Import URL</strong> tab, paste a tweet link (e.g. <code>https://x.com/user/status/123...</code>)</li>
+                    <li>BREVIS fetches the tweet text (including full threads) and saves it</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="method">
+            <div class="method-header">
+                <div class="method-number">4</div>
+                <div class="method-title">Web Clipper bookmarklet</div>
+            </div>
+            <div class="method-body">
+                <p><span class="tag tag-twitter">Twitter / X</span> <span class="tag tag-linkedin">LinkedIn</span> <span class="tag tag-all">Any page</span></p>
+                <p>Save content from any web page with one click. This is the only way to save LinkedIn posts (LinkedIn blocks server-side access).</p>
+                <ol class="steps">
+                    <li>Open <strong>Web Clipper</strong> in the sidebar</li>
+                    <li>Drag the "Save to BREVIS" button to your browser's bookmark bar</li>
+                    <li>When you're on a page you want to save, click the bookmarklet</li>
+                    <li>A small popup confirms the save</li>
+                </ol>
+                <p>The bookmarklet automatically detects Twitter threads and LinkedIn posts and extracts the relevant content.</p>
+            </div>
+        </div>
+
+        <div class="method">
+            <div class="method-header">
+                <div class="method-number">5</div>
+                <div class="method-title">Manual entry</div>
+            </div>
+            <div class="method-body">
+                <p><span class="tag tag-all">All plans</span></p>
+                <p>Add any content manually by filling in the title, source, and content.</p>
+                <ol class="steps">
+                    <li>Click <strong>+ Add</strong> in the dashboard</li>
+                    <li>Switch to the <strong>Manual</strong> tab</li>
+                    <li>Fill in the title, source, content, and optionally a URL</li>
+                </ol>
+            </div>
+        </div>
+
+        <hr class="divider">
+        <div class="footer">BREVIS &mdash; 2026</div>
+    </div>
+</body>
+</html>

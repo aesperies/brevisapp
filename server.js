@@ -15,7 +15,7 @@ import OpenAI from 'openai';
 import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
-import { generateToken, authMiddleware } from './auth.js';
+import { generateToken, verifyToken, authMiddleware } from './auth.js';
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
@@ -448,6 +448,147 @@ app.post('/api/newsletters', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('❌ Create newsletter error:', error);
         res.status(500).json({ error: 'Failed to create newsletter' });
+    }
+});
+
+// === URL Import & Bookmarklet ===
+
+function detectPlatform(url) {
+    if (/twitter\.com|x\.com/i.test(url)) return 'twitter';
+    if (/linkedin\.com/i.test(url)) return 'linkedin';
+    return 'unknown';
+}
+
+function extractTweetId(url) {
+    const match = url.match(/(?:twitter|x)\.com\/\w+\/status\/(\d+)/);
+    return match ? match[1] : null;
+}
+
+async function fetchTweetContent(tweetId) {
+    // Primary: fxtwitter API
+    try {
+        const res = await fetch(`https://api.fxtwitter.com/x/status/${tweetId}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.tweet) return data;
+        }
+    } catch (e) { /* fallback */ }
+
+    // Fallback: syndication API
+    try {
+        const res = await fetch(`https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&token=x`);
+        if (res.ok) {
+            const synData = await res.json();
+            return {
+                tweet: {
+                    text: synData.text,
+                    author: { name: synData.user?.name, screen_name: synData.user?.screen_name },
+                    thread: null
+                }
+            };
+        }
+    } catch (e) { /* give up */ }
+
+    return null;
+}
+
+app.post('/api/import/url', authMiddleware, async (req, res) => {
+    try {
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'URL is required' });
+
+        const platform = detectPlatform(url);
+
+        if (platform === 'linkedin') {
+            return res.status(400).json({
+                error: 'linkedin_not_supported',
+                message: 'LinkedIn posts cannot be imported via URL. Use the bookmarklet to save LinkedIn posts.'
+            });
+        }
+
+        if (platform === 'twitter') {
+            const tweetId = extractTweetId(url);
+            if (!tweetId) {
+                return res.status(400).json({ error: 'Could not parse tweet URL. Use a link like https://x.com/user/status/123...' });
+            }
+
+            const tweetData = await fetchTweetContent(tweetId);
+            if (!tweetData?.tweet) {
+                return res.status(502).json({ error: 'Could not fetch tweet. It may be deleted, private, or Twitter is blocking requests.' });
+            }
+
+            const tweet = tweetData.tweet;
+            const authorName = tweet.author?.name || 'Unknown';
+            const authorHandle = tweet.author?.screen_name || '';
+
+            let content;
+            if (tweet.thread && tweet.thread.length > 1) {
+                content = tweet.thread.map((t, i) =>
+                    `<p><strong>${i + 1}/${tweet.thread.length}</strong> ${t.text}</p>`
+                ).join('\n');
+            } else {
+                content = `<p>${tweet.text}</p>`;
+            }
+
+            const titleText = (tweet.text || '').substring(0, 80);
+            const title = tweet.thread?.length > 1
+                ? `Thread by @${authorHandle}: ${titleText}...`
+                : `@${authorHandle}: ${titleText}...`;
+
+            const newsletter = await dbHelpers.createNewsletter(
+                req.user.id,
+                title,
+                `@${authorHandle} (${authorName})`,
+                content,
+                url
+            );
+
+            console.log('✅ Imported tweet:', title);
+            res.json(newsletter);
+        } else {
+            return res.status(400).json({ error: 'Unsupported URL. Currently supports Twitter/X threads.' });
+        }
+    } catch (error) {
+        console.error('❌ Import URL error:', error);
+        res.status(500).json({ error: 'Failed to import content from URL' });
+    }
+});
+
+app.options('/api/bookmarklet/save', cors());
+app.post('/api/bookmarklet/save', cors(), async (req, res) => {
+    try {
+        const token = req.body.token
+            || req.cookies.token
+            || req.headers.authorization?.replace('Bearer ', '');
+
+        if (!token) return res.status(401).json({ error: 'Authentication required' });
+
+        const decoded = verifyToken(token);
+        if (!decoded) return res.status(401).json({ error: 'Invalid token' });
+
+        const { title, source, content, url } = req.body;
+        if (!content && !url) {
+            return res.status(400).json({ error: 'Content or URL is required' });
+        }
+
+        let finalSource = source;
+        if (!finalSource && url) {
+            try { finalSource = new URL(url).hostname; } catch (e) { finalSource = 'Web'; }
+        }
+
+        const newsletter = await dbHelpers.createNewsletter(
+            decoded.id,
+            title || 'Saved from web',
+            finalSource || 'Web',
+            content || '',
+            url || null
+        );
+
+        console.log('✅ Bookmarklet save:', title);
+        res.json({ success: true, id: newsletter.id });
+    } catch (error) {
+        console.error('❌ Bookmarklet save error:', error);
+        res.status(500).json({ error: 'Failed to save' });
     }
 });
 
