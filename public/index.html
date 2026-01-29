@@ -13,15 +13,15 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #FFF;
-            color: #000;
+            color: #2C3544;
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
         .app-layout { display: flex; min-height: 100vh; }
         .sidebar {
             width: 260px;
-            background: #FAFAFA;
-            border-right: 1px solid #E5E5E5;
+            background: #F8FAFB;
+            border-right: 1px solid #E8ECF0;
             padding: 20px 0;
             position: fixed;
             left: 0;
@@ -31,7 +31,7 @@
         }
         .sidebar-logo {
             padding: 0 20px 20px;
-            border-bottom: 1px solid #E5E5E5;
+            border-bottom: 1px solid #E8ECF0;
             margin-bottom: 20px;
         }
         .logo-container {
@@ -42,7 +42,8 @@
         .logo-mark {
             width: 32px;
             height: 32px;
-            background: #000;
+            background: #2C3544;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -51,14 +52,14 @@
             color: #FFF;
             letter-spacing: -0.5px;
         }
-        .logo-text { font-size: 20px; font-weight: 600; }
+        .logo-text { font-size: 20px; font-weight: 600; color: #2C3544; letter-spacing: 0.08em; }
         .sidebar-section { margin-bottom: 24px; }
         .sidebar-title {
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #666;
+            color: #7A8599;
             margin-bottom: 8px;
             padding: 0 20px;
         }
@@ -69,7 +70,7 @@
             padding: 10px 20px;
             cursor: pointer;
             font-size: 14px;
-            color: #333;
+            color: #4A5568;
             background: transparent;
             border: none;
             width: 100%;
@@ -78,24 +79,24 @@
             font-family: inherit;
             transition: all 0.2s;
         }
-        .sidebar-item:hover { background: #F0F0F0; }
+        .sidebar-item:hover { background: #F0F4F7; }
         .sidebar-item.active {
-            background: #F0F0F0;
-            color: #000;
-            border-left-color: #000;
+            background: rgba(43, 188, 192, 0.08);
+            color: #2C3544;
+            border-left-color: #2BBCC0;
             font-weight: 500;
         }
         .sidebar-item-icon { font-size: 16px; width: 20px; text-align: center; }
         .sidebar-item-label { flex: 1; }
         .sidebar-item-count {
             font-size: 12px;
-            color: #666;
-            background: #E5E5E5;
+            color: #7A8599;
+            background: #E8ECF0;
             padding: 2px 8px;
             border-radius: 12px;
             font-weight: 500;
         }
-        .sidebar-item.active .sidebar-item-count { background: #000; color: #FFF; }
+        .sidebar-item.active .sidebar-item-count { background: #2C3544; color: #FFF; }
         .sidebar-tag-item { padding-left: 52px; }
         .sidebar-report-item {
             display: flex;
@@ -104,9 +105,9 @@
             padding: 8px 20px;
             cursor: pointer;
             font-size: 13px;
-            color: #333;
+            color: #4A5568;
         }
-        .sidebar-report-item:hover { background: #F0F0F0; }
+        .sidebar-report-item:hover { background: #F0F4F7; }
         .main-content {
             flex: 1;
             margin-left: 260px;
@@ -121,10 +122,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #E5E5E5;
+            border-bottom: 1px solid #E8ECF0;
             margin-bottom: 24px;
         }
-        .tagline { font-size: 14px; color: #666; }
+        .tagline { font-size: 14px; color: #7A8599; }
         .user-menu {
             display: flex;
             align-items: center;
@@ -133,18 +134,18 @@
         }
         .plan-badge {
             padding: 4px 12px;
-            background: #000;
+            background: #2C3544;
             color: #FFF;
             border-radius: 4px;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
         }
-        .plan-badge.pro { background: #4A90E2; }
+        .plan-badge.pro { background: #2BBCC0; }
         .user-name-button {
             padding: 8px 16px;
             background: transparent;
-            border: 1px solid #E5E5E5;
+            border: 1px solid #E8ECF0;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
@@ -153,53 +154,55 @@
             align-items: center;
             gap: 8px;
             font-family: inherit;
+            color: #2C3544;
         }
-        .user-name-button:hover { background: #F5F5F5; }
+        .user-name-button:hover { background: #F0F4F7; }
         .user-dropdown {
             position: absolute;
             top: 100%;
             right: 0;
             margin-top: 8px;
             background: #FFF;
-            border: 1px solid #E5E5E5;
+            border: 1px solid #E8ECF0;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(44,53,68,0.1);
             min-width: 220px;
             z-index: 1000;
         }
         .user-dropdown-info {
             padding: 12px 16px;
-            border-bottom: 1px solid #E5E5E5;
+            border-bottom: 1px solid #E8ECF0;
             font-size: 13px;
         }
-        .user-dropdown-email { font-size: 12px; color: #999; margin-top: 2px; }
+        .user-dropdown-email { font-size: 12px; color: #7A8599; margin-top: 2px; }
         .user-dropdown-item {
             padding: 12px 16px;
             cursor: pointer;
-            border-bottom: 1px solid #F0F0F0;
+            border-bottom: 1px solid #F0F4F7;
             display: flex;
             align-items: center;
             gap: 12px;
             font-size: 14px;
         }
-        .user-dropdown-item:last-child { border-bottom: none; border-top: 1px solid #E5E5E5; }
-        .user-dropdown-item:hover { background: #F8F8F8; }
+        .user-dropdown-item:last-child { border-bottom: none; border-top: 1px solid #E8ECF0; }
+        .user-dropdown-item:hover { background: #F0F4F7; }
         .lang-toggle {
             padding: 6px 12px;
             background: transparent;
-            border: 1px solid #E5E5E5;
+            border: 1px solid #E8ECF0;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
             font-weight: 600;
             font-family: inherit;
+            color: #2C3544;
         }
         .btn {
             padding: 10px 20px;
-            border: 1px solid #E5E5E5;
-            border-radius: 4px;
+            border: 1px solid #E8ECF0;
+            border-radius: 6px;
             background: #FFF;
-            color: #000;
+            color: #2C3544;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
@@ -207,16 +210,16 @@
             text-decoration: none;
             display: inline-block;
         }
-        .btn:hover { background: #F5F5F5; }
+        .btn:hover { background: #F0F4F7; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background: #000; color: #FFF; border-color: #000; }
-        .btn-primary:hover { background: #333; }
+        .btn-primary { background: #2C3544; color: #FFF; border-color: #2C3544; }
+        .btn-primary:hover { background: #3D4D5C; }
         .btn-small { padding: 8px 16px; font-size: 13px; }
         .btn-full { width: 100%; }
         .email-display {
-            background: #F8F8F8;
-            border: 1px solid #E5E5E5;
-            border-radius: 6px;
+            background: #F8FAFB;
+            border: 1px solid #E8ECF0;
+            border-radius: 8px;
             padding: 16px;
             margin-bottom: 24px;
         }
@@ -225,10 +228,10 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #666;
+            color: #7A8599;
             margin-bottom: 6px;
         }
-        .email-code { font-size: 16px; font-weight: 600; font-family: 'Monaco', monospace; }
+        .email-code { font-size: 16px; font-weight: 600; font-family: 'Monaco', monospace; color: #2C3544; }
         .nav {
             display: flex;
             gap: 12px;
@@ -239,14 +242,15 @@
         .search-input {
             width: 100%;
             padding: 10px 16px;
-            border: 1px solid #E5E5E5;
+            border: 1px solid #E8ECF0;
             border-radius: 6px;
             font-size: 14px;
             font-family: inherit;
         }
+        .search-input:focus { outline: none; border-color: #2BBCC0; }
         .selection-bar {
-            background: #F8F8F8;
-            border: 1px solid #E5E5E5;
+            background: #F8FAFB;
+            border: 1px solid #E8ECF0;
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 24px;
@@ -258,7 +262,7 @@
         .selection-actions { display: flex; gap: 8px; }
         .newsletter-card {
             background: #FFF;
-            border: 1px solid #E5E5E5;
+            border: 1px solid #E8ECF0;
             border-radius: 8px;
             padding: 16px 20px;
             margin-bottom: 12px;
@@ -267,8 +271,8 @@
             align-items: flex-start;
             gap: 16px;
         }
-        .newsletter-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .newsletter-card.read .newsletter-title { color: #999; }
+        .newsletter-card:hover { box-shadow: 0 2px 8px rgba(44,53,68,0.08); }
+        .newsletter-card.read .newsletter-title { color: #A0AEC0; }
         .newsletter-card-content { flex: 1; min-width: 0; }
         .newsletter-card-actions {
             display: flex;
@@ -286,9 +290,9 @@
             height: 18px;
             cursor: pointer;
         }
-        .newsletter-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; cursor: pointer; }
-        .newsletter-title:hover { color: #000; text-decoration: underline; }
-        .newsletter-meta { font-size: 12px; color: #888; }
+        .newsletter-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; cursor: pointer; color: #2C3544; }
+        .newsletter-title:hover { color: #2BBCC0; text-decoration: none; }
+        .newsletter-meta { font-size: 12px; color: #7A8599; }
         .newsletter-tag {
             padding: 2px 8px;
             border: 1px solid;
@@ -297,7 +301,7 @@
             font-weight: 500;
         }
         .newsletter-content {
-            color: #666;
+            color: #7A8599;
             font-size: 13px;
             margin-top: 6px;
             line-height: 1.5;
@@ -306,8 +310,8 @@
             text-overflow: ellipsis;
         }
         .summary-box {
-            background: #F8F8F8;
-            border-left: 3px solid #000;
+            background: #F8FAFB;
+            border-left: 3px solid #2BBCC0;
             padding: 12px 16px;
             margin: 12px 0;
             border-radius: 4px;
@@ -323,13 +327,13 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #666;
+            color: #7A8599;
         }
         .summary-toggle {
             background: none;
             border: none;
             font-size: 12px;
-            color: #666;
+            color: #7A8599;
             cursor: pointer;
             padding: 0;
         }
@@ -343,7 +347,7 @@
         }
         .badge {
             padding: 4px 10px;
-            background: #000;
+            background: #2BBCC0;
             color: #FFF;
             border-radius: 4px;
             font-size: 11px;
@@ -361,14 +365,14 @@
             right: 0;
             margin-bottom: 4px;
             background: #FFF;
-            border: 1px solid #DDD;
+            border: 1px solid #E8ECF0;
             border-radius: 8px;
             padding: 6px 0;
             min-width: 180px;
             max-height: 240px;
             overflow-y: auto;
             z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 -4px 20px rgba(44,53,68,0.12);
         }
         .tag-dropdown::-webkit-scrollbar {
             width: 6px;
@@ -393,7 +397,7 @@
             font-size: 13px;
             transition: background 0.15s;
         }
-        .tag-dropdown-item:hover { background: #F0F0F0; }
+        .tag-dropdown-item:hover { background: #F0F4F7; }
         .tag-color-dot {
             width: 12px;
             height: 12px;
@@ -404,7 +408,7 @@
         .tag-dropdown-empty {
             padding: 12px 14px;
             font-size: 12px;
-            color: #999;
+            color: #7A8599;
             text-align: center;
         }
         .actions-dropdown {
@@ -413,12 +417,12 @@
             right: 0;
             margin-bottom: 4px;
             background: #FFF;
-            border: 1px solid #DDD;
+            border: 1px solid #E8ECF0;
             border-radius: 8px;
             padding: 6px 0;
             min-width: 180px;
             z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 -4px 20px rgba(44,53,68,0.12);
         }
         .actions-dropdown-item {
             padding: 10px 14px;
@@ -429,7 +433,7 @@
             font-size: 13px;
             transition: background 0.15s;
         }
-        .actions-dropdown-item:hover { background: #F0F0F0; }
+        .actions-dropdown-item:hover { background: #F0F4F7; }
         .actions-dropdown-item.danger:hover { background: #FEE; color: #C00; }
         .modal-overlay {
             position: fixed;
@@ -437,7 +441,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(44,53,68,0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -456,7 +460,7 @@
         }
         .modal-header {
             padding: 24px;
-            border-bottom: 1px solid #E5E5E5;
+            border-bottom: 1px solid #E8ECF0;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -467,7 +471,7 @@
             border: none;
             font-size: 28px;
             cursor: pointer;
-            color: #666;
+            color: #7A8599;
             width: 32px;
             height: 32px;
             display: flex;
@@ -475,16 +479,16 @@
             justify-content: center;
             border-radius: 4px;
         }
-        .close-btn:hover { background: #F5F5F5; }
+        .close-btn:hover { background: #F0F4F7; }
         .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
         .modal-footer {
             padding: 16px 24px;
-            border-top: 1px solid #E5E5E5;
+            border-top: 1px solid #E8ECF0;
             display: flex;
             gap: 8px;
             justify-content: flex-end;
         }
-        .modal-meta { font-size: 14px; color: #666; margin-bottom: 16px; }
+        .modal-meta { font-size: 14px; color: #7A8599; margin-bottom: 16px; }
         .modal-content { line-height: 1.8; white-space: pre-wrap; }
         .newsletter-iframe {
             width: 100%;
@@ -502,19 +506,19 @@
         .form-input, .form-textarea {
             width: 100%;
             padding: 12px;
-            border: 1px solid #E5E5E5;
-            border-radius: 4px;
+            border: 1px solid #E8ECF0;
+            border-radius: 6px;
             font-size: 14px;
             font-family: inherit;
         }
-        .form-input:focus, .form-textarea:focus { outline: none; border-color: #000; }
+        .form-input:focus, .form-textarea:focus { outline: none; border-color: #2BBCC0; }
         .form-textarea { resize: vertical; min-height: 100px; }
         .empty-state { text-align: center; padding: 60px 20px; }
         .empty-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-        .empty-text { color: #666; font-size: 14px; }
-        .footer { text-align: center; padding: 40px 20px; color: #999; font-size: 13px; }
+        .empty-text { color: #7A8599; font-size: 14px; }
+        .footer { text-align: center; padding: 40px 20px; color: #A0AEC0; font-size: 13px; }
         .upgrade-banner {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2C3544 0%, #3D5A6E 100%);
             color: #FFF;
             padding: 20px 24px;
             border-radius: 8px;
@@ -525,10 +529,10 @@
         }
         .upgrade-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
         .upgrade-subtitle { font-size: 13px; opacity: 0.9; }
-        .btn-upgrade { background: #FFF; color: #667eea; border: none; font-weight: 600; }
+        .btn-upgrade { background: #2BBCC0; color: #FFF; border: none; font-weight: 600; }
         .plan-indicator {
-            background: #F8F8F8;
-            border: 1px solid #E5E5E5;
+            background: #F8FAFB;
+            border: 1px solid #E8ECF0;
             border-radius: 6px;
             padding: 16px;
             margin-bottom: 24px;
@@ -539,7 +543,7 @@
             margin-bottom: 8px;
             font-size: 13px;
         }
-        .plan-progress { height: 6px; background: #E5E5E5; border-radius: 3px; overflow: hidden; }
+        .plan-progress { height: 6px; background: #E8ECF0; border-radius: 3px; overflow: hidden; }
         .plan-progress-bar { height: 100%; background: #4CAF50; transition: width 0.3s; }
         .plan-progress-bar.warning { background: #FF9800; }
         .plan-progress-bar.danger { background: #F44336; }
@@ -553,7 +557,9 @@
             max-width: 400px;
             width: 100%;
             padding: 48px 32px;
-            border: 1px solid #E5E5E5;
+            border: 1px solid #E8ECF0;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(44,53,68,0.08);
         }
         @media (max-width: 768px) {
             .sidebar { display: none; }
@@ -662,7 +668,7 @@
                 <div className="auth-container">
                     <div className="auth-box">
                         <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
-                            <div className="logo-mark">BR</div>
+                            <div className="logo-mark">B</div>
                             <div className="logo-text">BREVIS</div>
                         </div>
                         <div className="tagline" style={{textAlign: 'center', marginBottom: '32px'}}>{translations.app.tagline}</div>
@@ -691,7 +697,7 @@
                         <div style={{textAlign: 'center', marginTop: '24px', fontSize: '14px'}}>
                             {isLogin ? translations.auth.noAccount : translations.auth.hasAccount}{' '}
                             <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(!isLogin); }}
-                                style={{color: '#000', fontWeight: '600', textDecoration: 'none'}}>
+                                style={{color: '#2BBCC0', fontWeight: '600', textDecoration: 'none'}}>
                                 {isLogin ? translations.auth.signUp : translations.auth.signIn}
                             </a>
                         </div>
@@ -1290,7 +1296,7 @@
                             <div className="email-display">
                                 <div className="email-label">{translations.email.label}</div>
                                 <div className="email-code">{user.email_code}@newsletters.brevisapp.com</div>
-                                <div style={{marginTop: '8px', fontSize: '12px', color: '#888'}}>
+                                <div style={{marginTop: '8px', fontSize: '12px', color: '#7A8599'}}>
                                     {language === 'es'
                                         ? 'Guárdalo como "BREVIS" en tus contactos para enviarlo más rápidamente'
                                         : 'Save it as "BREVIS" in your contacts for faster forwarding'}
@@ -1601,17 +1607,17 @@
                                 </div>
                                 <div className="modal-body">
                                     {/* Billing toggle */}
-                                    <div style={{display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '0', background: '#F0F0F0', borderRadius: '8px', padding: '3px'}}>
+                                    <div style={{display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '0', background: '#F0F4F7', borderRadius: '8px', padding: '3px'}}>
                                         <button onClick={() => setBillingInterval('month')}
                                             style={{flex: 1, padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                                                background: billingInterval === 'month' ? '#000' : 'transparent',
-                                                color: billingInterval === 'month' ? '#FFF' : '#666'}}>
+                                                background: billingInterval === 'month' ? '#2C3544' : 'transparent',
+                                                color: billingInterval === 'month' ? '#FFF' : '#7A8599'}}>
                                             {language === 'es' ? 'Mensual' : 'Monthly'}
                                         </button>
                                         <button onClick={() => setBillingInterval('year')}
                                             style={{flex: 1, padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                                                background: billingInterval === 'year' ? '#000' : 'transparent',
-                                                color: billingInterval === 'year' ? '#FFF' : '#666'}}>
+                                                background: billingInterval === 'year' ? '#2C3544' : 'transparent',
+                                                color: billingInterval === 'year' ? '#FFF' : '#7A8599'}}>
                                             {language === 'es' ? 'Anual (-27%)' : 'Annual (-27%)'}
                                         </button>
                                     </div>
@@ -1619,27 +1625,27 @@
                                     {/* Plan cards */}
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
                                         {/* Free */}
-                                        <div style={{padding: '16px', border: '1px solid #E5E5E5', borderRadius: '8px', opacity: user.plan === 'free' ? 0.6 : 1}}>
+                                        <div style={{padding: '16px', border: '1px solid #E8ECF0', borderRadius: '8px', opacity: user.plan === 'free' ? 0.6 : 1}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Free</h3>
-                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#888'}}>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
                                                         {language === 'es' ? 'Newsletters ilimitadas' : 'Unlimited newsletters'}
                                                     </p>
                                                 </div>
                                                 <div style={{textAlign: 'right'}}>
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>$0</div>
-                                                    {user.plan === 'free' && <span style={{fontSize: '11px', color: '#888'}}>{language === 'es' ? 'Plan actual' : 'Current'}</span>}
+                                                    {user.plan === 'free' && <span style={{fontSize: '11px', color: '#7A8599'}}>{language === 'es' ? 'Plan actual' : 'Current'}</span>}
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Pro */}
-                                        <div style={{padding: '16px', border: user.plan === 'pro' ? '2px solid #000' : '1px solid #E5E5E5', borderRadius: '8px'}}>
+                                        <div style={{padding: '16px', border: user.plan === 'pro' ? '2px solid #2BBCC0' : '1px solid #E8ECF0', borderRadius: '8px'}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Pro</h3>
-                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#888'}}>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
                                                         {language === 'es' ? 'Resúmenes AI + Briefs' : 'AI Summaries + Briefs'}
                                                     </p>
                                                 </div>
@@ -1647,7 +1653,7 @@
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>
                                                         ${billingInterval === 'month' ? '7.99' : '69.99'}
                                                     </div>
-                                                    <span style={{fontSize: '11px', color: '#888'}}>
+                                                    <span style={{fontSize: '11px', color: '#7A8599'}}>
                                                         /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
                                                     </span>
                                                 </div>
@@ -1664,11 +1670,11 @@
                                         </div>
 
                                         {/* Premium */}
-                                        <div style={{padding: '16px', border: user.plan === 'premium' ? '2px solid #000' : '1px solid #E5E5E5', borderRadius: '8px'}}>
+                                        <div style={{padding: '16px', border: user.plan === 'premium' ? '2px solid #2BBCC0' : '1px solid #E8ECF0', borderRadius: '8px'}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Premium</h3>
-                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#888'}}>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
                                                         {language === 'es' ? 'Todo de Pro + Reports' : 'Everything in Pro + Reports'}
                                                     </p>
                                                 </div>
@@ -1676,7 +1682,7 @@
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>
                                                         ${billingInterval === 'month' ? '9.99' : '89.99'}
                                                     </div>
-                                                    <span style={{fontSize: '11px', color: '#888'}}>
+                                                    <span style={{fontSize: '11px', color: '#7A8599'}}>
                                                         /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
                                                     </span>
                                                 </div>
@@ -1789,7 +1795,7 @@
                                 </div>
                                 <div className="form-group" style={{marginBottom: 0}}>
                                     <label className="form-label">{translations.profile.plan}</label>
-                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#F8F8F8', borderRadius: '6px'}}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#F8FAFB', borderRadius: '6px'}}>
                                         <span style={{fontWeight: '600'}}>{translations.plans[user.plan]}</span>
                                         <button type="button" className="btn btn-small" onClick={onUpgrade}>
                                             {translations.profile.changePlan}
@@ -1812,8 +1818,8 @@
         }
 
         function TagManager({ tags, onClose, onUpdate, translations, language }) {
-            const [newTag, setNewTag] = useState({ name: '', color: '#000000' });
-            const colors = ['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
+            const [newTag, setNewTag] = useState({ name: '', color: '#2C3544' });
+            const colors = ['#2C3544', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
 
             const t = {
                 es: { name: 'Nombre', color: 'Color', create: 'Crear Etiqueta', existing: 'Etiquetas existentes', delete: 'Eliminar', confirmDelete: '¿Eliminar etiqueta?' },
@@ -1831,7 +1837,7 @@
                         body: JSON.stringify(newTag)
                     });
                     if (res.ok) {
-                        setNewTag({ name: '', color: '#000000' });
+                        setNewTag({ name: '', color: '#2C3544' });
                         onUpdate();
                     }
                 } catch (e) { console.error('Error:', e); }
@@ -1864,7 +1870,7 @@
                                             <button key={color} type="button" onClick={() => setNewTag({...newTag, color})}
                                                 style={{
                                                     width: '40px', height: '40px', borderRadius: '50%', background: color,
-                                                    border: newTag.color === color ? '3px solid #000' : '1px solid #E5E5E5',
+                                                    border: newTag.color === color ? '3px solid #2C3544' : '1px solid #E8ECF0',
                                                     cursor: 'pointer'
                                                 }} />
                                         ))}
@@ -1879,7 +1885,7 @@
                                     </h3>
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                         {tags.map(tag => (
-                                            <div key={tag.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8F8F8', borderRadius: '6px'}}>
+                                            <div key={tag.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8FAFB', borderRadius: '6px'}}>
                                                 <span style={{width: '24px', height: '24px', borderRadius: '50%', background: tag.color}} />
                                                 <span style={{flex: 1, fontWeight: '500'}}>{tag.name}</span>
                                                 <button className="btn btn-small" onClick={() => deleteTag(tag.id)}>{txt.delete}</button>
