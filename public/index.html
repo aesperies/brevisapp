@@ -562,85 +562,116 @@
             border-radius: 12px;
             box-shadow: 0 4px 24px rgba(44,53,68,0.08);
         }
-        .landing-container {
+        /* Landing Page */
+        .landing { background: #FFF; color: #2C3544; }
+        .landing-hero {
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 24px;
+        }
+        .landing-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #FFF;
+            padding: 20px 32px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(12px);
+            z-index: 100;
         }
-        .landing-box {
-            max-width: 420px;
-            width: 100%;
-            padding: 60px 32px;
-            text-align: center;
+        .landing-nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .landing-logo-mark {
-            width: 56px;
-            height: 56px;
+        .landing-nav-mark {
+            width: 32px;
+            height: 32px;
             background: #2C3544;
-            border-radius: 14px;
-            display: inline-flex;
+            border-radius: 8px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 14px;
             font-weight: 700;
             color: #FFF;
-            margin-bottom: 16px;
         }
-        .landing-title {
-            font-size: 32px;
+        .landing-nav-text {
+            font-size: 18px;
             font-weight: 700;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.1em;
             color: #2C3544;
-            margin-bottom: 12px;
         }
         .landing-badge {
             display: inline-block;
-            padding: 4px 14px;
-            background: #2BBCC0;
-            color: #FFF;
+            padding: 6px 16px;
+            background: rgba(43,188,192,0.1);
+            color: #2BBCC0;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 12px;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+        .landing-headline {
+            font-size: 56px;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #2C3544;
+            margin-bottom: 20px;
+            max-width: 700px;
+            letter-spacing: -0.02em;
+        }
+        .landing-headline span {
+            color: #2BBCC0;
         }
         .landing-subtitle {
-            font-size: 15px;
+            font-size: 18px;
             color: #7A8599;
             line-height: 1.6;
-            margin-bottom: 36px;
+            margin-bottom: 40px;
+            max-width: 500px;
         }
         .landing-form {
             display: flex;
             gap: 8px;
             margin-bottom: 12px;
+            max-width: 380px;
+            width: 100%;
         }
         .landing-input {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #E8ECF0;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 14px 20px;
+            border: 2px solid #E8ECF0;
+            border-radius: 10px;
+            font-size: 15px;
             font-family: inherit;
             text-align: center;
+            transition: border-color 0.2s;
         }
         .landing-input:focus {
             outline: none;
             border-color: #2BBCC0;
         }
         .landing-btn {
-            padding: 12px 24px;
+            padding: 14px 28px;
             background: #2C3544;
             color: #FFF;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             font-family: inherit;
+            transition: background 0.2s;
         }
         .landing-btn:hover {
             background: #3D4D5C;
@@ -648,7 +679,117 @@
         .landing-error {
             color: #EF4444;
             font-size: 13px;
-            margin-top: 4px;
+            height: 20px;
+        }
+        .landing-hint {
+            font-size: 13px;
+            color: #A0AEC0;
+            margin-top: 8px;
+        }
+        /* Mockup */
+        .landing-mockup {
+            margin-top: 48px;
+            max-width: 560px;
+            width: 100%;
+            background: #F8FAFB;
+            border: 1px solid #E8ECF0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 40px rgba(44,53,68,0.08);
+        }
+        .mockup-card {
+            background: #FFF;
+            border: 1px solid #E8ECF0;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .mockup-card:last-child { margin-bottom: 0; }
+        .mockup-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .mockup-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2C3544;
+        }
+        .mockup-card-badge {
+            padding: 1px 6px;
+            background: #2BBCC0;
+            color: #FFF;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: 600;
+        }
+        .mockup-card-meta {
+            font-size: 11px;
+            color: #A0AEC0;
+            margin-bottom: 8px;
+        }
+        .mockup-card-summary {
+            background: #F8FAFB;
+            border-left: 2px solid #2BBCC0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #7A8599;
+            line-height: 1.5;
+        }
+        /* Features */
+        .landing-features {
+            background: #F8FAFB;
+            padding: 80px 24px;
+        }
+        .landing-features-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+        .landing-feature {
+            text-align: center;
+            padding: 32px 24px;
+        }
+        .landing-feature-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(43,188,192,0.1);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: #2BBCC0;
+        }
+        .landing-feature-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2C3544;
+            margin-bottom: 10px;
+        }
+        .landing-feature-desc {
+            font-size: 14px;
+            color: #7A8599;
+            line-height: 1.6;
+        }
+        /* Footer */
+        .landing-footer {
+            text-align: center;
+            padding: 40px 24px;
+            color: #A0AEC0;
+            font-size: 13px;
+        }
+        @media (max-width: 768px) {
+            .landing-headline { font-size: 36px; }
+            .landing-subtitle { font-size: 16px; }
+            .landing-features-inner { grid-template-columns: 1fr; gap: 0; }
+            .landing-form { flex-direction: column; }
+            .landing-btn { width: 100%; }
         }
         @media (max-width: 768px) {
             .sidebar { display: none; }
@@ -703,27 +844,92 @@
             };
 
             return (
-                <div className="landing-container">
-                    <div className="landing-box">
-                        <div className="landing-logo-mark">B</div>
-                        <div className="landing-title">BREVIS</div>
-                        <div className="landing-badge">Coming Soon</div>
-                        <div className="landing-subtitle">
-                            Your reading list. Curated. Summarized.<br/>
-                            Tu lista de lectura. Curada. Resumida.
+                <div className="landing">
+                    <div className="landing-nav">
+                        <div className="landing-nav-logo">
+                            <div className="landing-nav-mark">B</div>
+                            <div className="landing-nav-text">BREVIS</div>
                         </div>
+                    </div>
+
+                    <div className="landing-hero">
+                        <div className="landing-badge">Coming Soon</div>
+                        <h1 className="landing-headline">
+                            Your newsletters,<br/><span>distilled.</span>
+                        </h1>
+                        <p className="landing-subtitle">
+                            Forward your newsletters to BREVIS. Get AI-powered summaries, organize with tags, and generate briefs — all in one place.
+                        </p>
                         <form onSubmit={handleSubmit} className="landing-form">
                             <input
                                 type="text"
                                 className="landing-input"
-                                placeholder="Access code"
+                                placeholder="Enter access code"
                                 value={code}
                                 onChange={(e) => { setCode(e.target.value); setError(''); }}
                             />
-                            <button type="submit" className="landing-btn">Enter</button>
+                            <button type="submit" className="landing-btn">Access</button>
                         </form>
-                        {error && <div className="landing-error">{error}</div>}
+                        <div className="landing-error">{error || '\u00A0'}</div>
+                        <div className="landing-hint">Request your code to get early access</div>
+
+                        <div className="landing-mockup">
+                            <div className="mockup-card">
+                                <div className="mockup-card-header">
+                                    <span className="mockup-card-title">The Future of AI in Healthcare</span>
+                                    <span className="mockup-card-badge">NEW</span>
+                                </div>
+                                <div className="mockup-card-meta">TechDigest — Jan 29, 2026</div>
+                                <div className="mockup-card-summary">
+                                    Key takeaways: FDA approves 3 new AI diagnostic tools. Hospital adoption up 40% YoY. Main challenges remain in data privacy and integration with legacy systems.
+                                </div>
+                            </div>
+                            <div className="mockup-card">
+                                <div className="mockup-card-header">
+                                    <span className="mockup-card-title">Weekly Market Insights</span>
+                                </div>
+                                <div className="mockup-card-meta">Bloomberg Brief — Jan 28, 2026</div>
+                                <div className="mockup-card-summary">
+                                    S&P 500 gained 2.3% this week. Key drivers: strong earnings from tech sector and positive jobs data. Watch for Fed meeting next Tuesday.
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div className="landing-features">
+                        <div className="landing-features-inner">
+                            <div className="landing-feature">
+                                <div className="landing-feature-icon">
+                                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                        <polyline points="22,6 12,13 2,6"/>
+                                    </svg>
+                                </div>
+                                <div className="landing-feature-title">Receive</div>
+                                <div className="landing-feature-desc">Forward your newsletters to your personal BREVIS inbox. All in one place, zero clutter.</div>
+                            </div>
+                            <div className="landing-feature">
+                                <div className="landing-feature-icon">
+                                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                </div>
+                                <div className="landing-feature-title">Summarize</div>
+                                <div className="landing-feature-desc">AI-powered summaries so you read less but know more. Get the key insights in seconds.</div>
+                            </div>
+                            <div className="landing-feature">
+                                <div className="landing-feature-icon">
+                                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                </div>
+                                <div className="landing-feature-title">Organize</div>
+                                <div className="landing-feature-desc">Tags, briefs and reports to stay on top of everything. Never miss what matters.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="landing-footer">BREVIS — 2026</div>
                 </div>
             );
         }
