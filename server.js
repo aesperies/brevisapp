@@ -9,12 +9,39 @@ import multer from 'multer';
 import Stripe from 'stripe';
 
 import { simpleParser } from 'mailparser';
+import nodemailer from 'nodemailer';
+import OpenAI from 'openai';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
 import { generateToken, authMiddleware } from './auth.js';
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
+
+// Initialize nodemailer transporter for Kindle emails (optional)
+let emailTransporter = null;
+if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    emailTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD
+        }
+    });
+    console.log('✅ Email transporter configured for Kindle');
+} else {
+    console.log('⚠️  Email transporter not configured (Kindle feature disabled)');
+}
+
+// Initialize OpenAI for text-to-speech (optional)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+if (openai) {
+    console.log('✅ OpenAI configured for audio generation');
+} else {
+    console.log('⚠️  OpenAI not configured (audio feature disabled)');
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -151,15 +178,16 @@ app.post('/api/auth/register', [
         
         console.log('✅ User registered:', email);
         
-        res.json({ 
-            user: { 
-                id: user.id, 
-                email: user.email, 
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
                 name: user.name,
                 email_code: user.email_code,
                 plan: user.plan,
-                language: user.language
-            } 
+                language: user.language,
+                kindle_email: user.kindle_email
+            }
         });
     } catch (error) {
         console.error('❌ Registration error:', error);
@@ -202,15 +230,16 @@ app.post('/api/auth/login', [
         
         console.log('✅ User logged in:', email);
         
-        res.json({ 
-            user: { 
-                id: user.id, 
-                email: user.email, 
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
                 name: user.name,
                 email_code: user.email_code,
                 plan: user.plan,
-                language: user.language
-            } 
+                language: user.language,
+                kindle_email: user.kindle_email
+            }
         });
     } catch (error) {
         console.error('❌ Login error:', error);
@@ -225,19 +254,71 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
             console.log('❌ Get user error: User not found for ID:', req.user.id);
             return res.status(404).json({ error: 'User not found' });
         }
-        res.json({ 
-            user: { 
-                id: user.id, 
-                email: user.email, 
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
                 name: user.name,
                 email_code: user.email_code,
                 plan: user.plan,
-                language: user.language
-            } 
+                language: user.language,
+                kindle_email: user.kindle_email
+            }
         });
     } catch (error) {
         console.error('❌ Get user error:', error);
         res.status(500).json({ error: 'Failed to get user' });
+    }
+});
+
+// Update user profile
+app.patch('/api/auth/profile', authMiddleware, async (req, res) => {
+    try {
+        const { name, kindle_email, language } = req.body;
+        const db = dbHelpers.getDb();
+
+        const updates = [];
+        const values = [];
+        let paramIndex = 1;
+
+        if (name !== undefined) {
+            updates.push(`name = $${paramIndex++}`);
+            values.push(name);
+        }
+        if (kindle_email !== undefined) {
+            updates.push(`kindle_email = $${paramIndex++}`);
+            values.push(kindle_email);
+        }
+        if (language !== undefined) {
+            updates.push(`language = $${paramIndex++}`);
+            values.push(language);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No fields to update' });
+        }
+
+        values.push(req.user.id);
+        const query = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+
+        const result = await db.query(query, values);
+        const user = result.rows[0];
+
+        console.log('✅ User profile updated:', user.id);
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                email_code: user.email_code,
+                plan: user.plan,
+                language: user.language,
+                kindle_email: user.kindle_email
+            }
+        });
+    } catch (error) {
+        console.error('❌ Update profile error:', error);
+        res.status(500).json({ error: 'Failed to update profile' });
     }
 });
 
@@ -347,6 +428,112 @@ app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('❌ Generate summary error:', error);
         res.status(500).json({ error: 'Failed to generate summary' });
+    }
+});
+
+// Send newsletter to Kindle
+app.post('/api/newsletters/:id/kindle', authMiddleware, async (req, res) => {
+    try {
+        if (!emailTransporter) {
+            return res.status(503).json({ error: 'Email service not configured' });
+        }
+
+        const user = await dbHelpers.findUserById(req.user.id);
+        if (!user.kindle_email) {
+            return res.status(400).json({
+                error: 'Kindle email not configured. Please add your Kindle email in your profile settings.'
+            });
+        }
+
+        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+
+        // Strip HTML tags for Kindle (plain text works better)
+        const plainContent = newsletter.content
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, '\n')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/\n\s*\n/g, '\n\n')
+            .trim();
+
+        // Send email to Kindle
+        await emailTransporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to: user.kindle_email,
+            subject: newsletter.title,
+            text: `${newsletter.title}\n\nFrom: ${newsletter.sender}\n\n${plainContent}`,
+            attachments: []
+        });
+
+        console.log(`✅ Newsletter ${newsletter.id} sent to Kindle: ${user.kindle_email}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Send to Kindle error:', error);
+        res.status(500).json({ error: 'Failed to send to Kindle' });
+    }
+});
+
+// Generate audio for newsletter
+app.post('/api/newsletters/:id/audio', authMiddleware, async (req, res) => {
+    try {
+        if (!openai) {
+            return res.status(503).json({ error: 'Audio service not configured' });
+        }
+
+        const user = await dbHelpers.findUserById(req.user.id);
+
+        // Require Pro or Premium plan for audio generation
+        if (!canUserPerformAction(user, 'generate_summary')) {
+            return res.status(403).json({ error: 'Upgrade to Pro to generate audio' });
+        }
+
+        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+
+        // Strip HTML for better TTS
+        const plainContent = newsletter.content
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        // Limit content length for TTS (OpenAI has a 4096 char limit)
+        const contentForTTS = plainContent.substring(0, 4000);
+        const textToSpeak = `${newsletter.title}. ${contentForTTS}`;
+
+        // Generate audio using OpenAI TTS
+        const mp3Response = await openai.audio.speech.create({
+            model: 'tts-1',
+            voice: user.language === 'es' ? 'nova' : 'alloy',
+            input: textToSpeak,
+            speed: 1.0
+        });
+
+        // Convert to buffer and send as base64 or save to temp file
+        const buffer = Buffer.from(await mp3Response.arrayBuffer());
+        const base64Audio = buffer.toString('base64');
+        const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
+
+        console.log(`✅ Audio generated for newsletter ${newsletter.id}`);
+        res.json({ audioUrl });
+    } catch (error) {
+        console.error('❌ Generate audio error:', error);
+        res.status(500).json({ error: 'Failed to generate audio' });
     }
 });
 
