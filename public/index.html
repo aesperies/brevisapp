@@ -407,6 +407,30 @@
             color: #999;
             text-align: center;
         }
+        .actions-dropdown {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 4px;
+            background: #FFF;
+            border: 1px solid #DDD;
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 180px;
+            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        }
+        .actions-dropdown-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+        .actions-dropdown-item:hover { background: #F0F0F0; }
+        .actions-dropdown-item.danger:hover { background: #FEE; color: #C00; }
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -699,6 +723,7 @@
             const [generatingBatch, setGeneratingBatch] = useState(false);
             const [showBatchResult, setShowBatchResult] = useState(null);
             const [showTagMenuFor, setShowTagMenuFor] = useState(null);
+            const [showActionsMenuFor, setShowActionsMenuFor] = useState(null);
             const [formData, setFormData] = useState({ title: '', sender: '', content: '', url: '' });
             const [collapsedSummaries, setCollapsedSummaries] = useState({});
 
@@ -758,7 +783,8 @@
                         title: "Título", from: "De", content: "Contenido", url: "URL (opcional)",
                         add: "Añadir Newsletter", read: "Leer", summary: "Resumen",
                         generating: "Generando...", original: "Ver Original", delete: "Eliminar",
-                        markRead: "Marcar como leído", markUnread: "Marcar como no leído", new: "NUEVO"
+                        markRead: "Marcar como leído", markUnread: "Marcar como no leído", new: "NUEVO",
+                        sendKindle: "Enviar a Kindle", readAloud: "Lectura en audio"
                     },
                     email: { label: "Email para enviar tus newsletters" },
                     selection: {
@@ -791,7 +817,8 @@
                         title: "Title", from: "From", content: "Content", url: "URL (optional)",
                         add: "Add Newsletter", read: "Read", summary: "Summary",
                         generating: "Generating...", original: "View Original", delete: "Delete",
-                        markRead: "Mark as read", markUnread: "Mark as unread", new: "NEW"
+                        markRead: "Mark as read", markUnread: "Mark as unread", new: "NEW",
+                        sendKindle: "Send to Kindle", readAloud: "Read aloud"
                     },
                     email: { label: "Email to send your newsletters" },
                     selection: {
@@ -840,6 +867,24 @@
                 document.addEventListener('click', handleClickOutside);
                 return () => document.removeEventListener('click', handleClickOutside);
             }, [showTagMenuFor]);
+
+            // Close actions dropdown when clicking outside
+            useEffect(() => {
+                if (!showActionsMenuFor) return;
+
+                const handleClickOutside = (e) => {
+                    const actionsDropdown = e.target.closest('.actions-dropdown');
+                    const actionsButton = e.target.closest('button');
+                    const isActionsButton = actionsButton && actionsButton.textContent.includes('⋯');
+
+                    if (!actionsDropdown && !isActionsButton) {
+                        setShowActionsMenuFor(null);
+                    }
+                };
+
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, [showActionsMenuFor]);
 
             const fetchNewsletters = async () => {
                 try {
@@ -924,7 +969,7 @@
             };
 
             const deleteNewsletter = async (id) => {
-                if (!confirm('¿Eliminar newsletter?')) return;
+                if (!confirm(language === 'es' ? '¿Eliminar newsletter?' : 'Delete newsletter?')) return;
                 try {
                     const res = await fetch(`${API_URL}/newsletters/${id}`, {
                         method: 'DELETE',
@@ -933,9 +978,54 @@
                     if (res.ok) {
                         setNewsletters(newsletters.filter(n => n.id !== id));
                         if (readingNewsletter?.id === id) setReadingNewsletter(null);
+                        setShowActionsMenuFor(null);
                         // Newsletter deleted successfully
                     }
                 } catch (e) { console.error('Error:', e); }
+            };
+
+            const sendToKindle = async (id) => {
+                try {
+                    const res = await fetch(`${API_URL}/newsletters/${id}/kindle`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    if (res.ok) {
+                        alert(language === 'es' ? '¡Enviado a tu Kindle!' : 'Sent to your Kindle!');
+                        setShowActionsMenuFor(null);
+                    } else {
+                        const error = await res.json();
+                        alert(error.error || 'Error sending to Kindle');
+                    }
+                } catch (e) {
+                    console.error('Error:', e);
+                    alert('Error sending to Kindle');
+                }
+            };
+
+            const readAloud = async (id) => {
+                const newsletter = newsletters.find(n => n.id === id);
+                if (!newsletter) return;
+
+                try {
+                    const res = await fetch(`${API_URL}/newsletters/${id}/audio`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.audioUrl) {
+                            window.open(data.audioUrl, '_blank');
+                        }
+                        setShowActionsMenuFor(null);
+                    } else {
+                        const error = await res.json();
+                        alert(error.error || 'Error generating audio');
+                    }
+                } catch (e) {
+                    console.error('Error:', e);
+                    alert('Error generating audio');
+                }
             };
 
             const generateSummary = async (id) => {
@@ -1334,9 +1424,39 @@
                                                     </div>
                                                 )}
                                             </div>
-                                            <button className="btn btn-small" onClick={() => deleteNewsletter(newsletter.id)}>
-                                                {translations.newsletter.delete}
-                                            </button>
+                                            <div style={{position: 'relative'}} onClick={(e) => e.stopPropagation()}>
+                                                <button className="btn btn-small" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowActionsMenuFor(showActionsMenuFor === newsletter.id ? null : newsletter.id);
+                                                }}>
+                                                    ⋯
+                                                </button>
+                                                {showActionsMenuFor === newsletter.id && (
+                                                    <div className="actions-dropdown" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="actions-dropdown-item" onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            sendToKindle(newsletter.id);
+                                                        }}>
+                                                            <span>📖</span>
+                                                            <span>{translations.newsletter.sendKindle}</span>
+                                                        </div>
+                                                        <div className="actions-dropdown-item" onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            readAloud(newsletter.id);
+                                                        }}>
+                                                            <span>🔊</span>
+                                                            <span>{translations.newsletter.readAloud}</span>
+                                                        </div>
+                                                        <div className="actions-dropdown-item danger" onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            deleteNewsletter(newsletter.id);
+                                                        }}>
+                                                            <span>🗑️</span>
+                                                            <span>{translations.newsletter.delete}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))
