@@ -1998,9 +1998,9 @@
                                         </div>
                                         <div className="newsletter-card-actions">
                                             {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
-                                                <button className="btn btn-small" disabled={true}
-                                                    style={{opacity: 0.5, cursor: 'not-allowed'}}>
-                                                    {translations.newsletter.summary} (soon)
+                                                <button className="btn btn-small" onClick={() => generateSummary(newsletter.id)}
+                                                    disabled={generatingSummary[newsletter.id]}>
+                                                    {generatingSummary[newsletter.id] ? '...' : translations.newsletter.summary}
                                                 </button>
                                             )}
                                             <div style={{position: 'relative'}} onClick={(e) => e.stopPropagation()}>
@@ -2050,12 +2050,9 @@
                                                             <span>📖</span>
                                                             <span>{translations.newsletter.sendKindle}</span>
                                                         </div>
-                                                        <div className="actions-dropdown-item" onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            readAloud(newsletter.id);
-                                                        }}>
+                                                        <div className="actions-dropdown-item" style={{opacity: 0.4, cursor: 'not-allowed'}} onClick={(e) => e.stopPropagation()}>
                                                             <span>🔊</span>
-                                                            <span>{translations.newsletter.readAloud}</span>
+                                                            <span>{translations.newsletter.readAloud} (soon)</span>
                                                         </div>
                                                         <div className="actions-dropdown-item danger" onClick={(e) => {
                                                             e.stopPropagation();
@@ -2212,9 +2209,9 @@
                                 </div>
                                 <div className="modal-footer">
                                     {!readingNewsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
-                                        <button className="btn btn-primary" disabled={true}
-                                            style={{opacity: 0.5, cursor: 'not-allowed'}}>
-                                            {translations.newsletter.summary} (soon)
+                                        <button className="btn btn-primary" onClick={() => generateSummary(readingNewsletter.id)}
+                                            disabled={generatingSummary[readingNewsletter.id]}>
+                                            {generatingSummary[readingNewsletter.id] ? translations.newsletter.generating : translations.newsletter.summary}
                                         </button>
                                     )}
                                     <button className="btn" onClick={() => toggleRead(readingNewsletter.id)}>
