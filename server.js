@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -246,6 +247,86 @@ app.post('/api/auth/login', [
     } catch (error) {
         console.error('❌ Login error:', error);
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// Password reset - request
+app.post('/api/auth/forgot-password', [
+    body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: 'Invalid email' });
+        }
+
+        const { email } = req.body;
+        const user = await dbHelpers.findUserByEmail(email);
+
+        // Always return success to avoid leaking whether email exists
+        if (!user) {
+            return res.json({ success: true });
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await dbHelpers.createPasswordReset(user.id, token, expiresAt);
+
+        const resetUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/reset-password?token=${token}`;
+
+        if (emailTransporter) {
+            await emailTransporter.sendMail({
+                from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                to: email,
+                subject: 'BREVIS - Reset your password',
+                html: `
+                    <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+                        <h2 style="color: #2C3544; margin-bottom: 16px;">Reset your password</h2>
+                        <p style="color: #4A5568; line-height: 1.6;">You requested a password reset for your BREVIS account. Click the button below to set a new password:</p>
+                        <a href="${resetUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset Password</a>
+                        <p style="color: #7A8599; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+                    </div>
+                `
+            });
+            console.log('✅ Password reset email sent to:', email);
+        } else {
+            console.log('⚠️ SMTP not configured. Reset token:', token);
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Forgot password error:', error);
+        res.status(500).json({ error: 'Failed to process request' });
+    }
+});
+
+// Password reset - execute
+app.post('/api/auth/reset-password', [
+    body('token').notEmpty(),
+    body('password').isLength({ min: 8 })
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
+
+        const { token, password } = req.body;
+
+        const resetRecord = await dbHelpers.findValidPasswordReset(token);
+        if (!resetRecord) {
+            return res.status(400).json({ error: 'Invalid or expired reset link' });
+        }
+
+        await dbHelpers.updatePasswordHash(resetRecord.user_id, password);
+        await dbHelpers.markPasswordResetUsed(token);
+
+        console.log('✅ Password reset for user:', resetRecord.user_id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Reset password error:', error);
+        res.status(500).json({ error: 'Failed to reset password' });
     }
 });
 

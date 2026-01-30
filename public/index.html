@@ -1124,15 +1124,98 @@
             };
 
             if (window.location.pathname === '/bookmarklet-save') return <BookmarkletSave />;
+            if (window.location.pathname === '/reset-password') return <ResetPassword />;
             if (!hasAccess) return <LandingPage onAccess={() => setHasAccess(true)} />;
             if (loading) return <div className="auth-container">Cargando...</div>;
             if (!user) return <Auth onLogin={checkAuth} language={language} setLanguage={setLanguage} />;
             return <Dashboard user={user} setUser={setUser} language={language} setLanguage={setLanguage} />;
         }
 
+        function ResetPassword() {
+            const [password, setPassword] = useState('');
+            const [confirm, setConfirm] = useState('');
+            const [status, setStatus] = useState('idle');
+            const [error, setError] = useState('');
+
+            const token = new URLSearchParams(window.location.search).get('token');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (password !== confirm) { setError('Passwords do not match'); return; }
+                setStatus('loading');
+                setError('');
+                try {
+                    const res = await fetch(`${API_URL}/auth/reset-password`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        setStatus('success');
+                    } else {
+                        setError(data.error || 'Error');
+                        setStatus('idle');
+                    }
+                } catch (e) { setError('Connection error'); setStatus('idle'); }
+            };
+
+            if (!token) return (
+                <div className="auth-container">
+                    <div className="auth-box" style={{textAlign: 'center'}}>
+                        <p>Invalid reset link.</p>
+                        <a href="/" style={{color: '#2BBCC0', fontWeight: 600}}>Back to login</a>
+                    </div>
+                </div>
+            );
+
+            if (status === 'success') return (
+                <div className="auth-container">
+                    <div className="auth-box" style={{textAlign: 'center'}}>
+                        <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
+                            <img src="/logo-new.png" alt="brevis" style={{height: '36px'}} />
+                        </div>
+                        <h3 style={{marginBottom: '12px', color: '#2C3544'}}>Password updated</h3>
+                        <p style={{color: '#7A8599', marginBottom: '20px'}}>You can now log in with your new password.</p>
+                        <a href="/" className="btn btn-primary" style={{textDecoration: 'none'}}>Go to login</a>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="auth-container">
+                    <div className="auth-box">
+                        <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
+                            <img src="/logo-new.png" alt="brevis" style={{height: '36px'}} />
+                        </div>
+                        <h3 style={{textAlign: 'center', marginBottom: '24px', color: '#2C3544'}}>Set new password</h3>
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label className="form-label">New password</label>
+                                <input type="password" className="form-input" value={password}
+                                    onChange={(e) => setPassword(e.target.value)} required minLength="8" />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Confirm password</label>
+                                <input type="password" className="form-input" value={confirm}
+                                    onChange={(e) => setConfirm(e.target.value)} required minLength="8" />
+                            </div>
+                            {error && <div style={{color: '#EF4444', fontSize: '13px', marginBottom: '12px'}}>{error}</div>}
+                            <button type="submit" className="btn btn-primary btn-full" disabled={status === 'loading'}>
+                                {status === 'loading' ? '...' : 'Reset password'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
         function Auth({ onLogin, language, setLanguage }) {
             const [isLogin, setIsLogin] = useState(true);
             const [formData, setFormData] = useState({ email: '', password: '', name: '' });
+            const [forgotMode, setForgotMode] = useState(false);
+            const [forgotEmail, setForgotEmail] = useState('');
+            const [forgotStatus, setForgotStatus] = useState('idle');
 
             const t = {
                 es: {
@@ -1141,7 +1224,13 @@
                         login: "Iniciar Sesión", register: "Crear Cuenta",
                         email: "Email", password: "Contraseña", name: "Nombre",
                         noAccount: "¿No tienes cuenta?", hasAccount: "¿Ya tienes cuenta?",
-                        signUp: "Regístrate", signIn: "Inicia sesión"
+                        signUp: "Regístrate", signIn: "Inicia sesión",
+                        forgot: "¿Olvidaste tu contraseña?",
+                        forgotTitle: "Recuperar contraseña",
+                        forgotDesc: "Introduce tu email y te enviaremos un enlace para resetear tu contraseña.",
+                        forgotSend: "Enviar enlace",
+                        forgotSent: "Si existe una cuenta con ese email, recibirás un enlace de recuperación.",
+                        backToLogin: "Volver al login"
                     }
                 },
                 en: {
@@ -1150,7 +1239,13 @@
                         login: "Login", register: "Sign Up",
                         email: "Email", password: "Password", name: "Name",
                         noAccount: "Don't have an account?", hasAccount: "Already have an account?",
-                        signUp: "Sign up", signIn: "Sign in"
+                        signUp: "Sign up", signIn: "Sign in",
+                        forgot: "Forgot your password?",
+                        forgotTitle: "Reset password",
+                        forgotDesc: "Enter your email and we'll send you a link to reset your password.",
+                        forgotSend: "Send link",
+                        forgotSent: "If an account exists with that email, you'll receive a reset link.",
+                        backToLogin: "Back to login"
                     }
                 }
             };
@@ -1201,6 +1296,54 @@
                                 {isLogin ? translations.auth.login : translations.auth.register}
                             </button>
                         </form>
+                        {isLogin && (
+                            <div style={{textAlign: 'center', marginTop: '12px'}}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); setForgotStatus('idle'); }}
+                                    style={{fontSize: '13px', color: '#7A8599', textDecoration: 'none'}}>
+                                    {translations.auth.forgot}
+                                </a>
+                            </div>
+                        )}
+                        {forgotMode && (
+                            <div className="modal-overlay" onClick={() => setForgotMode(false)}>
+                                <div className="auth-box" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px', margin: '0 auto'}}>
+                                    <h3 style={{marginBottom: '8px', color: '#2C3544'}}>{translations.auth.forgotTitle}</h3>
+                                    {forgotStatus === 'sent' ? (
+                                        <div>
+                                            <p style={{color: '#4A5568', fontSize: '14px', lineHeight: 1.5, marginBottom: '20px'}}>{translations.auth.forgotSent}</p>
+                                            <button className="btn btn-full" onClick={() => setForgotMode(false)}>
+                                                {translations.auth.backToLogin}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p style={{color: '#7A8599', fontSize: '13px', marginBottom: '16px'}}>{translations.auth.forgotDesc}</p>
+                                            <form onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                setForgotStatus('loading');
+                                                try {
+                                                    await fetch(`${API_URL}/auth/forgot-password`, {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ email: forgotEmail })
+                                                    });
+                                                    setForgotStatus('sent');
+                                                } catch (err) { setForgotStatus('idle'); }
+                                            }}>
+                                                <div className="form-group">
+                                                    <input type="email" className="form-input" value={forgotEmail}
+                                                        onChange={(e) => setForgotEmail(e.target.value)}
+                                                        placeholder={translations.auth.email} required />
+                                                </div>
+                                                <button type="submit" className="btn btn-primary btn-full" disabled={forgotStatus === 'loading'}>
+                                                    {forgotStatus === 'loading' ? '...' : translations.auth.forgotSend}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <div style={{display: 'flex', alignItems: 'center', gap: '12px', margin: '24px 0'}}>
                             <div style={{flex: 1, height: '1px', background: '#E8ECF0'}} />
                             <span style={{fontSize: '12px', color: '#7A8599', textTransform: 'uppercase', letterSpacing: '0.05em'}}>

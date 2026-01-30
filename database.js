@@ -95,6 +95,18 @@ export async function setupDatabase() {
             );
         `);
 
+        // Password reset tokens
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                token VARCHAR(255) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
         // Subscriptions table for RSS feeds
         await pool.query(`
             CREATE TABLE IF NOT EXISTS subscriptions (
@@ -355,6 +367,30 @@ export const dbHelpers = {
             ORDER BY n.date_added DESC
         `, [userId, parseInt(tagId)]);
         return result.rows;
+    },
+
+    // Password resets
+    createPasswordReset: async (userId, token, expiresAt) => {
+        await pool.query(`
+            INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)
+        `, [userId, token, expiresAt]);
+    },
+
+    findValidPasswordReset: async (token) => {
+        const result = await pool.query(`
+            SELECT * FROM password_resets
+            WHERE token = $1 AND used = 0 AND expires_at > NOW()
+        `, [token]);
+        return result.rows[0] || null;
+    },
+
+    markPasswordResetUsed: async (token) => {
+        await pool.query(`UPDATE password_resets SET used = 1 WHERE token = $1`, [token]);
+    },
+
+    updatePasswordHash: async (userId, newPassword) => {
+        const hash = await bcrypt.hash(newPassword, 10);
+        await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, userId]);
     },
 
     // Waitlist
