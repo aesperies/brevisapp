@@ -78,6 +78,8 @@ Summary (4-6 bullets):`
     };
 
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
             headers: {
@@ -92,8 +94,10 @@ Summary (4-6 bullets):`
                     role: 'user',
                     content: prompts[language] || prompts.es
                 }]
-            })
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timeout);
 
         if (!response.ok) {
             const error = await response.text();
@@ -150,6 +154,8 @@ Executive brief:`
     };
 
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
             headers: {
@@ -164,11 +170,14 @@ Executive brief:`
                     role: 'user',
                     content: prompts[language] || prompts.es
                 }]
-            })
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timeout);
 
         if (!response.ok) {
-            throw new Error('Claude API error');
+            const error = await response.text();
+            throw new Error(`Claude API error: ${error}`);
         }
 
         const data = await response.json();
@@ -229,6 +238,8 @@ Report:`
     };
 
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
             headers: {
@@ -243,11 +254,14 @@ Report:`
                     role: 'user',
                     content: prompts[language] || prompts.es
                 }]
-            })
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timeout);
 
         if (!response.ok) {
-            throw new Error('Claude API error');
+            const error = await response.text();
+            throw new Error(`Claude API error: ${error}`);
         }
 
         const data = await response.json();
