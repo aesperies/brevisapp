@@ -339,8 +339,27 @@
         }
         .summary-content {
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 1.6;
             margin-top: 8px;
+        }
+        .summary-content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .summary-content li {
+            position: relative;
+            padding-left: 16px;
+        }
+        .summary-content li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #2BBCC0;
+            font-weight: 700;
         }
         .summary-content.collapsed {
             display: none;
@@ -840,6 +859,20 @@
         }
 
         // Strip HTML tags for plain text preview
+        function formatSummary(text) {
+            if (!text) return null;
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+            const bullets = lines.filter(l => /^[-•–—*]\s/.test(l) || /^\d+[.)]\s/.test(l));
+            if (bullets.length >= 2) {
+                return React.createElement('ul', null,
+                    bullets.map((b, i) => React.createElement('li', { key: i },
+                        b.replace(/^[-•–—*]\s+/, '').replace(/^\d+[.)]\s+/, '')
+                    ))
+                );
+            }
+            return text;
+        }
+
         function stripHtml(html) {
             if (!html) return '';
             return html
@@ -1958,7 +1991,7 @@
                                                         </button>
                                                     </div>
                                                     <div className={`summary-content ${collapsedSummaries[newsletter.id] ? 'collapsed' : ''}`}>
-                                                        {newsletter.summary}
+                                                        {formatSummary(newsletter.summary)}
                                                     </div>
                                                 </div>
                                             )}
@@ -2142,7 +2175,7 @@
                                                 </button>
                                             </div>
                                             <div className={`summary-content ${collapsedSummaries['modal-' + readingNewsletter.id] ? 'collapsed' : ''}`}>
-                                                {readingNewsletter.summary}
+                                                {formatSummary(readingNewsletter.summary)}
                                             </div>
                                         </div>
                                     )}
