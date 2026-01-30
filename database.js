@@ -222,14 +222,35 @@ export const dbHelpers = {
     // Newsletters
     getNewsletters: async (userId) => {
         const result = await pool.query(`
-            SELECT * FROM newsletters WHERE user_id = $1 ORDER BY date_added DESC
+            SELECT n.*,
+                COALESCE(
+                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color))
+                    FILTER (WHERE t.id IS NOT NULL),
+                    '[]'::json
+                ) AS tags
+            FROM newsletters n
+            LEFT JOIN newsletter_tags nt ON n.id = nt.newsletter_id
+            LEFT JOIN tags t ON nt.tag_id = t.id
+            WHERE n.user_id = $1
+            GROUP BY n.id
+            ORDER BY n.date_added DESC
         `, [userId]);
         return result.rows;
     },
 
     getNewsletter: async (id, userId) => {
         const result = await pool.query(`
-            SELECT * FROM newsletters WHERE id = $1 AND user_id = $2
+            SELECT n.*,
+                COALESCE(
+                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color))
+                    FILTER (WHERE t.id IS NOT NULL),
+                    '[]'::json
+                ) AS tags
+            FROM newsletters n
+            LEFT JOIN newsletter_tags nt ON n.id = nt.newsletter_id
+            LEFT JOIN tags t ON nt.tag_id = t.id
+            WHERE n.id = $1 AND n.user_id = $2
+            GROUP BY n.id
         `, [parseInt(id), userId]);
         return result.rows[0] || null;
     },
