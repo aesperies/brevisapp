@@ -2796,16 +2796,12 @@
                                                         marginTop: 10, padding: '10px 12px', borderRadius: 8,
                                                         background: 'var(--accent-muted, rgba(43,188,192,0.1))',
                                                         border: '1px solid var(--accent)',
-                                                        display: 'flex', alignItems: 'flex-start', gap: 8
+                                                        fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.4
                                                     }}>
-                                                        <span style={{fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1}}>
-                                                            {React.createElement(LucideIcon, {name: 'alert-circle', size: 18, color: 'var(--accent)'})}
-                                                        </span>
-                                                        <span style={{fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.4}}>
-                                                            {lang === 'es'
-                                                                ? 'Si es un hilo, asegúrate de pegar el link al último tweet del hilo para capturarlo completo.'
-                                                                : 'If this is a thread, make sure to paste the link to the last tweet in the thread to capture it fully.'}
-                                                        </span>
+                                                        <strong style={{color: 'var(--accent)'}}>{'Thread tip: '}</strong>
+                                                        {lang === 'es'
+                                                            ? 'Si es un hilo, asegúrate de pegar el link al último tweet del hilo para capturarlo completo.'
+                                                            : 'If this is a thread, make sure to paste the link to the last tweet to capture it fully.'}
                                                     </div>
                                                 )}
                                             </div>
