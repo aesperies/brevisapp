@@ -1149,7 +1149,7 @@
 
         // Strip HTML tags for plain text preview
         function formatSummary(text) {
-            if (!text) return null;
+            if (!text || typeof text !== 'string') return null;
             const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
             const bullets = lines.filter(l => /^[-•–—*]\s/.test(l) || /^\d+[.)]\s/.test(l));
             if (bullets.length >= 2) {
@@ -1875,6 +1875,7 @@
             const [importUrl, setImportUrl] = useState('');
             const [importLoading, setImportLoading] = useState(false);
             const [importError, setImportError] = useState('');
+            const isTwitterUrl = importUrl && /(?:twitter|x)\.com\/\w+\/status\//.test(importUrl);
             const [pdfFile, setPdfFile] = useState(null);
             const [pdfLoading, setPdfLoading] = useState(false);
             const [pdfError, setPdfError] = useState('');
@@ -2445,9 +2446,10 @@
                     filtered = filtered.filter(n => n.tags && n.tags.some(t => t.id === tagId));
                 }
                 if (searchTerm) {
+                    const term = searchTerm.toLowerCase();
                     filtered = filtered.filter(n =>
-                        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        n.sender.toLowerCase().includes(searchTerm.toLowerCase())
+                        (n.title || '').toLowerCase().includes(term) ||
+                        (n.sender || '').toLowerCase().includes(term)
                     );
                 }
                 return filtered;
@@ -2791,7 +2793,7 @@
                                                 <input type="url" className="form-input" value={importUrl}
                                                     onChange={(e) => { setImportUrl(e.target.value); setImportError(''); }}
                                                     placeholder={translations.import_.urlPlaceholder} required />
-                                                {importUrl && /(?:twitter|x)\.com\/\w+\/status\//.test(importUrl) && (
+                                                {isTwitterUrl && (
                                                     <div style={{
                                                         marginTop: 10, padding: '10px 12px', borderRadius: 8,
                                                         background: 'var(--accent-muted, rgba(43,188,192,0.1))',
