@@ -13,6 +13,7 @@ import Stripe from 'stripe';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
 import OpenAI from 'openai';
+import pdfParse from 'pdf-parse';
 import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
@@ -85,7 +86,7 @@ app.use((req, res, next) => {
     if (req.originalUrl === '/api/stripe/webhook') {
         next();
     } else {
-        express.json()(req, res, next);
+        express.json({ limit: '10mb' })(req, res, next);
     }
 });
 app.use(cookieParser());
@@ -529,6 +530,34 @@ app.post('/api/newsletters', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('❌ Create newsletter error:', error);
         res.status(500).json({ error: 'Failed to create newsletter' });
+    }
+});
+
+app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        if (req.file.mimetype !== 'application/pdf') {
+            return res.status(400).json({ error: 'Only PDF files are supported' });
+        }
+        if (req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({ error: 'File too large (max 10MB)' });
+        }
+        const data = await pdfParse(req.file.buffer);
+        const title = req.file.originalname.replace(/\.pdf$/i, '');
+        const content = data.text || '';
+        if (!content.trim()) {
+            return res.status(400).json({ error: 'Could not extract text from PDF' });
+        }
+        const newsletter = await dbHelpers.createNewsletter(
+            req.user.id, title, 'PDF Upload', content, ''
+        );
+        console.log('✅ PDF newsletter created:', title);
+        res.json(newsletter);
+    } catch (error) {
+        console.error('❌ PDF upload error:', error);
+        res.status(500).json({ error: 'Failed to process PDF' });
     }
 });
 

@@ -1875,6 +1875,9 @@
             const [importUrl, setImportUrl] = useState('');
             const [importLoading, setImportLoading] = useState(false);
             const [importError, setImportError] = useState('');
+            const [pdfFile, setPdfFile] = useState(null);
+            const [pdfLoading, setPdfLoading] = useState(false);
+            const [pdfError, setPdfError] = useState('');
             const [showBookmarkletModal, setShowBookmarkletModal] = useState(false);
             const [showTagManager, setShowTagManager] = useState(false);
             const [showSubscriptions, setShowSubscriptions] = useState(false);
@@ -2174,6 +2177,35 @@
                     setImportError(translations.import_.error);
                 } finally {
                     setImportLoading(false);
+                }
+            };
+
+            const handlePdfUpload = async (e) => {
+                e.preventDefault();
+                if (!pdfFile) return;
+                setPdfLoading(true);
+                setPdfError('');
+                try {
+                    const formData = new FormData();
+                    formData.append('file', pdfFile);
+                    const res = await fetch(`${API_URL}/newsletters/upload-pdf`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        setPdfError(data.error || (language === 'es' ? 'Error al procesar PDF' : 'Error processing PDF'));
+                        return;
+                    }
+                    fetchNewsletters();
+                    setPdfFile(null);
+                    setShowAddForm(false);
+                    showToast(language === 'es' ? 'PDF importado correctamente' : 'PDF imported successfully');
+                } catch (err) {
+                    setPdfError(language === 'es' ? 'Error al subir el archivo' : 'Error uploading file');
+                } finally {
+                    setPdfLoading(false);
                 }
             };
 
@@ -2738,17 +2770,18 @@
                                     <h2 className="modal-title">{translations.newsletter.add}</h2>
                                     <button className="close-btn" onClick={() => setShowAddForm(false)}>×</button>
                                 </div>
-                                <div style={{display: 'flex', borderBottom: '1px solid #E8ECF0'}}>
-                                    <button
-                                        onClick={() => setAddMode('url')}
-                                        style={{flex: 1, padding: '12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: addMode === 'url' ? 600 : 400, color: addMode === 'url' ? '#2C3544' : '#7A8599', borderBottom: addMode === 'url' ? '2px solid #2BBCC0' : '2px solid transparent', fontFamily: 'inherit'}}>
-                                        {translations.import_.urlTab}
-                                    </button>
-                                    <button
-                                        onClick={() => setAddMode('manual')}
-                                        style={{flex: 1, padding: '12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: addMode === 'manual' ? 600 : 400, color: addMode === 'manual' ? '#2C3544' : '#7A8599', borderBottom: addMode === 'manual' ? '2px solid #2BBCC0' : '2px solid transparent', fontFamily: 'inherit'}}>
-                                        {translations.import_.manualTab}
-                                    </button>
+                                <div style={{display: 'flex', borderBottom: '1px solid var(--border)'}}>
+                                    {['url', 'pdf', 'manual'].map(mode => (
+                                        <button key={mode}
+                                            onClick={() => setAddMode(mode)}
+                                            style={{flex: 1, padding: '12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px',
+                                                fontWeight: addMode === mode ? 600 : 400,
+                                                color: addMode === mode ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                                borderBottom: addMode === mode ? '2px solid var(--accent)' : '2px solid transparent',
+                                                fontFamily: 'inherit'}}>
+                                            {mode === 'url' ? translations.import_.urlTab : mode === 'pdf' ? 'PDF' : translations.import_.manualTab}
+                                        </button>
+                                    ))}
                                 </div>
                                 {addMode === 'url' ? (
                                     <form onSubmit={handleImportUrl}>
@@ -2769,6 +2802,45 @@
                                             </button>
                                             <button type="submit" className="btn btn-primary" disabled={importLoading}>
                                                 {importLoading ? translations.import_.importing : translations.import_.import_}
+                                            </button>
+                                        </div>
+                                    </form>
+                                ) : addMode === 'pdf' ? (
+                                    <form onSubmit={handlePdfUpload}>
+                                        <div className="modal-body">
+                                            <div className="form-group">
+                                                <label className="form-label">{language === 'es' ? 'Selecciona un archivo PDF' : 'Select a PDF file'}</label>
+                                                <div style={{border: '2px dashed var(--border)', borderRadius: '8px', padding: '32px 20px', textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.2s'}}
+                                                    onClick={() => document.getElementById('pdf-input').click()}>
+                                                    <input id="pdf-input" type="file" accept=".pdf" style={{display: 'none'}}
+                                                        onChange={(e) => { setPdfFile(e.target.files[0] || null); setPdfError(''); }} />
+                                                    {pdfFile ? (
+                                                        <div>
+                                                            <LucideIcon name="file-text" size={32} color="var(--accent)" />
+                                                            <div style={{marginTop: '8px', fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)'}}>{pdfFile.name}</div>
+                                                            <div style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px'}}>{(pdfFile.size / 1024 / 1024).toFixed(1)} MB</div>
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <LucideIcon name="upload" size={32} color="var(--text-muted)" />
+                                                            <div style={{marginTop: '8px', fontSize: '14px', color: 'var(--text-secondary)'}}>
+                                                                {language === 'es' ? 'Haz click para seleccionar un PDF' : 'Click to select a PDF'}
+                                                            </div>
+                                                            <div style={{fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px'}}>Max 10MB</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {pdfError && (
+                                                <div style={{color: '#EF4444', fontSize: '13px'}}>{pdfError}</div>
+                                            )}
+                                        </div>
+                                        <div className="modal-footer">
+                                            <button type="button" className="btn" onClick={() => setShowAddForm(false)}>
+                                                {translations.profile.cancel}
+                                            </button>
+                                            <button type="submit" className="btn btn-primary" disabled={!pdfFile || pdfLoading}>
+                                                {pdfLoading ? (language === 'es' ? 'Procesando...' : 'Processing...') : (language === 'es' ? 'Importar PDF' : 'Import PDF')}
                                             </button>
                                         </div>
                                     </form>
@@ -3231,8 +3303,17 @@
                                         style={{minHeight: '500px'}}
                                         onLoad={(e) => {
                                             const iframe = e.target;
-                                            const height = iframe.contentDocument?.body?.scrollHeight;
-                                            if (height) iframe.style.height = height + 40 + 'px';
+                                            const resizeIframe = () => {
+                                                const h = iframe.contentDocument?.body?.scrollHeight;
+                                                if (h) iframe.style.height = h + 40 + 'px';
+                                            };
+                                            resizeIframe();
+                                            const imgs = iframe.contentDocument?.querySelectorAll('img');
+                                            if (imgs) imgs.forEach(img => img.addEventListener('load', resizeIframe));
+                                            if (iframe.contentDocument?.body) {
+                                                const ro = new ResizeObserver(resizeIframe);
+                                                ro.observe(iframe.contentDocument.body);
+                                            }
                                         }}
                                     />
                                 ) : (
