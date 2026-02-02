@@ -574,13 +574,13 @@ function extractTweetId(url) {
     return match ? match[1] : null;
 }
 
-async function fetchTweetContent(tweetId) {
+async function fetchSingleTweet(tweetId) {
     // Primary: fxtwitter API
     try {
         const res = await fetch(`https://api.fxtwitter.com/x/status/${tweetId}`);
         if (res.ok) {
             const data = await res.json();
-            if (data.tweet) return data;
+            if (data.tweet) return data.tweet;
         }
     } catch (e) { /* fallback */ }
 
@@ -590,16 +590,45 @@ async function fetchTweetContent(tweetId) {
         if (res.ok) {
             const synData = await res.json();
             return {
-                tweet: {
-                    text: synData.text,
-                    author: { name: synData.user?.name, screen_name: synData.user?.screen_name },
-                    thread: null
-                }
+                id: tweetId,
+                text: synData.text,
+                author: { name: synData.user?.name, screen_name: synData.user?.screen_name },
+                replying_to_status: synData.in_reply_to_status_id_str || null
             };
         }
     } catch (e) { /* give up */ }
 
     return null;
+}
+
+async function fetchFullThread(tweetId) {
+    const initial = await fetchSingleTweet(tweetId);
+    if (!initial) return null;
+
+    const authorHandle = initial.author?.screen_name;
+    const tweets = [initial];
+    const MAX_DEPTH = 50;
+
+    // Crawl up: follow replying_to_status to find the thread root
+    let current = initial;
+    let depth = 0;
+    while (current.replying_to_status && depth < MAX_DEPTH) {
+        const parentId = typeof current.replying_to_status === 'object'
+            ? current.replying_to_status.id
+            : current.replying_to_status;
+        if (!parentId) break;
+
+        const parent = await fetchSingleTweet(parentId);
+        if (!parent) break;
+        // Stop if parent is from a different author (not part of the same thread)
+        if (parent.author?.screen_name !== authorHandle) break;
+
+        tweets.unshift(parent);
+        current = parent;
+        depth++;
+    }
+
+    return { tweet: initial, thread: tweets };
 }
 
 app.post('/api/import/url', authMiddleware, async (req, res) => {
@@ -622,28 +651,29 @@ app.post('/api/import/url', authMiddleware, async (req, res) => {
                 return res.status(400).json({ error: 'Could not parse tweet URL. Use a link like https://x.com/user/status/123...' });
             }
 
-            const tweetData = await fetchTweetContent(tweetId);
-            if (!tweetData?.tweet) {
+            const threadData = await fetchFullThread(tweetId);
+            if (!threadData?.tweet) {
                 return res.status(502).json({ error: 'Could not fetch tweet. It may be deleted, private, or Twitter is blocking requests.' });
             }
 
-            const tweet = tweetData.tweet;
+            const tweet = threadData.tweet;
+            const thread = threadData.thread;
             const authorName = tweet.author?.name || 'Unknown';
             const authorHandle = tweet.author?.screen_name || '';
 
             let content;
-            if (tweet.thread && tweet.thread.length > 1) {
-                content = tweet.thread.map((t, i) =>
-                    `<p><strong>${i + 1}/${tweet.thread.length}</strong> ${t.text}</p>`
+            if (thread.length > 1) {
+                content = thread.map((t, i) =>
+                    `<p><strong>${i + 1}/${thread.length}</strong> ${t.text}</p>`
                 ).join('\n');
             } else {
                 content = `<p>${tweet.text}</p>`;
             }
 
-            const titleText = (tweet.text || '').substring(0, 80);
-            const title = tweet.thread?.length > 1
-                ? `Thread by @${authorHandle}: ${titleText}...`
-                : `@${authorHandle}: ${titleText}...`;
+            const firstTweetText = (thread[0]?.text || tweet.text || '').substring(0, 80);
+            const title = thread.length > 1
+                ? `Thread by @${authorHandle} (${thread.length} tweets): ${firstTweetText}...`
+                : `@${authorHandle}: ${firstTweetText}...`;
 
             const newsletter = await dbHelpers.createNewsletter(
                 req.user.id,
@@ -653,7 +683,7 @@ app.post('/api/import/url', authMiddleware, async (req, res) => {
                 url
             );
 
-            console.log('✅ Imported tweet:', title);
+            console.log(`✅ Imported tweet (${thread.length} tweet${thread.length > 1 ? 's' : ''} in thread):`, title);
             res.json(newsletter);
         } else {
             return res.status(400).json({ error: 'Unsupported URL. Currently supports Twitter/X threads.' });
