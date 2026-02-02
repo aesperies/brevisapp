@@ -13,7 +13,9 @@ import Stripe from 'stripe';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
 import OpenAI from 'openai';
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
