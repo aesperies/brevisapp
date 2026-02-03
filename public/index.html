@@ -966,6 +966,12 @@
         @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .loading-spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid currentColor; border-top-color: transparent;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
         .modal-overlay { animation: fadeIn 0.2s ease; }
         .modal { animation: modalIn 0.25s ease; }
         .newsletter-card { transition: all 0.2s ease; }
@@ -1127,11 +1133,14 @@
         function ToastContainer() {
             const [toasts, setToasts] = useState([]);
             _toastSetter = setToasts;
+            // Auto-remove each toast after 3 seconds based on its id
             useEffect(() => {
                 if (toasts.length === 0) return;
-                const timer = setTimeout(() => setToasts(t => t.slice(1)), 3000);
-                return () => clearTimeout(timer);
-            }, [toasts]);
+                const timers = toasts.map(toast =>
+                    setTimeout(() => setToasts(t => t.filter(x => x.id !== toast.id)), 3000)
+                );
+                return () => timers.forEach(timer => clearTimeout(timer));
+            }, [toasts.length]); // Only re-run when count changes
             if (toasts.length === 0) return null;
             return React.createElement('div', { className: 'toast-container' },
                 toasts.map(t => React.createElement('div', { key: t.id, className: `toast toast-${t.type}` }, t.message))
@@ -1594,6 +1603,11 @@
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
 
+            // Update document lang attribute when language changes
+            useEffect(() => {
+                document.documentElement.lang = language;
+            }, [language]);
+
             useEffect(() => { if (hasAccess) checkAuth(); else setLoading(false); }, [hasAccess]);
 
             const checkAuth = async () => {
@@ -1875,7 +1889,7 @@
             const [importUrl, setImportUrl] = useState('');
             const [importLoading, setImportLoading] = useState(false);
             const [importError, setImportError] = useState('');
-            const isTwitterUrl = importUrl && /(?:twitter|x)\.com\/\w+\/status\//.test(importUrl);
+
             const [pdfFile, setPdfFile] = useState(null);
             const [pdfLoading, setPdfLoading] = useState(false);
             const [pdfError, setPdfError] = useState('');
@@ -1898,10 +1912,24 @@
             const [showActionsMenuFor, setShowActionsMenuFor] = useState(null);
             const [formData, setFormData] = useState({ title: '', sender: '', content: '', url: '' });
             const [collapsedSummaries, setCollapsedSummaries] = useState({});
+            const [emailDomain, setEmailDomain] = useState('newsletters.brevisapp.com');
+
+            // Modal states for confirm/prompt dialogs
+            const [confirmModal, setConfirmModal] = useState(null);
+            const [promptModal, setPromptModal] = useState(null);
+            const [showBulkTagMenu, setShowBulkTagMenu] = useState(false);
 
             const toggleSummaryCollapse = (id) => {
                 setCollapsedSummaries(prev => ({...prev, [id]: !prev[id]}));
             };
+
+            // Fetch email domain from server config
+            useEffect(() => {
+                fetch(`${API_URL}/config/email-domain`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => { if (data?.domain) setEmailDomain(data.domain); })
+                    .catch(() => {}); // Use default on error
+            }, []);
 
             const [billingInterval, setBillingInterval] = useState('month');
 
@@ -2050,7 +2078,7 @@
                     // Check if click is outside the tag dropdown and its button
                     const tagDropdown = e.target.closest('.tag-dropdown');
                     const tagButton = e.target.closest('button');
-                    const isTagButton = tagButton && tagButton.textContent.includes('Etiquetas') || tagButton && tagButton.textContent.includes('Tags');
+                    const isTagButton = (tagButton && tagButton.textContent.includes('Etiquetas')) || (tagButton && tagButton.textContent.includes('Tags'));
 
                     if (!tagDropdown && !isTagButton) {
                         setShowTagMenuFor(null);
@@ -2078,6 +2106,39 @@
                 document.addEventListener('click', handleClickOutside);
                 return () => document.removeEventListener('click', handleClickOutside);
             }, [showActionsMenuFor]);
+
+            // Close user dropdown when clicking outside
+            useEffect(() => {
+                if (!showUserDropdown) return;
+
+                const handleClickOutside = (e) => {
+                    const userDropdown = e.target.closest('.user-dropdown');
+                    const userButton = e.target.closest('.user-name-button');
+
+                    if (!userDropdown && !userButton) {
+                        setShowUserDropdown(false);
+                    }
+                };
+
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, [showUserDropdown]);
+
+            // Close bulk tag menu when clicking outside
+            useEffect(() => {
+                if (!showBulkTagMenu) return;
+
+                const handleClickOutside = (e) => {
+                    const tagDropdown = e.target.closest('.tag-dropdown');
+                    const tagButton = e.target.closest('button');
+                    if (!tagDropdown && !tagButton) {
+                        setShowBulkTagMenu(false);
+                    }
+                };
+
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, [showBulkTagMenu]);
 
             const fetchNewsletters = async () => {
                 setNewslettersLoading(true);
@@ -2220,28 +2281,37 @@
                         body: JSON.stringify({ is_read: newsletter.is_read ? 0 : 1 })
                     });
                     if (res.ok) {
-                        setNewsletters(newsletters.map(n => n.id === id ? { ...n, is_read: !n.is_read } : n));
+                        const newReadState = newsletter.is_read ? 0 : 1;
+                        setNewsletters(newsletters.map(n => n.id === id ? { ...n, is_read: newReadState } : n));
                         if (readingNewsletter?.id === id) {
-                            setReadingNewsletter({...readingNewsletter, is_read: !readingNewsletter.is_read});
+                            setReadingNewsletter({...readingNewsletter, is_read: newReadState});
                         }
                     }
                 } catch (e) { console.error('Error:', e); }
             };
 
             const deleteNewsletter = async (id) => {
-                if (!confirm(language === 'es' ? '¿Eliminar newsletter?' : 'Delete newsletter?')) return;
-                try {
-                    const res = await fetch(`${API_URL}/newsletters/${id}`, {
-                        method: 'DELETE',
-                        credentials: 'include'
-                    });
-                    if (res.ok) {
-                        setNewsletters(newsletters.filter(n => n.id !== id));
-                        if (readingNewsletter?.id === id) setReadingNewsletter(null);
-                        setShowActionsMenuFor(null);
-                        // Newsletter deleted successfully
+                setConfirmModal({
+                    title: language === 'es' ? 'Eliminar newsletter' : 'Delete newsletter',
+                    message: language === 'es' ? '¿Estás seguro de que quieres eliminar esta newsletter?' : 'Are you sure you want to delete this newsletter?',
+                    confirmText: language === 'es' ? 'Eliminar' : 'Delete',
+                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                    danger: true,
+                    onConfirm: async () => {
+                        setConfirmModal(null);
+                        try {
+                            const res = await fetch(`${API_URL}/newsletters/${id}`, {
+                                method: 'DELETE',
+                                credentials: 'include'
+                            });
+                            if (res.ok) {
+                                setNewsletters(newsletters.filter(n => n.id !== id));
+                                if (readingNewsletter?.id === id) setReadingNewsletter(null);
+                                setShowActionsMenuFor(null);
+                            }
+                        } catch (e) { console.error('Error:', e); }
                     }
-                } catch (e) { console.error('Error:', e); }
+                });
             };
 
             const sendToKindle = async (id) => {
@@ -2293,7 +2363,7 @@
                     setShowUpgradeModal(true);
                     return;
                 }
-                setGeneratingSummary({...generatingSummary, [id]: true});
+                setGeneratingSummary(prev => ({...prev, [id]: true}));
                 try {
                     const res = await fetch(`${API_URL}/newsletters/${id}/summary`, {
                         method: 'POST',
@@ -2318,7 +2388,7 @@
                     console.error('Summary error:', e);
                     showToast(e.message, 'error');
                 } finally {
-                    setGeneratingSummary({...generatingSummary, [id]: false});
+                    setGeneratingSummary(prev => ({...prev, [id]: false}));
                 }
             };
 
@@ -2329,38 +2399,41 @@
                     return;
                 }
 
-                const purpose = prompt(
-                    language === 'es'
-                        ? '¿Para qué quieres este brief? (ej: preparar una reunión, investigar un tema, tomar una decisión...)'
-                        : 'What do you need this brief for? (e.g., prepare a meeting, research a topic, make a decision...)'
-                );
-                if (purpose === null) return; // User cancelled
-
-                setGeneratingBatch(true);
-                try {
-                    const res = await fetch(`${API_URL}/newsletters/brief`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
-                    });
-                    if (!res.ok) {
-                        const error = await res.json();
-                        throw new Error(error.error || 'Failed');
+                setPromptModal({
+                    title: language === 'es' ? 'Generar Brief' : 'Generate Brief',
+                    placeholder: language === 'es'
+                        ? 'ej: preparar una reunión, investigar un tema, tomar una decisión...'
+                        : 'e.g., prepare a meeting, research a topic, make a decision...',
+                    confirmText: language === 'es' ? 'Generar' : 'Generate',
+                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                    onConfirm: async (purpose) => {
+                        setPromptModal(null);
+                        setGeneratingBatch(true);
+                        try {
+                            const res = await fetch(`${API_URL}/newsletters/brief`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
+                            });
+                            if (!res.ok) {
+                                const error = await res.json();
+                                throw new Error(error.error || 'Failed');
+                            }
+                            const data = await res.json();
+                            const result = { type: 'brief', content: data.brief, purpose };
+                            setShowBatchResult(result);
+                            saveReport(result);
+                            setSelectionMode(false);
+                            setSelectedNewsletters([]);
+                        } catch (e) {
+                            console.error('Brief error:', e);
+                            showToast(e.message, 'error');
+                        } finally {
+                            setGeneratingBatch(false);
+                        }
                     }
-                    const data = await res.json();
-                    console.log('Brief response:', data);
-                    const result = { type: 'brief', content: data.brief, purpose };
-                    setShowBatchResult(result);
-                    saveReport(result);
-                    setSelectionMode(false);
-                    setSelectedNewsletters([]);
-                } catch (e) {
-                    console.error('Brief error:', e);
-                    showToast(e.message, 'error');
-                } finally {
-                    setGeneratingBatch(false);
-                }
+                });
             };
 
             const generateReport = async () => {
@@ -2370,38 +2443,41 @@
                     return;
                 }
 
-                const purpose = prompt(
-                    language === 'es'
-                        ? '¿Para qué quieres este reporte? (ej: presentar a mi equipo, escribir un artículo, análisis de mercado...)'
-                        : 'What do you need this report for? (e.g., present to my team, write an article, market analysis...)'
-                );
-                if (purpose === null) return; // User cancelled
-
-                setGeneratingBatch(true);
-                try {
-                    const res = await fetch(`${API_URL}/newsletters/report`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
-                    });
-                    if (!res.ok) {
-                        const error = await res.json();
-                        throw new Error(error.error || 'Failed');
+                setPromptModal({
+                    title: language === 'es' ? 'Generar Reporte' : 'Generate Report',
+                    placeholder: language === 'es'
+                        ? 'ej: presentar a mi equipo, escribir un artículo, análisis de mercado...'
+                        : 'e.g., present to my team, write an article, market analysis...',
+                    confirmText: language === 'es' ? 'Generar' : 'Generate',
+                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                    onConfirm: async (purpose) => {
+                        setPromptModal(null);
+                        setGeneratingBatch(true);
+                        try {
+                            const res = await fetch(`${API_URL}/newsletters/report`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
+                            });
+                            if (!res.ok) {
+                                const error = await res.json();
+                                throw new Error(error.error || 'Failed');
+                            }
+                            const data = await res.json();
+                            const result = { type: 'report', content: data.report, purpose };
+                            setShowBatchResult(result);
+                            saveReport(result);
+                            setSelectionMode(false);
+                            setSelectedNewsletters([]);
+                        } catch (e) {
+                            console.error('Report error:', e);
+                            showToast(e.message, 'error');
+                        } finally {
+                            setGeneratingBatch(false);
+                        }
                     }
-                    const data = await res.json();
-                    console.log('Report response:', data);
-                    const result = { type: 'report', content: data.report, purpose };
-                    setShowBatchResult(result);
-                    saveReport(result);
-                    setSelectionMode(false);
-                    setSelectedNewsletters([]);
-                } catch (e) {
-                    console.error('Report error:', e);
-                    showToast(e.message, 'error');
-                } finally {
-                    setGeneratingBatch(false);
-                }
+                });
             };
 
             const addTagToNewsletter = async (newsletterId, tagId) => {
@@ -2428,6 +2504,88 @@
                     setNewsletters(newsletters.map(n => n.id === newsletterId ? updated : n));
                     if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
                 } catch (e) { console.error('Error:', e); }
+            };
+
+            // Bulk actions
+            const bulkMarkAsRead = async (markRead = true) => {
+                const readValue = markRead ? 1 : 0;
+                try {
+                    await Promise.all(selectedNewsletters.map(id =>
+                        fetch(`${API_URL}/newsletters/${id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ is_read: readValue })
+                        })
+                    ));
+                    setNewsletters(newsletters.map(n =>
+                        selectedNewsletters.includes(n.id) ? { ...n, is_read: readValue } : n
+                    ));
+                    setSelectedNewsletters([]);
+                    setSelectionMode(false);
+                    showToast(language === 'es' ? 'Newsletters actualizadas' : 'Newsletters updated', 'success');
+                } catch (e) {
+                    console.error('Bulk mark as read error:', e);
+                    showToast(language === 'es' ? 'Error al actualizar' : 'Update failed', 'error');
+                }
+            };
+
+            const bulkDelete = () => {
+                setConfirmModal({
+                    title: language === 'es' ? 'Eliminar newsletters' : 'Delete newsletters',
+                    message: language === 'es'
+                        ? `¿Estás seguro de que quieres eliminar ${selectedNewsletters.length} newsletters?`
+                        : `Are you sure you want to delete ${selectedNewsletters.length} newsletters?`,
+                    confirmText: language === 'es' ? 'Eliminar' : 'Delete',
+                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                    danger: true,
+                    onConfirm: async () => {
+                        setConfirmModal(null);
+                        try {
+                            await Promise.all(selectedNewsletters.map(id =>
+                                fetch(`${API_URL}/newsletters/${id}`, {
+                                    method: 'DELETE',
+                                    credentials: 'include'
+                                })
+                            ));
+                            setNewsletters(newsletters.filter(n => !selectedNewsletters.includes(n.id)));
+                            setSelectedNewsletters([]);
+                            setSelectionMode(false);
+                            showToast(language === 'es' ? 'Newsletters eliminadas' : 'Newsletters deleted', 'success');
+                        } catch (e) {
+                            console.error('Bulk delete error:', e);
+                            showToast(language === 'es' ? 'Error al eliminar' : 'Delete failed', 'error');
+                        }
+                    }
+                });
+            };
+
+            const bulkAddTag = async (tagId) => {
+                try {
+                    await Promise.all(selectedNewsletters.map(id =>
+                        fetch(`${API_URL}/newsletters/${id}/tags/${tagId}`, {
+                            method: 'POST',
+                            credentials: 'include'
+                        })
+                    ));
+                    fetchNewsletters(); // Refresh to get updated tags
+                    setSelectedNewsletters([]);
+                    setSelectionMode(false);
+                    showToast(language === 'es' ? 'Etiqueta añadida' : 'Tag added', 'success');
+                } catch (e) {
+                    console.error('Bulk add tag error:', e);
+                    showToast(language === 'es' ? 'Error al añadir etiqueta' : 'Failed to add tag', 'error');
+                }
+            };
+
+            // Select all visible newsletters
+            const selectAllVisible = () => {
+                const visibleIds = filteredNewsletters.map(n => n.id);
+                if (selectedNewsletters.length === visibleIds.length) {
+                    setSelectedNewsletters([]);
+                } else {
+                    setSelectedNewsletters(visibleIds);
+                }
             };
 
             const logout = async () => {
@@ -2571,7 +2729,7 @@
                             </div>
                             <div className="email-display">
                                 <div className="email-label">{translations.email.label}</div>
-                                <div className="email-code">{user.email_code}@newsletters.brevisapp.com</div>
+                                <div className="email-code">{user.email_code}@{emailDomain}</div>
                                 <div style={{marginTop: '8px', fontSize: '12px', color: '#7A8599'}}>
                                     {language === 'es'
                                         ? 'Guárdalo como "BREVIS" en tus contactos para enviarlo más rápidamente'
@@ -2596,26 +2754,64 @@
                                     {translations.nav.add}
                                 </button>
                             </div>
-                            {selectionMode && selectedNewsletters.length > 0 && (
+                            {selectionMode && (
                                 <div className="selection-bar">
                                     <div className="selection-info">
-                                        {selectedNewsletters.length} {translations.selection.selected}
-                                    </div>
-                                    <div className="selection-actions">
-                                        <button className="btn btn-small" onClick={() => setSelectedNewsletters([])}>
-                                            {translations.selection.clearSelection}
+                                        <button className="btn btn-small" onClick={selectAllVisible} style={{marginRight: '12px'}}>
+                                            {selectedNewsletters.length === filteredNewsletters.length
+                                                ? (language === 'es' ? 'Deseleccionar todo' : 'Deselect all')
+                                                : (language === 'es' ? 'Seleccionar todo' : 'Select all')}
                                         </button>
-                                        {user.plan !== 'free' && (
-                                            <button className="btn btn-small" onClick={generateBrief} disabled={generatingBatch}>
-                                                {generatingBatch ? '...' : React.createElement(LucideIcon, {name: 'file-text', size: 14})} {translations.selection.brief}
-                                            </button>
-                                        )}
-                                        {user.plan === 'premium' && (
-                                            <button className="btn btn-small btn-primary" onClick={generateReport} disabled={generatingBatch}>
-                                                {generatingBatch ? '...' : React.createElement(LucideIcon, {name: 'bar-chart-3', size: 14})} {translations.selection.report}
-                                            </button>
+                                        {selectedNewsletters.length > 0 && (
+                                            <span>{selectedNewsletters.length} {translations.selection.selected}</span>
                                         )}
                                     </div>
+                                    {selectedNewsletters.length > 0 && (
+                                        <div className="selection-actions">
+                                            <button className="btn btn-small" onClick={() => bulkMarkAsRead(true)} title={language === 'es' ? 'Marcar como leídas' : 'Mark as read'}>
+                                                <LucideIcon name="check" size={14} />
+                                            </button>
+                                            <button className="btn btn-small" onClick={() => bulkMarkAsRead(false)} title={language === 'es' ? 'Marcar como no leídas' : 'Mark as unread'}>
+                                                <LucideIcon name="circle" size={14} />
+                                            </button>
+                                            <div style={{position: 'relative'}}>
+                                                <button className="btn btn-small" onClick={() => setShowBulkTagMenu(!showBulkTagMenu)} title={language === 'es' ? 'Añadir etiqueta' : 'Add tag'}>
+                                                    <LucideIcon name="tag" size={14} />
+                                                </button>
+                                                {showBulkTagMenu && (
+                                                    <div className="tag-dropdown" style={{position: 'absolute', top: '100%', left: 0, marginTop: '4px', minWidth: '150px'}}>
+                                                        {tags.length === 0 ? (
+                                                            <div style={{padding: '8px 12px', color: '#7A8599', fontSize: '13px'}}>
+                                                                {language === 'es' ? 'No hay etiquetas' : 'No tags'}
+                                                            </div>
+                                                        ) : tags.map(tag => (
+                                                            <div key={tag.id} className="tag-option" onClick={() => { bulkAddTag(tag.id); setShowBulkTagMenu(false); }}>
+                                                                <span className="tag-dot" style={{background: tag.color}}></span>
+                                                                {tag.name}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button className="btn btn-small" onClick={bulkDelete} title={language === 'es' ? 'Eliminar' : 'Delete'} style={{color: '#EF4444'}}>
+                                                <LucideIcon name="trash-2" size={14} />
+                                            </button>
+                                            <span style={{borderLeft: '1px solid #E8ECF0', height: '20px', margin: '0 8px'}}></span>
+                                            {user.plan !== 'free' && (
+                                                <button className="btn btn-small" onClick={generateBrief} disabled={generatingBatch}>
+                                                    {generatingBatch ? <span className="loading-spinner"></span> : <LucideIcon name="file-text" size={14} />} {translations.selection.brief}
+                                                </button>
+                                            )}
+                                            {user.plan === 'premium' && (
+                                                <button className="btn btn-small btn-primary" onClick={generateReport} disabled={generatingBatch}>
+                                                    {generatingBatch ? <span className="loading-spinner"></span> : <LucideIcon name="bar-chart-3" size={14} />} {translations.selection.report}
+                                                </button>
+                                            )}
+                                            <button className="btn btn-small" onClick={() => { setSelectedNewsletters([]); setSelectionMode(false); }}>
+                                                {language === 'es' ? 'Cancelar' : 'Cancel'}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {newslettersLoading ? (
@@ -2675,10 +2871,10 @@
                                                     <div className="summary-header" onClick={() => toggleSummaryCollapse(newsletter.id)}>
                                                         <span className="summary-label">{translations.newsletter.summary}</span>
                                                         <button className="summary-toggle">
-                                                            {collapsedSummaries[newsletter.id] ? '▼' : '▲'}
+                                                            {collapsedSummaries[newsletter.id] ? '▲' : '▼'}
                                                         </button>
                                                     </div>
-                                                    <div className={`summary-content ${collapsedSummaries[newsletter.id] ? 'collapsed' : ''}`}>
+                                                    <div className={`summary-content ${collapsedSummaries[newsletter.id] ? '' : 'collapsed'}`}>
                                                         {formatSummary(newsletter.summary)}
                                                     </div>
                                                 </div>
@@ -2688,7 +2884,7 @@
                                             {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
                                                 <button className="btn btn-small" onClick={() => generateSummary(newsletter.id)}
                                                     disabled={generatingSummary[newsletter.id]}>
-                                                    {generatingSummary[newsletter.id] ? '...' : translations.newsletter.summary}
+                                                    {generatingSummary[newsletter.id] ? <><span className="loading-spinner"></span> {language === 'es' ? 'Generando...' : 'Generating...'}</> : translations.newsletter.summary}
                                                 </button>
                                             )}
                                             <div style={{position: 'relative'}} onClick={(e) => e.stopPropagation()}>
@@ -2793,19 +2989,6 @@
                                                 <input type="url" className="form-input" value={importUrl}
                                                     onChange={(e) => { setImportUrl(e.target.value); setImportError(''); }}
                                                     placeholder={translations.import_.urlPlaceholder} required />
-                                                {isTwitterUrl && (
-                                                    <div style={{
-                                                        marginTop: 10, padding: '10px 12px', borderRadius: 8,
-                                                        background: 'var(--accent-muted, rgba(43,188,192,0.1))',
-                                                        border: '1px solid var(--accent)',
-                                                        fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.4
-                                                    }}>
-                                                        <strong style={{color: 'var(--accent)'}}>{'Thread tip: '}</strong>
-                                                        {lang === 'es'
-                                                            ? 'Si es un hilo, asegúrate de pegar el link al último tweet del hilo para capturarlo completo.'
-                                                            : 'If this is a thread, make sure to paste the link to the last tweet to capture it fully.'}
-                                                    </div>
-                                                )}
                                             </div>
                                             {importError && (
                                                 <div style={{color: '#EF4444', fontSize: '13px', marginBottom: 0}}>{importError}</div>
@@ -3006,10 +3189,19 @@
                                                                 {sub.last_fetched && ` — ${language === 'es' ? 'Última sync' : 'Last sync'}: ${new Date(sub.last_fetched).toLocaleDateString()}`}
                                                             </div>
                                                         </div>
-                                                        <button className="btn btn-small" onClick={async () => {
-                                                            if (!confirm(language === 'es' ? '¿Eliminar suscripción?' : 'Remove subscription?')) return;
-                                                            await fetch(`${API_URL}/subscriptions/${sub.id}`, { method: 'DELETE', credentials: 'include' });
-                                                            fetchSubscriptions();
+                                                        <button className="btn btn-small" onClick={() => {
+                                                            setConfirmModal({
+                                                                title: language === 'es' ? 'Eliminar suscripción' : 'Remove subscription',
+                                                                message: language === 'es' ? '¿Estás seguro de que quieres eliminar esta suscripción?' : 'Are you sure you want to remove this subscription?',
+                                                                confirmText: language === 'es' ? 'Eliminar' : 'Remove',
+                                                                cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                                                                danger: true,
+                                                                onConfirm: async () => {
+                                                                    setConfirmModal(null);
+                                                                    await fetch(`${API_URL}/subscriptions/${sub.id}`, { method: 'DELETE', credentials: 'include' });
+                                                                    fetchSubscriptions();
+                                                                }
+                                                            });
                                                         }}>
                                                             {language === 'es' ? 'Eliminar' : 'Remove'}
                                                         </button>
@@ -3194,21 +3386,37 @@
                                     {showBatchResult.id && (
                                         <>
                                             <button className="btn" onClick={() => {
-                                                const newName = prompt('Nuevo nombre:', showBatchResult.name);
-                                                if (newName) {
-                                                    renameReport(showBatchResult.id, newName);
-                                                    setShowBatchResult({...showBatchResult, name: newName});
-                                                }
+                                                setPromptModal({
+                                                    title: language === 'es' ? 'Renombrar reporte' : 'Rename report',
+                                                    placeholder: showBatchResult.name,
+                                                    confirmText: language === 'es' ? 'Guardar' : 'Save',
+                                                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                                                    onConfirm: (newName) => {
+                                                        setPromptModal(null);
+                                                        if (newName) {
+                                                            renameReport(showBatchResult.id, newName);
+                                                            setShowBatchResult({...showBatchResult, name: newName});
+                                                        }
+                                                    }
+                                                });
                                             }}>
-                                                <LucideIcon name="pencil" size={14} /> Renombrar
+                                                <LucideIcon name="pencil" size={14} /> {language === 'es' ? 'Renombrar' : 'Rename'}
                                             </button>
                                             <button className="btn" onClick={() => {
-                                                if (confirm(language === 'es' ? '¿Eliminar reporte?' : 'Delete report?')) {
-                                                    deleteReport(showBatchResult.id);
-                                                    setShowBatchResult(null);
-                                                }
+                                                setConfirmModal({
+                                                    title: language === 'es' ? 'Eliminar reporte' : 'Delete report',
+                                                    message: language === 'es' ? '¿Estás seguro de que quieres eliminar este reporte?' : 'Are you sure you want to delete this report?',
+                                                    confirmText: language === 'es' ? 'Eliminar' : 'Delete',
+                                                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                                                    danger: true,
+                                                    onConfirm: () => {
+                                                        setConfirmModal(null);
+                                                        deleteReport(showBatchResult.id);
+                                                        setShowBatchResult(null);
+                                                    }
+                                                });
                                             }}>
-                                                <LucideIcon name="trash-2" size={14} /> Eliminar
+                                                <LucideIcon name="trash-2" size={14} /> {language === 'es' ? 'Eliminar' : 'Delete'}
                                             </button>
                                         </>
                                     )}
@@ -3229,6 +3437,31 @@
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* Confirm Modal */}
+                    {confirmModal && (
+                        <ConfirmModal
+                            title={confirmModal.title}
+                            message={confirmModal.message}
+                            confirmText={confirmModal.confirmText}
+                            cancelText={confirmModal.cancelText}
+                            danger={confirmModal.danger}
+                            onConfirm={confirmModal.onConfirm}
+                            onCancel={() => setConfirmModal(null)}
+                        />
+                    )}
+
+                    {/* Prompt Modal */}
+                    {promptModal && (
+                        <PromptModal
+                            title={promptModal.title}
+                            placeholder={promptModal.placeholder}
+                            confirmText={promptModal.confirmText}
+                            cancelText={promptModal.cancelText}
+                            onConfirm={promptModal.onConfirm}
+                            onCancel={() => setPromptModal(null)}
+                        />
                     )}
                 </div>
             );
@@ -3271,7 +3504,8 @@
                         <div className="reader-header-actions">
                             {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
                                 <button className="btn btn-small" onClick={onGenerateSummary} disabled={generatingSummary}>
-                                    <LucideIcon name="sparkles" size={14} /> {generatingSummary ? '...' : translations.newsletter.summary}
+                                    {generatingSummary ? <span className="loading-spinner"></span> : <LucideIcon name="sparkles" size={14} />}
+                                    {' '}{generatingSummary ? (language === 'es' ? 'Generando...' : 'Generating...') : translations.newsletter.summary}
                                 </button>
                             )}
                             <button className="btn btn-small" onClick={onToggleRead}>
@@ -3340,6 +3574,68 @@
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Reusable Confirm Modal
+        function ConfirmModal({ title, message, confirmText, cancelText, onConfirm, onCancel, danger = false }) {
+            return (
+                <div className="modal-overlay" onClick={onCancel}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">{title}</h2>
+                            <button className="close-btn" onClick={onCancel}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{margin: 0, color: 'var(--text-secondary)'}}>{message}</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn" onClick={onCancel}>{cancelText}</button>
+                            <button
+                                className="btn btn-primary"
+                                onClick={onConfirm}
+                                style={danger ? {background: '#EF4444', borderColor: '#EF4444'} : {}}
+                            >
+                                {confirmText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Reusable Prompt Modal
+        function PromptModal({ title, placeholder, confirmText, cancelText, onConfirm, onCancel }) {
+            const [value, setValue] = useState('');
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onConfirm(value);
+            };
+            return (
+                <div className="modal-overlay" onClick={onCancel}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px'}}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">{title}</h2>
+                            <button className="close-btn" onClick={onCancel}>×</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                    placeholder={placeholder}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn" onClick={onCancel}>{cancelText}</button>
+                                <button type="submit" className="btn btn-primary">{confirmText}</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             );

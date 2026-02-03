@@ -205,12 +205,13 @@ export const dbHelpers = {
     },
 
     updateUser: async (id, updates) => {
-        // Build dynamic update query
-        const fields = Object.keys(updates);
+        // Whitelist allowed fields to prevent SQL injection
+        const allowedFields = ['name', 'email', 'password_hash', 'kindle_email', 'language', 'plan', 'stripe_customer_id', 'stripe_subscription_id', 'newsletters_count', 'newsletters_limit'];
+        const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
         if (fields.length === 0) return null;
 
         const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
-        const values = [id, ...Object.values(updates)];
+        const values = [id, ...fields.map(f => updates[f])];
 
         const result = await pool.query(
             `UPDATE users SET ${setClause} WHERE id = $1 RETURNING *`,
@@ -277,11 +278,13 @@ export const dbHelpers = {
     },
 
     updateNewsletter: async (id, updates) => {
-        const fields = Object.keys(updates);
+        // Whitelist allowed fields to prevent SQL injection
+        const allowedFields = ['title', 'sender', 'content', 'summary', 'is_read', 'url'];
+        const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
         if (fields.length === 0) return null;
 
         const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
-        const values = [parseInt(id), ...Object.values(updates)];
+        const values = [parseInt(id), ...fields.map(f => updates[f])];
 
         const result = await pool.query(
             `UPDATE newsletters SET ${setClause} WHERE id = $1 RETURNING *`,

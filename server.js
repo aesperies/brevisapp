@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import multer from 'multer';
 import Stripe from 'stripe';
@@ -152,7 +153,24 @@ function cleanTextContent(text) {
 
 // ============= AUTH ROUTES =============
 
-app.post('/api/auth/register', [
+// Rate limiters for auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window
+    message: { error: 'Too many attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // 3 registrations per hour per IP
+    message: { error: 'Too many registration attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+app.post('/api/auth/register', registerLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 8 }),
     body('name').notEmpty()
@@ -177,9 +195,10 @@ app.post('/api/auth/register', [
         const token = generateToken(user);
         
         res.cookie('token', token, { 
-            httpOnly: true, 
+            httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax'
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
         });
         
         console.log('✅ User registered:', email);
@@ -201,7 +220,7 @@ app.post('/api/auth/register', [
     }
 });
 
-app.post('/api/auth/login', [
+app.post('/api/auth/login', authLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('password').notEmpty()
 ], async (req, res) => {
@@ -229,9 +248,10 @@ app.post('/api/auth/login', [
 
         const token = generateToken(user);
         res.cookie('token', token, { 
-            httpOnly: true, 
+            httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax'
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
         });
         
         console.log('✅ User logged in:', email);
@@ -254,7 +274,7 @@ app.post('/api/auth/login', [
 });
 
 // Password reset - request
-app.post('/api/auth/forgot-password', [
+app.post('/api/auth/forgot-password', authLimiter, [
     body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
     try {
@@ -305,7 +325,7 @@ app.post('/api/auth/forgot-password', [
 });
 
 // Password reset - execute
-app.post('/api/auth/reset-password', [
+app.post('/api/auth/reset-password', authLimiter, [
     body('token').notEmpty(),
     body('password').isLength({ min: 8 })
 ], async (req, res) => {
@@ -360,8 +380,16 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 // Update user profile
 app.patch('/api/auth/profile', authMiddleware, async (req, res) => {
     try {
-        const { name, kindle_email, language } = req.body;
+        const { name, kindle_email, language, password } = req.body;
         const db = dbHelpers.getDb();
+
+        // Handle password change separately (uses its own hashing)
+        if (password !== undefined && password.length >= 8) {
+            await dbHelpers.updatePasswordHash(req.user.id, password);
+            console.log('✅ Password updated for user:', req.user.id);
+        } else if (password !== undefined && password.length > 0) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
 
         const updates = [];
         const values = [];
@@ -380,15 +408,16 @@ app.patch('/api/auth/profile', authMiddleware, async (req, res) => {
             values.push(language);
         }
 
-        if (updates.length === 0) {
-            return res.status(400).json({ error: 'No fields to update' });
+        let user;
+        if (updates.length > 0) {
+            values.push(req.user.id);
+            const query = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+            const result = await db.query(query, values);
+            user = result.rows[0];
+        } else {
+            // Just fetch current user if only password was changed
+            user = await dbHelpers.findUserById(req.user.id);
         }
-
-        values.push(req.user.id);
-        const query = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-
-        const result = await db.query(query, values);
-        const user = result.rows[0];
 
         console.log('✅ User profile updated:', user.id);
         res.json({
@@ -481,7 +510,8 @@ app.get('/api/auth/google/callback', async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax'
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
         });
 
         console.log('✅ Google login successful:', profile.email);
@@ -1005,9 +1035,23 @@ app.delete('/api/tags/:id', authMiddleware, async (req, res) => {
 
 app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) => {
     try {
-        await dbHelpers.addTagToNewsletter(parseInt(req.params.id), parseInt(req.params.tagId));
-        const newsletter = await dbHelpers.getNewsletterWithTags(parseInt(req.params.id));
-        res.json(newsletter);
+        const newsletterId = parseInt(req.params.id);
+        const tagId = parseInt(req.params.tagId);
+        if (isNaN(newsletterId) || isNaN(tagId)) {
+            return res.status(400).json({ error: 'Invalid ID' });
+        }
+        // Verify ownership of both newsletter and tag
+        const newsletter = await dbHelpers.getNewsletter(newsletterId, req.user.id);
+        const tags = await dbHelpers.getTags(req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+        if (!tags.some(t => t.id === tagId)) {
+            return res.status(404).json({ error: 'Tag not found' });
+        }
+        await dbHelpers.addTagToNewsletter(newsletterId, tagId);
+        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId);
+        res.json(updatedNewsletter);
     } catch (error) {
         console.error('❌ Add tag error:', error);
         res.status(500).json({ error: 'Failed to add tag' });
@@ -1016,9 +1060,23 @@ app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) =>
 
 app.delete('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) => {
     try {
-        await dbHelpers.removeTagFromNewsletter(parseInt(req.params.id), parseInt(req.params.tagId));
-        const newsletter = await dbHelpers.getNewsletterWithTags(parseInt(req.params.id));
-        res.json(newsletter);
+        const newsletterId = parseInt(req.params.id);
+        const tagId = parseInt(req.params.tagId);
+        if (isNaN(newsletterId) || isNaN(tagId)) {
+            return res.status(400).json({ error: 'Invalid ID' });
+        }
+        // Verify ownership of both newsletter and tag
+        const newsletter = await dbHelpers.getNewsletter(newsletterId, req.user.id);
+        const tags = await dbHelpers.getTags(req.user.id);
+        if (!newsletter) {
+            return res.status(404).json({ error: 'Newsletter not found' });
+        }
+        if (!tags.some(t => t.id === tagId)) {
+            return res.status(404).json({ error: 'Tag not found' });
+        }
+        await dbHelpers.removeTagFromNewsletter(newsletterId, tagId);
+        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId);
+        res.json(updatedNewsletter);
     } catch (error) {
         console.error('❌ Remove tag error:', error);
         res.status(500).json({ error: 'Failed to remove tag' });
