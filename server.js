@@ -627,6 +627,60 @@ app.post('/api/news-builder/upload-word', authMiddleware, upload.single('file'),
     }
 });
 
+// Generic file upload for News Builder (PDF, Word, TXT, MD, images)
+app.post('/api/news-builder/upload-file', authMiddleware, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        if (req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({ error: 'File too large (max 10MB)' });
+        }
+
+        const mime = req.file.mimetype;
+        const name = req.file.originalname;
+        let content = '';
+
+        // PDF
+        if (mime === 'application/pdf') {
+            try {
+                const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
+                const data = await pdfParse(req.file.buffer);
+                content = data.text || '';
+            } catch (e) {
+                console.error('PDF parse error:', e);
+                return res.status(400).json({ error: 'Could not parse PDF' });
+            }
+        }
+        // Word
+        else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || mime === 'application/msword') {
+            const result = await mammoth.convertToHtml({ buffer: req.file.buffer });
+            content = result.value || '';
+        }
+        // Plain text / Markdown
+        else if (mime === 'text/plain' || mime === 'text/markdown' || name.endsWith('.md') || name.endsWith('.txt')) {
+            content = req.file.buffer.toString('utf-8');
+        }
+        // Images - store a placeholder
+        else if (mime.startsWith('image/')) {
+            content = `[Image: ${name}]`;
+        }
+        else {
+            return res.status(400).json({ error: 'Unsupported file type' });
+        }
+
+        if (!content.trim()) {
+            return res.status(400).json({ error: 'Could not extract content from file' });
+        }
+
+        console.log('✅ File processed:', name);
+        res.json({ name, content });
+    } catch (error) {
+        console.error('❌ File upload error:', error);
+        res.status(500).json({ error: 'Failed to process file' });
+    }
+});
+
 // === URL Import & Bookmarklet ===
 
 function detectPlatform(url) {
