@@ -271,3 +271,66 @@ Report:`
         throw error;
     }
 }
+
+export async function generateNewsletterFromTemplate(template, reportIds, language = 'es') {
+    if (!ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const prompts = {
+        es: `Eres un escritor de newsletters profesional. Usando esta plantilla como guía de estilo:
+
+${template}
+
+Genera una nueva newsletter con estilo, tono y estructura similares. Mantén los mismos patrones de formato.
+
+Los IDs de reportes seleccionados son: ${reportIds.join(', ')}
+(Nota: El contenido de los reportes se incorporará cuando estén disponibles)
+
+Genera solo el contenido de la newsletter, formateado en HTML limpio.`,
+        en: `You are a professional newsletter writer. Using this template as a style guide:
+
+${template}
+
+Generate a new newsletter with similar style, tone, and structure. Keep the same formatting patterns.
+
+The selected report IDs are: ${reportIds.join(', ')}
+(Note: Report content will be incorporated when available)
+
+Output only the newsletter content, formatted in clean HTML.`
+    };
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+        const response = await fetch(ANTHROPIC_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 4096,
+                messages: [{
+                    role: 'user',
+                    content: prompts[language] || prompts.es
+                }]
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Claude API error: ${error}`);
+        }
+
+        const data = await response.json();
+        return data.content[0].text;
+    } catch (error) {
+        console.error('Error generating newsletter from template:', error);
+        throw error;
+    }
+}

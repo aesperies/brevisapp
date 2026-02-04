@@ -601,6 +601,39 @@ function detectPlatform(url) {
     return 'unknown';
 }
 
+async function fetchGenericContent(url) {
+    try {
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' }
+        });
+        const html = await response.text();
+
+        // Extraer metadata con regex (sin cheerio para simplicidad)
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+        const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+        const authorMatch = html.match(/<meta[^>]*name=["']author["'][^>]*content=["']([^"']+)["']/i);
+
+        const title = ogTitleMatch?.[1] || titleMatch?.[1] || new URL(url).hostname;
+        const description = ogDescMatch?.[1] || descMatch?.[1] || '';
+        const author = authorMatch?.[1] || new URL(url).hostname;
+
+        // Extraer contenido del body (simplificado)
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        let content = bodyMatch?.[1] || '';
+        content = content.replace(/<script[\s\S]*?<\/script>/gi, '');
+        content = content.replace(/<style[\s\S]*?<\/style>/gi, '');
+        content = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        content = content.substring(0, 5000);
+
+        return { title, author, content: `<p>${description}</p><p>${content}</p>` };
+    } catch (error) {
+        console.error('Error fetching generic URL:', error);
+        return null;
+    }
+}
+
 function extractTweetId(url) {
     const match = url.match(/(?:twitter|x)\.com\/\w+\/status\/(\d+)/);
     return match ? match[1] : null;
@@ -718,7 +751,22 @@ app.post('/api/import/url', authMiddleware, async (req, res) => {
             console.log(`✅ Imported tweet (${thread.length} tweet${thread.length > 1 ? 's' : ''} in thread):`, title);
             res.json(newsletter);
         } else {
-            return res.status(400).json({ error: 'Unsupported URL. Currently supports Twitter/X threads.' });
+            // Scraping genérico para cualquier URL
+            const genericContent = await fetchGenericContent(url);
+            if (!genericContent) {
+                return res.status(400).json({ error: 'Could not fetch content from this URL' });
+            }
+
+            const newsletter = await dbHelpers.createNewsletter(
+                req.user.id,
+                genericContent.title,
+                genericContent.author,
+                genericContent.content,
+                url
+            );
+
+            console.log(`✅ Imported generic URL:`, genericContent.title);
+            res.json(newsletter);
         }
     } catch (error) {
         console.error('❌ Import URL error:', error);
@@ -995,6 +1043,30 @@ app.post('/api/newsletters/report', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('❌ Generate report error:', error);
         res.status(500).json({ error: 'Failed to generate report' });
+    }
+});
+
+// ============= NEWS BUILDER ROUTES =============
+
+app.post('/api/news-builder/generate', authMiddleware, async (req, res) => {
+    try {
+        const { template, reportIds } = req.body;
+        if (!template || !reportIds?.length) {
+            return res.status(400).json({ error: 'Template and reports required' });
+        }
+
+        const user = await dbHelpers.findUserById(req.user.id);
+        if (!canUserPerformAction(user, 'generate_report')) {
+            return res.status(403).json({ error: 'Upgrade to Premium to use News Builder' });
+        }
+
+        const { generateNewsletterFromTemplate } = await import('./ai-service.js');
+        const content = await generateNewsletterFromTemplate(template, reportIds, user.language);
+        console.log('✅ Newsletter generated from template');
+        res.json({ content });
+    } catch (error) {
+        console.error('❌ News builder error:', error);
+        res.status(500).json({ error: 'Failed to generate newsletter' });
     }
 });
 

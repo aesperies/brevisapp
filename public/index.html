@@ -1918,6 +1918,7 @@
             const [confirmModal, setConfirmModal] = useState(null);
             const [promptModal, setPromptModal] = useState(null);
             const [showBulkTagMenu, setShowBulkTagMenu] = useState(false);
+            const [showNewsBuilder, setShowNewsBuilder] = useState(false);
 
             const toggleSummaryCollapse = (id) => {
                 setCollapsedSummaries(prev => ({...prev, [id]: !prev[id]}));
@@ -2003,7 +2004,7 @@
                     auth: { logout: "Salir" },
                     import_: {
                         urlTab: "Importar URL", manualTab: "Manual",
-                        urlPlaceholder: "Pega un link de Twitter/X...",
+                        urlPlaceholder: "Pega cualquier URL (Twitter, noticias, blogs, etc.)",
                         importing: "Importando...", import_: "Importar",
                         linkedinHint: "Los posts de LinkedIn solo se pueden guardar con el bookmarklet.",
                         bookmarklet: "Web Clipper",
@@ -2047,7 +2048,7 @@
                     auth: { logout: "Logout" },
                     import_: {
                         urlTab: "Import URL", manualTab: "Manual",
-                        urlPlaceholder: "Paste a Twitter/X thread link...",
+                        urlPlaceholder: "Paste any URL (Twitter, news, blogs, etc.)",
                         importing: "Importing...", import_: "Import",
                         linkedinHint: "LinkedIn posts can only be saved via the bookmarklet.",
                         bookmarklet: "Web Clipper",
@@ -2691,6 +2692,15 @@
                                 ))}
                             </div>
                         )}
+                        <div className="sidebar-section">
+                            <div className="sidebar-title">{language === 'es' ? 'Crear' : 'Create'}</div>
+                            <button className="sidebar-item" onClick={() => setShowNewsBuilder(true)}>
+                                <span className="sidebar-item-icon">
+                                    <LucideIcon name="file-edit" size={16} />
+                                </span>
+                                <span className="sidebar-item-label">{language === 'es' ? 'News Builder' : 'News Builder'}</span>
+                            </button>
+                        </div>
                     </div>
                     <div className="main-content">
                         <div className="container">
@@ -3106,6 +3116,17 @@
                     {showTagManager && (
                         <TagManager tags={tags} onClose={() => setShowTagManager(false)}
                             onUpdate={fetchTags} translations={translations} language={language} />
+                    )}
+
+                    {showNewsBuilder && (
+                        <NewsBuilder
+                            onClose={() => setShowNewsBuilder(false)}
+                            language={language}
+                            savedReports={savedReports}
+                            API_URL={API_URL}
+                            user={user}
+                            showToast={showToast}
+                        />
                     )}
 
                     {showSubscriptions && (
@@ -3802,6 +3823,108 @@
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function NewsBuilder({ onClose, language, savedReports, API_URL, user, showToast }) {
+            const [activeTab, setActiveTab] = useState('reports');
+            const [template, setTemplate] = useState('');
+            const [generating, setGenerating] = useState(false);
+            const [generatedContent, setGeneratedContent] = useState('');
+            const [selectedReports, setSelectedReports] = useState([]);
+
+            const handleGenerateFromTemplate = async () => {
+                if (!template.trim() || selectedReports.length === 0) return;
+                setGenerating(true);
+                try {
+                    const res = await fetch(`${API_URL}/news-builder/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ template, reportIds: selectedReports })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        setGeneratedContent(data.content);
+                        showToast(language === 'es' ? 'Newsletter generada' : 'Newsletter generated');
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setGenerating(false);
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" style={{maxWidth: 700, maxHeight: '85vh'}} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{language === 'es' ? 'News Builder' : 'News Builder'}</h2>
+                            <button className="modal-close" onClick={onClose}><LucideIcon name="x" size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{padding: 0}}>
+                            <div style={{display: 'flex', borderBottom: '1px solid var(--border-color)'}}>
+                                <button
+                                    style={{flex: 1, padding: '12px', background: activeTab === 'reports' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)'}}
+                                    onClick={() => setActiveTab('reports')}>
+                                    {language === 'es' ? 'Reportes Guardados' : 'Saved Reports'}
+                                </button>
+                                <button
+                                    style={{flex: 1, padding: '12px', background: activeTab === 'template' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)'}}
+                                    onClick={() => setActiveTab('template')}>
+                                    {language === 'es' ? 'Crear desde Plantilla' : 'Create from Template'}
+                                </button>
+                            </div>
+
+                            {activeTab === 'reports' && (
+                                <div style={{padding: 16, maxHeight: 400, overflowY: 'auto'}}>
+                                    {savedReports.length === 0 ? (
+                                        <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: 20}}>
+                                            {language === 'es' ? 'No hay reportes guardados' : 'No saved reports'}
+                                        </p>
+                                    ) : (
+                                        savedReports.map(report => (
+                                            <div key={report.id} style={{padding: '12px', marginBottom: 8, background: 'var(--bg-secondary)', borderRadius: 8, cursor: 'pointer', border: selectedReports.includes(report.id) ? '2px solid var(--accent)' : '2px solid transparent'}}
+                                                onClick={() => setSelectedReports(prev => prev.includes(report.id) ? prev.filter(id => id !== report.id) : [...prev, report.id])}>
+                                                <div style={{fontWeight: 500}}>{report.name}</div>
+                                                <div style={{fontSize: 12, color: 'var(--text-secondary)'}}>{new Date(report.date).toLocaleDateString()}</div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {activeTab === 'template' && (
+                                <div style={{padding: 16}}>
+                                    <div className="form-group">
+                                        <label className="form-label">{language === 'es' ? 'Pega tu plantilla de newsletter' : 'Paste your newsletter template'}</label>
+                                        <textarea
+                                            className="form-textarea"
+                                            value={template}
+                                            onChange={e => setTemplate(e.target.value)}
+                                            placeholder={language === 'es' ? 'Pega aquí un ejemplo de newsletter que quieras replicar...' : 'Paste here a newsletter example you want to replicate...'}
+                                            style={{minHeight: 150}}
+                                        />
+                                    </div>
+                                    {selectedReports.length > 0 && (
+                                        <p style={{fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12}}>
+                                            {selectedReports.length} {language === 'es' ? 'reportes seleccionados' : 'reports selected'}
+                                        </p>
+                                    )}
+                                    <button className="btn btn-primary" onClick={handleGenerateFromTemplate} disabled={generating || !template.trim() || selectedReports.length === 0}>
+                                        {generating ? (language === 'es' ? 'Generando...' : 'Generating...') : (language === 'es' ? 'Generar Newsletter' : 'Generate Newsletter')}
+                                    </button>
+
+                                    {generatedContent && (
+                                        <div style={{marginTop: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, maxHeight: 200, overflowY: 'auto'}}>
+                                            <div dangerouslySetInnerHTML={{__html: generatedContent}} />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
