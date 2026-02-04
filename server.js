@@ -1070,6 +1070,57 @@ app.post('/api/news-builder/generate', authMiddleware, async (req, res) => {
     }
 });
 
+app.post('/api/news-builder/generate-from-project', authMiddleware, async (req, res) => {
+    try {
+        const { template, reportContents, urls } = req.body;
+        if (!template) {
+            return res.status(400).json({ error: 'Template required' });
+        }
+
+        const user = await dbHelpers.findUserById(req.user.id);
+        if (!canUserPerformAction(user, 'generate_report')) {
+            return res.status(403).json({ error: 'Upgrade to Premium to use News Builder' });
+        }
+
+        // Fetch URL contents
+        let urlContents = [];
+        if (urls?.length) {
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url, {
+                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' }
+                    });
+                    if (response.ok) {
+                        const html = await response.text();
+                        const textContent = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                            .replace(/<[^>]+>/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim()
+                            .substring(0, 5000);
+                        urlContents.push({ url, content: textContent });
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch URL:', url, e.message);
+                }
+            }
+        }
+
+        const { generateNewsletterFromProject } = await import('./ai-service.js');
+        const content = await generateNewsletterFromProject(
+            template,
+            reportContents || [],
+            urlContents,
+            user.language
+        );
+        console.log('✅ Newsletter generated from project');
+        res.json({ content });
+    } catch (error) {
+        console.error('❌ News builder project error:', error);
+        res.status(500).json({ error: 'Failed to generate newsletter' });
+    }
+});
+
 // ============= TAG ROUTES =============
 
 app.get('/api/tags', authMiddleware, async (req, res) => {

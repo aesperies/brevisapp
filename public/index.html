@@ -1920,6 +1920,19 @@
             const [showBulkTagMenu, setShowBulkTagMenu] = useState(false);
             const [showNewsBuilder, setShowNewsBuilder] = useState(false);
 
+            // Projects state for News Builder
+            const [projects, setProjects] = useState([]);
+
+            // Sidebar order state
+            const [sidebarOrder, setSidebarOrder] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('brevis_sidebar_order');
+                    return saved ? JSON.parse(saved) : ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'create'];
+                } catch { return ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'create']; }
+            });
+            const [editingSidebarOrder, setEditingSidebarOrder] = useState(false);
+            const [draggedSection, setDraggedSection] = useState(null);
+
             const toggleSummaryCollapse = (id) => {
                 setCollapsedSummaries(prev => ({...prev, [id]: !prev[id]}));
             };
@@ -2069,6 +2082,7 @@
                 fetchTags();
                 fetchSubscriptions();
                 loadSavedReports();
+                loadProjects();
             }, []);
 
             // Close tag dropdown when clicking outside
@@ -2194,6 +2208,52 @@
                 const updated = savedReports.map(r => r.id === id ? {...r, name: newName} : r);
                 setSavedReports(updated);
                 localStorage.setItem('brevis_saved_reports', JSON.stringify(updated));
+            };
+
+            // Projects CRUD functions
+            const loadProjects = () => {
+                try {
+                    const saved = localStorage.getItem('brevis_projects');
+                    if (saved) setProjects(JSON.parse(saved));
+                } catch (e) { console.error('Error loading projects:', e); }
+            };
+
+            const createProject = (name) => {
+                const newProject = {
+                    id: Date.now(),
+                    name: name,
+                    createdAt: new Date().toISOString(),
+                    templates: [],
+                    attachedReports: [],
+                    attachedLinks: []
+                };
+                const updated = [...projects, newProject];
+                setProjects(updated);
+                localStorage.setItem('brevis_projects', JSON.stringify(updated));
+                return newProject;
+            };
+
+            const updateProject = (projectId, updates) => {
+                const updated = projects.map(p => p.id === projectId ? {...p, ...updates} : p);
+                setProjects(updated);
+                localStorage.setItem('brevis_projects', JSON.stringify(updated));
+            };
+
+            const deleteProject = (projectId) => {
+                const updated = projects.filter(p => p.id !== projectId);
+                setProjects(updated);
+                localStorage.setItem('brevis_projects', JSON.stringify(updated));
+            };
+
+            // Sidebar order functions
+            const saveSidebarOrder = (newOrder) => {
+                setSidebarOrder(newOrder);
+                localStorage.setItem('brevis_sidebar_order', JSON.stringify(newOrder));
+            };
+
+            const resetSidebarOrder = () => {
+                const defaultOrder = ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'create'];
+                saveSidebarOrder(defaultOrder);
             };
 
             const handleSubmit = async (e) => {
@@ -2620,87 +2680,186 @@
                 <div className="app-layout">
                     {sidebarOpen && <div className="sidebar-overlay active" onClick={() => setSidebarOpen(false)}></div>}
                     <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-                        <div className="sidebar-logo">
-                            <div className="logo-container">
-                                <img src="/logo-new.png" alt="brevis" style={{height: '38px'}} />
-                            </div>
-                        </div>
-                        <div className="sidebar-section">
-                            <div className="sidebar-title">{translations.import_.bookmarklet}</div>
-                            <button className="sidebar-item" onClick={() => setShowBookmarkletModal(true)}>
-                                <span className="sidebar-item-icon">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                                </span>
-                                <span className="sidebar-item-label">{language === 'es' ? 'Configurar' : 'Setup'}</span>
-                            </button>
-                        </div>
-                        <div className="sidebar-section">
-                            <div className="sidebar-title">{translations.sidebar.main}</div>
-                            <button className={`sidebar-item ${sidebarView === 'all' ? 'active' : ''}`}
-                                onClick={() => { setSidebarView('all'); setSidebarOpen(false); }}>
-                                <span className="sidebar-item-icon"><LucideIcon name="mail" size={16} /></span>
-                                <span className="sidebar-item-label">{translations.sidebar.all}</span>
-                                <span className="sidebar-item-count">{newsletters.length}</span>
-                            </button>
-                            <button className={`sidebar-item ${sidebarView === 'unread' ? 'active' : ''}`}
-                                onClick={() => { setSidebarView('unread'); setSidebarOpen(false); }}>
-                                <span className="sidebar-item-icon"><LucideIcon name="circle" size={16} /></span>
-                                <span className="sidebar-item-label">{translations.sidebar.unread}</span>
-                                <span className="sidebar-item-count">{newsletters.filter(n => !n.is_read).length}</span>
-                            </button>
-                            <button className={`sidebar-item ${sidebarView === 'read' ? 'active' : ''}`}
-                                onClick={() => { setSidebarView('read'); setSidebarOpen(false); }}>
-                                <span className="sidebar-item-icon"><LucideIcon name="check" size={16} /></span>
-                                <span className="sidebar-item-label">{translations.sidebar.read}</span>
-                                <span className="sidebar-item-count">{newsletters.filter(n => n.is_read).length}</span>
-                            </button>
-                        </div>
-                        {tags.length > 0 && (
-                            <div className="sidebar-section">
-                                <div className="sidebar-title">{translations.sidebar.tags}</div>
-                                {tags.map(tag => (
-                                    <button key={tag.id}
-                                        className={`sidebar-item sidebar-tag-item ${sidebarView === `tag:${tag.id}` ? 'active' : ''}`}
-                                        onClick={() => { setSidebarView(`tag:${tag.id}`); setSidebarOpen(false); }}>
-                                        <span className="sidebar-item-icon" style={{color: tag.color}}>●</span>
-                                        <span className="sidebar-item-label">{tag.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        <div className="sidebar-section">
-                            <div className="sidebar-title">{language === 'es' ? 'Suscripciones' : 'Subscriptions'}</div>
-                            <button className="sidebar-item" onClick={() => setShowSubscriptions(true)}>
-                                <span className="sidebar-item-icon">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 5c7.18 0 13 5.82 13 13M6 11c3.87 0 7 3.13 7 7M6 17h.01"/></svg>
-                                </span>
-                                <span className="sidebar-item-label">{language === 'es' ? 'Gestionar feeds' : 'Manage feeds'}</span>
-                                {subscriptions.length > 0 && <span className="sidebar-item-count">{subscriptions.length}</span>}
-                            </button>
-                        </div>
-                        {savedReports.length > 0 && (
-                            <div className="sidebar-section">
-                                <div className="sidebar-title">{translations.sidebar.reports}</div>
-                                {savedReports.map(report => (
-                                    <div key={report.id} className="sidebar-report-item"
-                                        onClick={() => setShowBatchResult(report)}>
-                                        <span>{report.type === 'brief' ? React.createElement(LucideIcon, {name: 'file-text', size: 14}) : React.createElement(LucideIcon, {name: 'bar-chart-3', size: 14})}</span>
-                                        <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                                            {report.name}
-                                        </span>
+                        {/* Sidebar sections rendered based on sidebarOrder */}
+                        {(() => {
+                            const handleDragStart = (e, sectionId) => {
+                                setDraggedSection(sectionId);
+                                e.dataTransfer.effectAllowed = 'move';
+                            };
+                            const handleDragOver = (e, sectionId) => {
+                                e.preventDefault();
+                                if (draggedSection && draggedSection !== sectionId) {
+                                    const newOrder = [...sidebarOrder];
+                                    const draggedIdx = newOrder.indexOf(draggedSection);
+                                    const targetIdx = newOrder.indexOf(sectionId);
+                                    newOrder.splice(draggedIdx, 1);
+                                    newOrder.splice(targetIdx, 0, draggedSection);
+                                    saveSidebarOrder(newOrder);
+                                }
+                            };
+                            const handleDragEnd = () => {
+                                setDraggedSection(null);
+                            };
+
+                            const sectionRenderers = {
+                                logo: () => (
+                                    <div key="logo" className="sidebar-logo"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'logo')}
+                                        onDragOver={e => handleDragOver(e, 'logo')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'logo' ? 0.5 : 1}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="logo-container">
+                                            <img src="/logo-new.png" alt="brevis" style={{height: '38px'}} />
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                        <div className="sidebar-section">
-                            <div className="sidebar-title">{language === 'es' ? 'Crear' : 'Create'}</div>
-                            <button className="sidebar-item" onClick={() => setShowNewsBuilder(true)}>
-                                <span className="sidebar-item-icon">
-                                    <LucideIcon name="file-edit" size={16} />
-                                </span>
-                                <span className="sidebar-item-label">{language === 'es' ? 'News Builder' : 'News Builder'}</span>
-                            </button>
-                        </div>
+                                ),
+                                bookmarklet: () => (
+                                    <div key="bookmarklet" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'bookmarklet')}
+                                        onDragOver={e => handleDragOver(e, 'bookmarklet')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'bookmarklet' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{translations.import_.bookmarklet}</div>
+                                        <button className="sidebar-item" onClick={() => setShowBookmarkletModal(true)}>
+                                            <span className="sidebar-item-icon">
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                                            </span>
+                                            <span className="sidebar-item-label">{language === 'es' ? 'Configurar' : 'Setup'}</span>
+                                        </button>
+                                    </div>
+                                ),
+                                main: () => (
+                                    <div key="main" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'main')}
+                                        onDragOver={e => handleDragOver(e, 'main')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'main' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{translations.sidebar.main}</div>
+                                        <button className={`sidebar-item ${sidebarView === 'all' ? 'active' : ''}`}
+                                            onClick={() => { setSidebarView('all'); setSidebarOpen(false); }}>
+                                            <span className="sidebar-item-icon"><LucideIcon name="mail" size={16} /></span>
+                                            <span className="sidebar-item-label">{translations.sidebar.all}</span>
+                                            <span className="sidebar-item-count">{newsletters.length}</span>
+                                        </button>
+                                        <button className={`sidebar-item ${sidebarView === 'unread' ? 'active' : ''}`}
+                                            onClick={() => { setSidebarView('unread'); setSidebarOpen(false); }}>
+                                            <span className="sidebar-item-icon"><LucideIcon name="circle" size={16} /></span>
+                                            <span className="sidebar-item-label">{translations.sidebar.unread}</span>
+                                            <span className="sidebar-item-count">{newsletters.filter(n => !n.is_read).length}</span>
+                                        </button>
+                                        <button className={`sidebar-item ${sidebarView === 'read' ? 'active' : ''}`}
+                                            onClick={() => { setSidebarView('read'); setSidebarOpen(false); }}>
+                                            <span className="sidebar-item-icon"><LucideIcon name="check" size={16} /></span>
+                                            <span className="sidebar-item-label">{translations.sidebar.read}</span>
+                                            <span className="sidebar-item-count">{newsletters.filter(n => n.is_read).length}</span>
+                                        </button>
+                                    </div>
+                                ),
+                                tags: () => tags.length > 0 ? (
+                                    <div key="tags" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'tags')}
+                                        onDragOver={e => handleDragOver(e, 'tags')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'tags' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{translations.sidebar.tags}</div>
+                                        {tags.map(tag => (
+                                            <button key={tag.id}
+                                                className={`sidebar-item sidebar-tag-item ${sidebarView === `tag:${tag.id}` ? 'active' : ''}`}
+                                                onClick={() => { setSidebarView(`tag:${tag.id}`); setSidebarOpen(false); }}>
+                                                <span className="sidebar-item-icon" style={{color: tag.color}}>●</span>
+                                                <span className="sidebar-item-label">{tag.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : null,
+                                subscriptions: () => (
+                                    <div key="subscriptions" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'subscriptions')}
+                                        onDragOver={e => handleDragOver(e, 'subscriptions')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'subscriptions' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{language === 'es' ? 'Suscripciones' : 'Subscriptions'}</div>
+                                        <button className="sidebar-item" onClick={() => setShowSubscriptions(true)}>
+                                            <span className="sidebar-item-icon">
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 5c7.18 0 13 5.82 13 13M6 11c3.87 0 7 3.13 7 7M6 17h.01"/></svg>
+                                            </span>
+                                            <span className="sidebar-item-label">{language === 'es' ? 'Gestionar feeds' : 'Manage feeds'}</span>
+                                            {subscriptions.length > 0 && <span className="sidebar-item-count">{subscriptions.length}</span>}
+                                        </button>
+                                    </div>
+                                ),
+                                reports: () => savedReports.length > 0 ? (
+                                    <div key="reports" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'reports')}
+                                        onDragOver={e => handleDragOver(e, 'reports')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'reports' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{translations.sidebar.reports}</div>
+                                        {savedReports.map(report => (
+                                            <div key={report.id} className="sidebar-report-item"
+                                                onClick={() => setShowBatchResult(report)}>
+                                                <span>{report.type === 'brief' ? React.createElement(LucideIcon, {name: 'file-text', size: 14}) : React.createElement(LucideIcon, {name: 'bar-chart-3', size: 14})}</span>
+                                                <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                                    {report.name}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : null,
+                                create: () => (
+                                    <div key="create" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'create')}
+                                        onDragOver={e => handleDragOver(e, 'create')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'create' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{language === 'es' ? 'Crear' : 'Create'}</div>
+                                        <button className="sidebar-item" onClick={() => setShowNewsBuilder(true)}>
+                                            <span className="sidebar-item-icon">
+                                                <LucideIcon name="file-edit" size={16} />
+                                            </span>
+                                            <span className="sidebar-item-label">{language === 'es' ? 'News Builder' : 'News Builder'}</span>
+                                        </button>
+                                    </div>
+                                )
+                            };
+
+                            return (
+                                <>
+                                    {/* Edit sidebar button */}
+                                    <div style={{position: 'absolute', top: 8, right: 8, zIndex: 10}}>
+                                        {editingSidebarOrder ? (
+                                            <div style={{display: 'flex', gap: 4}}>
+                                                <button className="btn btn-small" onClick={resetSidebarOrder} title={language === 'es' ? 'Restablecer' : 'Reset'}>
+                                                    <LucideIcon name="rotate-ccw" size={14} />
+                                                </button>
+                                                <button className="btn btn-primary btn-small" onClick={() => setEditingSidebarOrder(false)}>
+                                                    {language === 'es' ? 'Listo' : 'Done'}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button className="btn btn-small" onClick={() => setEditingSidebarOrder(true)} style={{opacity: 0.6}} title={language === 'es' ? 'Reordenar sidebar' : 'Reorder sidebar'}>
+                                                <LucideIcon name="settings" size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {sidebarOrder.map(sectionId => sectionRenderers[sectionId] ? sectionRenderers[sectionId]() : null)}
+                                </>
+                            );
+                        })()}
                     </div>
                     <div className="main-content">
                         <div className="container">
@@ -3126,6 +3285,10 @@
                             API_URL={API_URL}
                             user={user}
                             showToast={showToast}
+                            projects={projects}
+                            createProject={createProject}
+                            updateProject={updateProject}
+                            deleteProject={deleteProject}
                         />
                     )}
 
@@ -3831,12 +3994,202 @@
             );
         }
 
-        function NewsBuilder({ onClose, language, savedReports, API_URL, user, showToast }) {
-            const [activeTab, setActiveTab] = useState('reports');
+        function NewsBuilder({ onClose, language, savedReports, API_URL, user, showToast, projects, createProject, updateProject, deleteProject }) {
+            const [activeTab, setActiveTab] = useState('projects');
             const [template, setTemplate] = useState('');
             const [generating, setGenerating] = useState(false);
             const [generatedContent, setGeneratedContent] = useState('');
             const [selectedReports, setSelectedReports] = useState([]);
+
+            // Project management state
+            const [editingProject, setEditingProject] = useState(null);
+            const [newProjectName, setNewProjectName] = useState('');
+            const [showNewProjectInput, setShowNewProjectInput] = useState(false);
+            const [newTemplateName, setNewTemplateName] = useState('');
+            const [newTemplateContent, setNewTemplateContent] = useState('');
+            const [showTemplateForm, setShowTemplateForm] = useState(false);
+            const [editingTemplate, setEditingTemplate] = useState(null);
+            const [newLinkUrl, setNewLinkUrl] = useState('');
+            const [newLinkTitle, setNewLinkTitle] = useState('');
+            const [selectedTemplateForGenerate, setSelectedTemplateForGenerate] = useState(null);
+
+            const txt = {
+                es: {
+                    projects: 'Proyectos',
+                    savedReports: 'Reportes Guardados',
+                    createFromTemplate: 'Crear desde Plantilla',
+                    newProject: '+ Nuevo Proyecto',
+                    projectName: 'Nombre del proyecto',
+                    create: 'Crear',
+                    cancel: 'Cancelar',
+                    noProjects: 'No hay proyectos. Crea uno para empezar.',
+                    templates: 'Plantillas',
+                    addTemplate: '+ Agregar Plantilla',
+                    templateName: 'Nombre de la plantilla',
+                    templateContent: 'Contenido (HTML o texto)',
+                    save: 'Guardar',
+                    attachedReports: 'Reportes Adjuntos',
+                    selectReports: 'Seleccionar reportes',
+                    attachedLinks: 'Links Adjuntos',
+                    addLink: '+ Agregar Link',
+                    linkUrl: 'URL',
+                    linkTitle: 'Título (opcional)',
+                    add: 'Agregar',
+                    generate: 'Generar Newsletter',
+                    generating: 'Generando...',
+                    back: '← Volver',
+                    delete: 'Eliminar',
+                    edit: 'Editar',
+                    selectTemplate: 'Selecciona una plantilla para generar',
+                    noTemplates: 'Agrega al menos una plantilla',
+                    pasteTemplate: 'Pega tu plantilla de newsletter',
+                    pasteHint: 'Pega aquí un ejemplo de newsletter que quieras replicar...',
+                    reportsSelected: 'reportes seleccionados',
+                    noSavedReports: 'No hay reportes guardados',
+                    generated: 'Newsletter generada'
+                },
+                en: {
+                    projects: 'Projects',
+                    savedReports: 'Saved Reports',
+                    createFromTemplate: 'Create from Template',
+                    newProject: '+ New Project',
+                    projectName: 'Project name',
+                    create: 'Create',
+                    cancel: 'Cancel',
+                    noProjects: 'No projects yet. Create one to get started.',
+                    templates: 'Templates',
+                    addTemplate: '+ Add Template',
+                    templateName: 'Template name',
+                    templateContent: 'Content (HTML or text)',
+                    save: 'Save',
+                    attachedReports: 'Attached Reports',
+                    selectReports: 'Select reports',
+                    attachedLinks: 'Attached Links',
+                    addLink: '+ Add Link',
+                    linkUrl: 'URL',
+                    linkTitle: 'Title (optional)',
+                    add: 'Add',
+                    generate: 'Generate Newsletter',
+                    generating: 'Generating...',
+                    back: '← Back',
+                    delete: 'Delete',
+                    edit: 'Edit',
+                    selectTemplate: 'Select a template to generate',
+                    noTemplates: 'Add at least one template',
+                    pasteTemplate: 'Paste your newsletter template',
+                    pasteHint: 'Paste here a newsletter example you want to replicate...',
+                    reportsSelected: 'reports selected',
+                    noSavedReports: 'No saved reports',
+                    generated: 'Newsletter generated'
+                }
+            }[language];
+
+            const handleCreateProject = () => {
+                if (!newProjectName.trim()) return;
+                createProject(newProjectName.trim());
+                setNewProjectName('');
+                setShowNewProjectInput(false);
+            };
+
+            const handleAddTemplate = () => {
+                if (!newTemplateName.trim() || !newTemplateContent.trim() || !editingProject) return;
+                const newTemplate = {
+                    id: Date.now(),
+                    name: newTemplateName.trim(),
+                    content: newTemplateContent.trim()
+                };
+                updateProject(editingProject.id, {
+                    templates: [...editingProject.templates, newTemplate]
+                });
+                setEditingProject({...editingProject, templates: [...editingProject.templates, newTemplate]});
+                setNewTemplateName('');
+                setNewTemplateContent('');
+                setShowTemplateForm(false);
+            };
+
+            const handleUpdateTemplate = () => {
+                if (!editingTemplate || !newTemplateName.trim() || !newTemplateContent.trim()) return;
+                const updatedTemplates = editingProject.templates.map(t =>
+                    t.id === editingTemplate.id ? {...t, name: newTemplateName, content: newTemplateContent} : t
+                );
+                updateProject(editingProject.id, { templates: updatedTemplates });
+                setEditingProject({...editingProject, templates: updatedTemplates});
+                setEditingTemplate(null);
+                setNewTemplateName('');
+                setNewTemplateContent('');
+                setShowTemplateForm(false);
+            };
+
+            const handleDeleteTemplate = (templateId) => {
+                const updatedTemplates = editingProject.templates.filter(t => t.id !== templateId);
+                updateProject(editingProject.id, { templates: updatedTemplates });
+                setEditingProject({...editingProject, templates: updatedTemplates});
+            };
+
+            const handleToggleReport = (reportId) => {
+                const current = editingProject.attachedReports || [];
+                const updated = current.includes(reportId)
+                    ? current.filter(id => id !== reportId)
+                    : [...current, reportId];
+                updateProject(editingProject.id, { attachedReports: updated });
+                setEditingProject({...editingProject, attachedReports: updated});
+            };
+
+            const handleAddLink = () => {
+                if (!newLinkUrl.trim() || !editingProject) return;
+                const newLink = {
+                    id: Date.now(),
+                    url: newLinkUrl.trim(),
+                    title: newLinkTitle.trim() || newLinkUrl.trim()
+                };
+                const updatedLinks = [...(editingProject.attachedLinks || []), newLink];
+                updateProject(editingProject.id, { attachedLinks: updatedLinks });
+                setEditingProject({...editingProject, attachedLinks: updatedLinks});
+                setNewLinkUrl('');
+                setNewLinkTitle('');
+            };
+
+            const handleDeleteLink = (linkId) => {
+                const updatedLinks = editingProject.attachedLinks.filter(l => l.id !== linkId);
+                updateProject(editingProject.id, { attachedLinks: updatedLinks });
+                setEditingProject({...editingProject, attachedLinks: updatedLinks});
+            };
+
+            const handleGenerateFromProject = async () => {
+                if (!selectedTemplateForGenerate || !editingProject) return;
+                const selectedTemplate = editingProject.templates.find(t => t.id === selectedTemplateForGenerate);
+                if (!selectedTemplate) return;
+
+                const reportContents = (editingProject.attachedReports || [])
+                    .map(id => savedReports.find(r => r.id === id))
+                    .filter(Boolean)
+                    .map(r => ({ name: r.name, content: r.content }));
+
+                const urls = (editingProject.attachedLinks || []).map(l => l.url);
+
+                setGenerating(true);
+                try {
+                    const res = await fetch(`${API_URL}/news-builder/generate-from-project`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            template: selectedTemplate.content,
+                            reportContents,
+                            urls
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        setGeneratedContent(data.content);
+                        showToast(txt.generated);
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setGenerating(false);
+                }
+            };
 
             const handleGenerateFromTemplate = async () => {
                 if (!template.trim() || selectedReports.length === 0) return;
@@ -3851,7 +4204,7 @@
                     const data = await res.json();
                     if (res.ok) {
                         setGeneratedContent(data.content);
-                        showToast(language === 'es' ? 'Newsletter generada' : 'Newsletter generated');
+                        showToast(txt.generated);
                     }
                 } catch (e) {
                     console.error(e);
@@ -3859,6 +4212,147 @@
                     setGenerating(false);
                 }
             };
+
+            // Project editing view
+            if (editingProject) {
+                return (
+                    <div className="modal-overlay" onClick={onClose}>
+                        <div className="modal" style={{maxWidth: 750, maxHeight: '90vh'}} onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                                    <button className="btn btn-small" onClick={() => { setEditingProject(null); setGeneratedContent(''); }}>
+                                        {txt.back}
+                                    </button>
+                                    <h2 style={{margin: 0}}>{editingProject.name}</h2>
+                                </div>
+                                <button className="modal-close" onClick={onClose}><LucideIcon name="x" size={20} /></button>
+                            </div>
+                            <div className="modal-body" style={{padding: 16, overflowY: 'auto', maxHeight: 'calc(90vh - 120px)'}}>
+                                {/* Templates Section */}
+                                <div style={{marginBottom: 24}}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
+                                        <h3 style={{margin: 0, fontSize: 16}}>{txt.templates}</h3>
+                                        <button className="btn btn-small" onClick={() => { setShowTemplateForm(true); setEditingTemplate(null); setNewTemplateName(''); setNewTemplateContent(''); }}>
+                                            {txt.addTemplate}
+                                        </button>
+                                    </div>
+                                    {showTemplateForm && (
+                                        <div style={{background: 'var(--bg-secondary)', padding: 12, borderRadius: 8, marginBottom: 12}}>
+                                            <input
+                                                className="form-input"
+                                                placeholder={txt.templateName}
+                                                value={newTemplateName}
+                                                onChange={e => setNewTemplateName(e.target.value)}
+                                                style={{marginBottom: 8}}
+                                            />
+                                            <textarea
+                                                className="form-textarea"
+                                                placeholder={txt.templateContent}
+                                                value={newTemplateContent}
+                                                onChange={e => setNewTemplateContent(e.target.value)}
+                                                style={{minHeight: 100, marginBottom: 8}}
+                                            />
+                                            <div style={{display: 'flex', gap: 8}}>
+                                                <button className="btn btn-primary btn-small" onClick={editingTemplate ? handleUpdateTemplate : handleAddTemplate}>
+                                                    {txt.save}
+                                                </button>
+                                                <button className="btn btn-small" onClick={() => { setShowTemplateForm(false); setEditingTemplate(null); }}>
+                                                    {txt.cancel}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {editingProject.templates.length === 0 ? (
+                                        <p style={{color: 'var(--text-secondary)', fontSize: 14}}>{txt.noTemplates}</p>
+                                    ) : (
+                                        editingProject.templates.map(t => (
+                                            <div key={t.id} style={{display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: selectedTemplateForGenerate === t.id ? 'var(--accent-light)' : 'var(--bg-secondary)', borderRadius: 6, marginBottom: 6, cursor: 'pointer', border: selectedTemplateForGenerate === t.id ? '2px solid var(--accent)' : '2px solid transparent'}}
+                                                onClick={() => setSelectedTemplateForGenerate(t.id)}>
+                                                <LucideIcon name="file-text" size={16} />
+                                                <span style={{flex: 1}}>{t.name}</span>
+                                                <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); setEditingTemplate(t); setNewTemplateName(t.name); setNewTemplateContent(t.content); setShowTemplateForm(true); }}>
+                                                    {txt.edit}
+                                                </button>
+                                                <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(t.id); }}>
+                                                    {txt.delete}
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                {/* Attached Reports Section */}
+                                <div style={{marginBottom: 24}}>
+                                    <h3 style={{margin: '0 0 12px', fontSize: 16}}>{txt.attachedReports}</h3>
+                                    {savedReports.length === 0 ? (
+                                        <p style={{color: 'var(--text-secondary)', fontSize: 14}}>{txt.noSavedReports}</p>
+                                    ) : (
+                                        <div style={{display: 'flex', flexWrap: 'wrap', gap: 8}}>
+                                            {savedReports.map(r => (
+                                                <div key={r.id}
+                                                    style={{padding: '6px 12px', background: (editingProject.attachedReports || []).includes(r.id) ? 'var(--accent)' : 'var(--bg-secondary)', color: (editingProject.attachedReports || []).includes(r.id) ? 'white' : 'var(--text-primary)', borderRadius: 20, cursor: 'pointer', fontSize: 13}}
+                                                    onClick={() => handleToggleReport(r.id)}>
+                                                    {r.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Attached Links Section */}
+                                <div style={{marginBottom: 24}}>
+                                    <h3 style={{margin: '0 0 12px', fontSize: 16}}>{txt.attachedLinks}</h3>
+                                    <div style={{display: 'flex', gap: 8, marginBottom: 12}}>
+                                        <input
+                                            className="form-input"
+                                            placeholder={txt.linkUrl}
+                                            value={newLinkUrl}
+                                            onChange={e => setNewLinkUrl(e.target.value)}
+                                            style={{flex: 2}}
+                                        />
+                                        <input
+                                            className="form-input"
+                                            placeholder={txt.linkTitle}
+                                            value={newLinkTitle}
+                                            onChange={e => setNewLinkTitle(e.target.value)}
+                                            style={{flex: 1}}
+                                        />
+                                        <button className="btn btn-primary btn-small" onClick={handleAddLink}>{txt.add}</button>
+                                    </div>
+                                    {(editingProject.attachedLinks || []).map(link => (
+                                        <div key={link.id} style={{display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: 6, marginBottom: 6}}>
+                                            <LucideIcon name="link" size={14} />
+                                            <span style={{flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{link.title}</span>
+                                            <button className="btn btn-small" onClick={() => handleDeleteLink(link.id)}><LucideIcon name="x" size={14} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Generate Button */}
+                                <div style={{borderTop: '1px solid var(--border-color)', paddingTop: 16}}>
+                                    {!selectedTemplateForGenerate && editingProject.templates.length > 0 && (
+                                        <p style={{color: 'var(--text-secondary)', fontSize: 13, marginBottom: 12}}>{txt.selectTemplate}</p>
+                                    )}
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleGenerateFromProject}
+                                        disabled={generating || !selectedTemplateForGenerate}
+                                        style={{width: '100%'}}>
+                                        {generating ? txt.generating : txt.generate}
+                                    </button>
+                                </div>
+
+                                {/* Generated Content */}
+                                {generatedContent && (
+                                    <div style={{marginTop: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, maxHeight: 300, overflowY: 'auto'}}>
+                                        <div dangerouslySetInnerHTML={{__html: generatedContent}} />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div className="modal-overlay" onClick={onClose}>
@@ -3870,22 +4364,73 @@
                         <div className="modal-body" style={{padding: 0}}>
                             <div style={{display: 'flex', borderBottom: '1px solid var(--border-color)'}}>
                                 <button
-                                    style={{flex: 1, padding: '12px', background: activeTab === 'reports' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)'}}
-                                    onClick={() => setActiveTab('reports')}>
-                                    {language === 'es' ? 'Reportes Guardados' : 'Saved Reports'}
+                                    style={{flex: 1, padding: '12px', background: activeTab === 'projects' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: activeTab === 'projects' ? 600 : 400}}
+                                    onClick={() => setActiveTab('projects')}>
+                                    {txt.projects}
                                 </button>
                                 <button
-                                    style={{flex: 1, padding: '12px', background: activeTab === 'template' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)'}}
+                                    style={{flex: 1, padding: '12px', background: activeTab === 'reports' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: activeTab === 'reports' ? 600 : 400}}
+                                    onClick={() => setActiveTab('reports')}>
+                                    {txt.savedReports}
+                                </button>
+                                <button
+                                    style={{flex: 1, padding: '12px', background: activeTab === 'template' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: activeTab === 'template' ? 600 : 400}}
                                     onClick={() => setActiveTab('template')}>
-                                    {language === 'es' ? 'Crear desde Plantilla' : 'Create from Template'}
+                                    {txt.createFromTemplate}
                                 </button>
                             </div>
+
+                            {activeTab === 'projects' && (
+                                <div style={{padding: 16}}>
+                                    <div style={{marginBottom: 16}}>
+                                        {showNewProjectInput ? (
+                                            <div style={{display: 'flex', gap: 8}}>
+                                                <input
+                                                    className="form-input"
+                                                    placeholder={txt.projectName}
+                                                    value={newProjectName}
+                                                    onChange={e => setNewProjectName(e.target.value)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleCreateProject()}
+                                                    autoFocus
+                                                    style={{flex: 1}}
+                                                />
+                                                <button className="btn btn-primary btn-small" onClick={handleCreateProject}>{txt.create}</button>
+                                                <button className="btn btn-small" onClick={() => { setShowNewProjectInput(false); setNewProjectName(''); }}>{txt.cancel}</button>
+                                            </div>
+                                        ) : (
+                                            <button className="btn btn-primary" onClick={() => setShowNewProjectInput(true)}>
+                                                {txt.newProject}
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div style={{maxHeight: 350, overflowY: 'auto'}}>
+                                        {projects.length === 0 ? (
+                                            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: 20}}>{txt.noProjects}</p>
+                                        ) : (
+                                            projects.map(project => (
+                                                <div key={project.id} style={{display: 'flex', alignItems: 'center', padding: '12px', marginBottom: 8, background: 'var(--bg-secondary)', borderRadius: 8, cursor: 'pointer'}}
+                                                    onClick={() => setEditingProject(project)}>
+                                                    <div style={{flex: 1}}>
+                                                        <div style={{fontWeight: 500}}>{project.name}</div>
+                                                        <div style={{fontSize: 12, color: 'var(--text-secondary)', marginTop: 4}}>
+                                                            {project.templates?.length || 0} {language === 'es' ? 'plantillas' : 'templates'} · {project.attachedReports?.length || 0} {language === 'es' ? 'reportes' : 'reports'} · {project.attachedLinks?.length || 0} links
+                                                        </div>
+                                                    </div>
+                                                    <button className="btn btn-small" onClick={(e) => { e.stopPropagation(); deleteProject(project.id); }}>
+                                                        <LucideIcon name="trash-2" size={14} />
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {activeTab === 'reports' && (
                                 <div style={{padding: 16, maxHeight: 400, overflowY: 'auto'}}>
                                     {savedReports.length === 0 ? (
                                         <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: 20}}>
-                                            {language === 'es' ? 'No hay reportes guardados' : 'No saved reports'}
+                                            {txt.noSavedReports}
                                         </p>
                                     ) : (
                                         savedReports.map(report => (
@@ -3902,22 +4447,22 @@
                             {activeTab === 'template' && (
                                 <div style={{padding: 16}}>
                                     <div className="form-group">
-                                        <label className="form-label">{language === 'es' ? 'Pega tu plantilla de newsletter' : 'Paste your newsletter template'}</label>
+                                        <label className="form-label">{txt.pasteTemplate}</label>
                                         <textarea
                                             className="form-textarea"
                                             value={template}
                                             onChange={e => setTemplate(e.target.value)}
-                                            placeholder={language === 'es' ? 'Pega aquí un ejemplo de newsletter que quieras replicar...' : 'Paste here a newsletter example you want to replicate...'}
+                                            placeholder={txt.pasteHint}
                                             style={{minHeight: 150}}
                                         />
                                     </div>
                                     {selectedReports.length > 0 && (
                                         <p style={{fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12}}>
-                                            {selectedReports.length} {language === 'es' ? 'reportes seleccionados' : 'reports selected'}
+                                            {selectedReports.length} {txt.reportsSelected}
                                         </p>
                                     )}
                                     <button className="btn btn-primary" onClick={handleGenerateFromTemplate} disabled={generating || !template.trim() || selectedReports.length === 0}>
-                                        {generating ? (language === 'es' ? 'Generando...' : 'Generating...') : (language === 'es' ? 'Generar Newsletter' : 'Generate Newsletter')}
+                                        {generating ? txt.generating : txt.generate}
                                     </button>
 
                                     {generatedContent && (

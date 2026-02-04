@@ -334,3 +334,77 @@ Output only the newsletter content, formatted in clean HTML.`
         throw error;
     }
 }
+
+export async function generateNewsletterFromProject(template, reports, urls, language = 'es') {
+    if (!ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    // Build context from reports and URLs
+    const reportContent = reports.length > 0
+        ? reports.map((r, i) => `--- Reporte ${i+1}: ${r.name} ---\n${r.content}`).join('\n\n')
+        : '';
+
+    const urlContent = urls.length > 0
+        ? urls.map((u, i) => `--- Fuente ${i+1}: ${u.url} ---\n${u.content}`).join('\n\n')
+        : '';
+
+    const contextSection = (reportContent || urlContent)
+        ? `\n\nContenido de referencia para incorporar:\n${reportContent}\n${urlContent}`
+        : '';
+
+    const prompts = {
+        es: `Eres un escritor de newsletters profesional.
+
+Usando esta plantilla como guía de estilo y estructura:
+${template}
+${contextSection}
+
+Genera una nueva newsletter con estilo, tono y estructura similares a la plantilla.
+${contextSection ? 'Incorpora la información relevante del contenido de referencia de manera natural.' : ''}
+Genera solo el contenido de la newsletter, formateado en HTML limpio.`,
+        en: `You are a professional newsletter writer.
+
+Using this template as a style and structure guide:
+${template}
+${contextSection}
+
+Generate a new newsletter with similar style, tone, and structure to the template.
+${contextSection ? 'Incorporate relevant information from the reference content naturally.' : ''}
+Output only the newsletter content, formatted in clean HTML.`
+    };
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+        const response = await fetch(ANTHROPIC_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 4096,
+                messages: [{
+                    role: 'user',
+                    content: prompts[language] || prompts.es
+                }]
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Claude API error: ${error}`);
+        }
+
+        const data = await response.json();
+        return data.content[0].text;
+    } catch (error) {
+        console.error('Error generating newsletter from project:', error);
+        throw error;
+    }
+}
