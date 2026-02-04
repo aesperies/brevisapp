@@ -4012,6 +4012,8 @@
             const [newLinkUrl, setNewLinkUrl] = useState('');
             const [newLinkTitle, setNewLinkTitle] = useState('');
             const [selectedTemplateForGenerate, setSelectedTemplateForGenerate] = useState(null);
+            const [uploadingWord, setUploadingWord] = useState(false);
+            const wordInputRef = React.useRef(null);
 
             const txt = {
                 es: {
@@ -4025,6 +4027,8 @@
                     noProjects: 'No hay proyectos. Crea uno para empezar.',
                     templates: 'Plantillas',
                     addTemplate: '+ Agregar Plantilla',
+                    uploadWord: 'Subir Word',
+                    uploadingWord: 'Procesando...',
                     templateName: 'Nombre de la plantilla',
                     templateContent: 'Contenido (HTML o texto)',
                     save: 'Guardar',
@@ -4059,6 +4063,8 @@
                     noProjects: 'No projects yet. Create one to get started.',
                     templates: 'Templates',
                     addTemplate: '+ Add Template',
+                    uploadWord: 'Upload Word',
+                    uploadingWord: 'Processing...',
                     templateName: 'Template name',
                     templateContent: 'Content (HTML or text)',
                     save: 'Save',
@@ -4155,6 +4161,44 @@
                 setEditingProject({...editingProject, attachedLinks: updatedLinks});
             };
 
+            const handleWordUpload = async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !editingProject) return;
+
+                setUploadingWord(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const res = await fetch(`${API_URL}/news-builder/upload-word`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.content) {
+                        const newTemplate = {
+                            id: Date.now(),
+                            name: data.name || file.name.replace(/\.(docx?|doc)$/i, ''),
+                            content: data.content
+                        };
+                        updateProject(editingProject.id, {
+                            templates: [...editingProject.templates, newTemplate]
+                        });
+                        setEditingProject({...editingProject, templates: [...editingProject.templates, newTemplate]});
+                        showToast(language === 'es' ? 'Plantilla agregada desde Word' : 'Template added from Word');
+                    } else {
+                        showToast(data.error || 'Error', 'error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast(language === 'es' ? 'Error al procesar archivo' : 'Error processing file', 'error');
+                } finally {
+                    setUploadingWord(false);
+                    if (wordInputRef.current) wordInputRef.current.value = '';
+                }
+            };
+
             const handleGenerateFromProject = async () => {
                 if (!selectedTemplateForGenerate || !editingProject) return;
                 const selectedTemplate = editingProject.templates.find(t => t.id === selectedTemplateForGenerate);
@@ -4232,9 +4276,22 @@
                                 <div style={{marginBottom: 24}}>
                                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
                                         <h3 style={{margin: 0, fontSize: 16}}>{txt.templates}</h3>
-                                        <button className="btn btn-small" onClick={() => { setShowTemplateForm(true); setEditingTemplate(null); setNewTemplateName(''); setNewTemplateContent(''); }}>
-                                            {txt.addTemplate}
-                                        </button>
+                                        <div style={{display: 'flex', gap: 8}}>
+                                            <input
+                                                type="file"
+                                                ref={wordInputRef}
+                                                accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                style={{display: 'none'}}
+                                                onChange={handleWordUpload}
+                                            />
+                                            <button className="btn btn-small" onClick={() => wordInputRef.current?.click()} disabled={uploadingWord}>
+                                                <LucideIcon name="upload" size={14} style={{marginRight: 4}} />
+                                                {uploadingWord ? txt.uploadingWord : txt.uploadWord}
+                                            </button>
+                                            <button className="btn btn-small" onClick={() => { setShowTemplateForm(true); setEditingTemplate(null); setNewTemplateName(''); setNewTemplateContent(''); }}>
+                                                {txt.addTemplate}
+                                            </button>
+                                        </div>
                                     </div>
                                     {showTemplateForm && (
                                         <div style={{background: 'var(--bg-secondary)', padding: 12, borderRadius: 8, marginBottom: 12}}>

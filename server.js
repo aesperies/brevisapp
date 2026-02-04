@@ -17,6 +17,7 @@ import OpenAI from 'openai';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
+import mammoth from 'mammoth';
 import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
@@ -590,6 +591,39 @@ app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), a
     } catch (error) {
         console.error('❌ PDF upload error:', error);
         res.status(500).json({ error: 'Failed to process PDF' });
+    }
+});
+
+// Word/DOCX upload for News Builder templates
+app.post('/api/news-builder/upload-word', authMiddleware, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        const validMimes = [
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/msword'
+        ];
+        if (!validMimes.includes(req.file.mimetype)) {
+            return res.status(400).json({ error: 'Only Word files (.docx, .doc) are supported' });
+        }
+        if (req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({ error: 'File too large (max 10MB)' });
+        }
+
+        const result = await mammoth.convertToHtml({ buffer: req.file.buffer });
+        const content = result.value || '';
+
+        if (!content.trim()) {
+            return res.status(400).json({ error: 'Could not extract content from Word file' });
+        }
+
+        const name = req.file.originalname.replace(/\.(docx?|doc)$/i, '');
+        console.log('✅ Word file processed:', name);
+        res.json({ name, content });
+    } catch (error) {
+        console.error('❌ Word upload error:', error);
+        res.status(500).json({ error: 'Failed to process Word file' });
     }
 });
 
