@@ -1736,9 +1736,14 @@ setInterval(fetchAllRSSFeeds, 30 * 60 * 1000);
 // Also run once on startup (after 10 seconds delay)
 setTimeout(fetchAllRSSFeeds, 10000);
 
-// SPA fallback - serve index.html for all other routes
-app.get('*', (req, res) => {
+// Landing page at root
+app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// SPA fallback - serve app.html for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'app.html'));
 });
 
 // ============= SERVER START =============
