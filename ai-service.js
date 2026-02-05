@@ -12,19 +12,28 @@ export const PLANS = {
         priceMonthly: 0,
         priceAnnual: 0
     },
+    // Keep 'pro' for backward compatibility with existing users
     pro: {
-        name: 'Pro',
+        name: 'Standard',
         canSummarize: true,
         canReport: false,
-        priceMonthly: 7.99,
-        priceAnnual: 69.99
+        priceMonthly: 8,
+        priceAnnual: 79.99
+    },
+    // 'standard' is the new name for pro
+    standard: {
+        name: 'Standard',
+        canSummarize: true,
+        canReport: false,
+        priceMonthly: 8,
+        priceAnnual: 79.99
     },
     premium: {
         name: 'Premium',
         canSummarize: true,
         canReport: true,
-        priceMonthly: 9.99,
-        priceAnnual: 89.99
+        priceMonthly: 10,
+        priceAnnual: 99.99
     }
 };
 

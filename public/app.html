@@ -2006,7 +2006,7 @@
                         brief: "Brief", report: "Reporte"
                     },
                     plans: {
-                        free: "Gratis", pro: "Pro", premium: "Premium",
+                        free: "Gratis", pro: "Standard", standard: "Standard", premium: "Premium",
                         upgrade: "Mejorar Plan", upgradePrompt: "Llegas al límite de tu plan"
                     },
                     profile: {
@@ -2050,7 +2050,7 @@
                         brief: "Brief", report: "Report"
                     },
                     plans: {
-                        free: "Free", pro: "Pro", premium: "Premium",
+                        free: "Free", pro: "Standard", standard: "Standard", premium: "Premium",
                         upgrade: "Upgrade Plan", upgradePrompt: "Reaching your plan limit"
                     },
                     profile: {
@@ -3051,7 +3051,7 @@
                                             )}
                                         </div>
                                         <div className="newsletter-card-actions">
-                                            {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
+                                            {!newsletter.summary && (user.plan === 'pro' || user.plan === 'standard' || user.plan === 'premium') && (
                                                 <button className="btn btn-small" onClick={() => generateSummary(newsletter.id)}
                                                     disabled={generatingSummary[newsletter.id]}>
                                                     {generatingSummary[newsletter.id] ? <><span className="loading-spinner"></span> {language === 'es' ? 'Generando...' : 'Generating...'}</> : translations.newsletter.summary}
@@ -3488,31 +3488,31 @@
                                             </div>
                                         </div>
 
-                                        {/* Pro */}
-                                        <div style={{padding: '16px', border: user.plan === 'pro' ? '2px solid #2BBCC0' : '1px solid #E8ECF0', borderRadius: '8px'}}>
+                                        {/* Standard (formerly Pro) */}
+                                        <div style={{padding: '16px', border: (user.plan === 'pro' || user.plan === 'standard') ? '2px solid #2BBCC0' : '1px solid #E8ECF0', borderRadius: '8px'}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
                                                 <div>
-                                                    <h3 style={{margin: 0, fontSize: '16px'}}>Pro</h3>
+                                                    <h3 style={{margin: 0, fontSize: '16px'}}>Standard</h3>
                                                     <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
                                                         {language === 'es' ? 'Resúmenes AI + Briefs' : 'AI Summaries + Briefs'}
                                                     </p>
                                                 </div>
                                                 <div style={{textAlign: 'right'}}>
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>
-                                                        ${billingInterval === 'month' ? '7.99' : '69.99'}
+                                                        ${billingInterval === 'month' ? '8' : '79.99'}
                                                     </div>
                                                     <span style={{fontSize: '11px', color: '#7A8599'}}>
                                                         /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
                                                     </span>
                                                 </div>
                                             </div>
-                                            {user.plan === 'pro' ? (
+                                            {(user.plan === 'pro' || user.plan === 'standard') ? (
                                                 <button className="btn btn-full" onClick={handleManageSubscription}>
                                                     {language === 'es' ? 'Gestionar suscripción' : 'Manage subscription'}
                                                 </button>
                                             ) : user.plan === 'premium' ? null : (
-                                                <button className="btn btn-primary btn-full" onClick={() => handleCheckout('pro')}>
-                                                    {language === 'es' ? 'Suscribirse a Pro' : 'Subscribe to Pro'}
+                                                <button className="btn btn-primary btn-full" onClick={() => handleCheckout('standard')}>
+                                                    {language === 'es' ? 'Suscribirse a Standard' : 'Subscribe to Standard'}
                                                 </button>
                                             )}
                                         </div>
@@ -3523,12 +3523,12 @@
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Premium</h3>
                                                     <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
-                                                        {language === 'es' ? 'Todo de Pro + Reports' : 'Everything in Pro + Reports'}
+                                                        {language === 'es' ? 'Todo de Standard + Reports' : 'Everything in Standard + Reports'}
                                                     </p>
                                                 </div>
                                                 <div style={{textAlign: 'right'}}>
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>
-                                                        ${billingInterval === 'month' ? '9.99' : '89.99'}
+                                                        ${billingInterval === 'month' ? '10' : '99.99'}
                                                     </div>
                                                     <span style={{fontSize: '11px', color: '#7A8599'}}>
                                                         /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}

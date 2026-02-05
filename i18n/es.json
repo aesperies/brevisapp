@@ -79,10 +79,11 @@
   },
   "plans": {
     "free": "Free",
-    "pro": "Pro",
+    "standard": "Standard",
     "premium": "Premium",
     "current": "Plan actual",
     "upgrade": "Mejorar Plan",
+    "trial": "Prueba gratis 15 días",
     "limit": "{{count}} de {{limit}} newsletters",
     "unlimited": "Newsletters ilimitados",
     "features": {
@@ -104,7 +105,7 @@
     "generic": "Ha ocurrido un error",
     "apiKey": "ANTHROPIC_API_KEY no configurada",
     "limitReached": "Has alcanzado el límite de tu plan",
-    "proRequired": "Esta función requiere el plan Pro",
+    "standardRequired": "Esta función requiere el plan Standard",
     "premiumRequired": "Esta función requiere el plan Premium"
   }
 }

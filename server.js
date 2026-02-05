@@ -945,7 +945,7 @@ app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
         const user = await dbHelpers.findUserById(req.user.id);
         
         if (!canUserPerformAction(user, 'generate_summary')) {
-            return res.status(403).json({ error: 'Upgrade to Pro to generate summaries' });
+            return res.status(403).json({ error: 'Upgrade to Standard to generate summaries' });
         }
 
         const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
@@ -1028,7 +1028,7 @@ app.post('/api/newsletters/:id/audio', authMiddleware, async (req, res) => {
 
         // Require Pro or Premium plan for audio generation
         if (!canUserPerformAction(user, 'generate_summary')) {
-            return res.status(403).json({ error: 'Upgrade to Pro to generate audio' });
+            return res.status(403).json({ error: 'Upgrade to Standard to generate audio' });
         }
 
         const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
@@ -1079,7 +1079,7 @@ app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
         const user = await dbHelpers.findUserById(req.user.id);
 
         if (!canUserPerformAction(user, 'generate_brief')) {
-            return res.status(403).json({ error: 'Upgrade to Pro to generate briefs' });
+            return res.status(403).json({ error: 'Upgrade to Standard to generate briefs' });
         }
 
         const { newsletter_ids, purpose } = req.body;
@@ -1311,8 +1311,12 @@ app.get('/api/plans', (req, res) => {
 // ============= STRIPE ROUTES =============
 
 const STRIPE_PRICES = {
+    // Keep pro for backward compatibility
     pro_month: process.env.STRIPE_PRICE_PRO_MONTHLY,
     pro_year: process.env.STRIPE_PRICE_PRO_ANNUAL,
+    // Standard uses same price IDs as pro (rebranded)
+    standard_month: process.env.STRIPE_PRICE_PRO_MONTHLY,
+    standard_year: process.env.STRIPE_PRICE_PRO_ANNUAL,
     premium_month: process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
     premium_year: process.env.STRIPE_PRICE_PREMIUM_ANNUAL
 };
@@ -1323,7 +1327,7 @@ app.post('/api/stripe/checkout', authMiddleware, async (req, res) => {
             return res.status(500).json({ error: 'Stripe not configured' });
         }
 
-        const { plan, interval } = req.body; // plan: 'pro'|'premium', interval: 'month'|'year'
+        const { plan, interval } = req.body; // plan: 'standard'|'premium' (or 'pro' for legacy), interval: 'month'|'year'
         const priceId = STRIPE_PRICES[`${plan}_${interval}`];
 
         if (!priceId) {
@@ -1437,8 +1441,9 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                     // Determine plan from price
                     const priceId = subscription.items?.data?.[0]?.price?.id;
                     let plan = 'free';
-                    if (priceId === STRIPE_PRICES.pro_month || priceId === STRIPE_PRICES.pro_year) {
-                        plan = 'pro';
+                    if (priceId === STRIPE_PRICES.pro_month || priceId === STRIPE_PRICES.pro_year ||
+                        priceId === STRIPE_PRICES.standard_month || priceId === STRIPE_PRICES.standard_year) {
+                        plan = 'standard'; // Use 'standard' as the new name (pro is now standard)
                     } else if (priceId === STRIPE_PRICES.premium_month || priceId === STRIPE_PRICES.premium_year) {
                         plan = 'premium';
                     }
@@ -1758,9 +1763,9 @@ app.listen(PORT, '0.0.0.0', () => {
 ║   Stripe: ${stripe ? '✅ Connected' : '❌ Not configured'}                              ║
 ║                                                        ║
 ║   Plans (unlimited newsletters):                       ║
-║   • Free: No AI features                              ║
-║   • Pro: Summaries + Briefs ($7.99/mo)                ║
-║   • Premium: + Reports ($9.99/mo)                     ║
+║   • Free: No AI features (hidden from web)            ║
+║   • Standard: Summaries + Briefs ($8/mo, 15d trial)  ║
+║   • Premium: + Reports ($10/mo, 15d trial)            ║
 ╚════════════════════════════════════════════════════════╝
     `);
 }); 
