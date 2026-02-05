@@ -203,7 +203,7 @@ app.post('/api/auth/register', registerLimiter, [
         });
         
         console.log('✅ User registered:', email);
-        
+
         res.json({
             user: {
                 id: user.id,
@@ -212,7 +212,8 @@ app.post('/api/auth/register', registerLimiter, [
                 email_code: user.email_code,
                 plan: user.plan,
                 language: user.language,
-                kindle_email: user.kindle_email
+                kindle_email: user.kindle_email,
+                trial_end_date: user.trial_end_date
             }
         });
     } catch (error) {
@@ -247,16 +248,22 @@ app.post('/api/auth/login', authLimiter, [
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Verificar si el periodo de prueba ha expirado
+        const currentPlan = await dbHelpers.checkAndUpdateTrialStatus(user.id);
+        if (currentPlan) {
+            user.plan = currentPlan;
+        }
+
         const token = generateToken(user);
-        res.cookie('token', token, { 
+        res.cookie('token', token, {
             httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production'
         });
-        
+
         console.log('✅ User logged in:', email);
-        
+
         res.json({
             user: {
                 id: user.id,
@@ -265,7 +272,8 @@ app.post('/api/auth/login', authLimiter, [
                 email_code: user.email_code,
                 plan: user.plan,
                 language: user.language,
-                kindle_email: user.kindle_email
+                kindle_email: user.kindle_email,
+                trial_end_date: user.trial_end_date
             }
         });
     } catch (error) {

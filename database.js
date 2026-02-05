@@ -84,6 +84,7 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMP;
         `);
 
         // Waitlist table
@@ -191,15 +192,46 @@ export const dbHelpers = {
         return await bcrypt.compare(plainPassword, result.rows[0].password_hash);
     },
 
+    // Verificar y actualizar el plan si el periodo de prueba ha expirado
+    checkAndUpdateTrialStatus: async (userId) => {
+        const result = await pool.query(`
+            SELECT id, plan, trial_end_date
+            FROM users
+            WHERE id = $1
+        `, [userId]);
+
+        if (result.rows.length === 0) return null;
+
+        const user = result.rows[0];
+        const now = new Date();
+
+        // Si tiene un trial_end_date y ya expiró, y su plan es 'pro', bajarlo a 'free'
+        if (user.trial_end_date && new Date(user.trial_end_date) < now && user.plan === 'pro') {
+            console.log('⏰ Trial expirado para usuario:', userId);
+            await pool.query(`
+                UPDATE users
+                SET plan = 'free', trial_end_date = NULL
+                WHERE id = $1
+            `, [userId]);
+            return 'free';
+        }
+
+        return user.plan;
+    },
+
     createUser: async (email, password, name) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const emailCode = generateEmailCode(email);
 
+        // Nuevo usuario obtiene 15 días de prueba gratis del plan Pro
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 15);
+
         const result = await pool.query(`
-            INSERT INTO users (email, password_hash, name, email_code, plan, newsletters_count, newsletters_limit, language, is_active)
-            VALUES ($1, $2, $3, $4, 'free', 0, 10, 'es', 1)
+            INSERT INTO users (email, password_hash, name, email_code, plan, trial_end_date, newsletters_count, newsletters_limit, language, is_active)
+            VALUES ($1, $2, $3, $4, 'pro', $5, 0, 10, 'es', 1)
             RETURNING *
-        `, [email, passwordHash, name, emailCode]);
+        `, [email, passwordHash, name, emailCode, trialEndDate]);
 
         return result.rows[0];
     },
