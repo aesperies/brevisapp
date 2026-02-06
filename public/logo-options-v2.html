@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BREVIS - Variaciones Logo Opción 2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Instrument Sans', sans-serif;
+            padding: 60px 40px;
+            background: #FAFAFA;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 48px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 60px;
+            font-size: 18px;
+        }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo-option {
+            background: white;
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+        }
+
+        .logo-option:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .logo-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 24px;
+            color: #2BBCC0;
+        }
+
+        .logo-container {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            background: #FAFAFA;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .logo-variants {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
+        }
+
+        .variant {
+            padding: 16px;
+            border-radius: 8px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .variant.dark {
+            background: #000000;
+        }
+
+        .variant.light {
+            background: #F5F5F5;
+        }
+
+        .variant.color {
+            background: #2BBCC0;
+        }
+
+        .variant img {
+            max-width: 100%;
+            height: 40px;
+        }
+
+        .description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .font-info {
+            margin-top: 12px;
+            padding: 12px;
+            background: #F0F9FA;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #239da1;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <h1>Variaciones - Documentos Apilados</h1>
+    <p class="subtitle">5 versiones del logo con diferentes estilos de tipografía</p>
+
+    <div class="logo-grid">
+        <!-- V2-1 -->
+        <div class="logo-option">
+            <div class="logo-title">V2-1: Clean + Serif Elegante</div>
+            <div class="logo-container">
+                <img src="logo-v2-1.svg" alt="Logo V2-1">
+            </div>
+            <p class="description">
+                Documentos apilados limpios con líneas sutiles. Texto en Instrument Serif (elegante y profesional).
+            </p>
+            <div class="font-info">Instrument Serif • 600 weight</div>
+        </div>
+
+        <!-- V2-2 -->
+        <div class="logo-option">
+            <div class="logo-title">V2-2: Bold Moderno</div>
+            <div class="logo-container">
+                <img src="logo-v2-2.svg" alt="Logo V2-2">
+            </div>
+            <p class="description">
+                Esquinas redondeadas y profundidad sutil. Texto bold en Instrument Sans (impactante y moderno).
+            </p>
+            <div class="font-info">Instrument Sans • 700 weight • Letter spacing ajustado</div>
+        </div>
+
+        <!-- V2-3 -->
+        <div class="logo-option">
+            <div class="logo-title">V2-3: Geométrico Dinámico</div>
+            <div class="logo-container">
+                <img src="logo-v2-3.svg" alt="Logo V2-3">
+            </div>
+            <p class="description">
+                Papers en abanico con rotación. Flecha hacia abajo sugiere resumen. Sans semi-bold balanceado.
+            </p>
+            <div class="font-info">Instrument Sans • 600 weight • Espaciado natural</div>
+        </div>
+
+        <!-- V2-4 -->
+        <div class="logo-option">
+            <div class="logo-title">V2-4: Minimal Sofisticado</div>
+            <div class="logo-container">
+                <img src="logo-v2-4.svg" alt="Logo V2-4">
+            </div>
+            <p class="description">
+                Capas sutiles con outline turquesa. Esquina doblada tipo documento. Texto ligero y espaciado (sofisticado).
+            </p>
+            <div class="font-info">Instrument Sans • 500 weight • Letter spacing amplio</div>
+        </div>
+
+        <!-- V2-5 -->
+        <div class="logo-option">
+            <div class="logo-title">V2-5: Bold con Profundidad</div>
+            <div class="logo-container">
+                <img src="logo-v2-5.svg" alt="Logo V2-5">
+            </div>
+            <p class="description">
+                Gradiente de turquesa con profundidad real. Líneas gruesas. Serif bold condensado (muy impactante).
+            </p>
+            <div class="font-info">Instrument Serif • 600 weight • Letter spacing negativo</div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 80px; padding: 40px; background: white; border-radius: 16px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 style="font-family: 'Instrument Serif', serif; font-size: 32px; margin-bottom: 16px;">💡 Recomendación</h2>
+        <p style="color: #666; line-height: 1.6;">
+            <strong>V2-2 (Bold Moderno)</strong> o <strong>V2-5 (Bold con Profundidad)</strong> funcionan mejor para web moderna.<br>
+            <strong>V2-4 (Minimal)</strong> es perfecto si quieres algo más sofisticado y tranquilo.<br>
+            <strong>V2-1</strong> y <strong>V2-3</strong> son buenos balances entre los extremos.
+        </p>
+    </div>
+</body>
+</html>

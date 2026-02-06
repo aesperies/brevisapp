@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BREVIS - V2-3 con 3 Fuentes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Instrument Sans', sans-serif;
+            padding: 60px 40px;
+            background: #FAFAFA;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 48px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 60px;
+            font-size: 18px;
+        }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo-option {
+            background: white;
+            border-radius: 20px;
+            padding: 48px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+        }
+
+        .logo-option:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px);
+        }
+
+        .logo-title {
+            font-weight: 700;
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #2BBCC0;
+        }
+
+        .logo-subtitle {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 32px;
+        }
+
+        .logo-container {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+            background: #FAFAFA;
+            border-radius: 12px;
+            padding: 32px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .logo-variants {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
+        }
+
+        .variant {
+            padding: 20px;
+            border-radius: 8px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .variant.dark {
+            background: #000000;
+        }
+
+        .variant.light {
+            background: #F5F5F5;
+        }
+
+        .variant.color {
+            background: #2BBCC0;
+        }
+
+        .variant img {
+            max-width: 100%;
+            height: 40px;
+        }
+
+        .variant-label {
+            font-size: 11px;
+            color: #999;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .description {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .font-info {
+            padding: 16px;
+            background: linear-gradient(135deg, #F0F9FA 0%, #E8F5F6 100%);
+            border-radius: 12px;
+            font-size: 14px;
+            color: #239da1;
+            font-weight: 600;
+            border: 1px solid #C5E9ED;
+        }
+
+        .recommendation {
+            text-align: center;
+            margin-top: 80px;
+            padding: 48px;
+            background: white;
+            border-radius: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 4px 20px rgba(43, 188, 192, 0.15);
+        }
+
+        .recommendation h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #2BBCC0;
+        }
+
+        .recommendation p {
+            color: #666;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        .recommendation strong {
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Logo V2-3 (Geométrico)</h1>
+    <p class="subtitle">El mismo diseño con 3 estilos de tipografía</p>
+
+    <div class="logo-grid">
+        <!-- Serif -->
+        <div class="logo-option">
+            <div class="logo-title">Serif Elegante</div>
+            <div class="logo-subtitle">Estilo TrumpRx / Gobierno</div>
+            <div class="logo-container">
+                <img src="logo-v2-3-serif.svg" alt="V2-3 Serif">
+            </div>
+            <p class="description">
+                La opción más <strong>sofisticada y profesional</strong>. Instrument Serif le da un aire de autoridad y elegancia moderna, muy estilo gobierno/Apple.
+            </p>
+            <div class="font-info">
+                Instrument Serif<br>
+                600 weight • -0.02em spacing
+            </div>
+            <div class="logo-variants">
+                <div>
+                    <div class="variant light">
+                        <img src="logo-v2-3-serif.svg" alt="Light">
+                    </div>
+                    <div class="variant-label">Claro</div>
+                </div>
+                <div>
+                    <div class="variant dark">
+                        <img src="logo-v2-3-serif.svg" alt="Dark" style="filter: invert(1);">
+                    </div>
+                    <div class="variant-label">Oscuro</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bold -->
+        <div class="logo-option">
+            <div class="logo-title">Sans Bold</div>
+            <div class="logo-subtitle">Estilo Startup / Tech</div>
+            <div class="logo-container">
+                <img src="logo-v2-3-bold.svg" alt="V2-3 Bold">
+            </div>
+            <p class="description">
+                La opción más <strong>impactante y directa</strong>. Bold con spacing negativo para un look moderno y compacto. Muy Silicon Valley.
+            </p>
+            <div class="font-info">
+                Instrument Sans Bold<br>
+                700 weight • -0.03em spacing
+            </div>
+            <div class="logo-variants">
+                <div>
+                    <div class="variant light">
+                        <img src="logo-v2-3-bold.svg" alt="Light">
+                    </div>
+                    <div class="variant-label">Claro</div>
+                </div>
+                <div>
+                    <div class="variant dark">
+                        <img src="logo-v2-3-bold.svg" alt="Dark" style="filter: invert(1);">
+                    </div>
+                    <div class="variant-label">Oscuro</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Light -->
+        <div class="logo-option">
+            <div class="logo-title">Sans Light Espaciada</div>
+            <div class="logo-subtitle">Estilo Minimal / Lujo</div>
+            <div class="logo-container">
+                <img src="logo-v2-3-light.svg" alt="V2-3 Light">
+            </div>
+            <p class="description">
+                La opción más <strong>minimalista y sofisticada</strong>. Light con spacing amplio para un aire tranquilo y de lujo. Muy limpia.
+            </p>
+            <div class="font-info">
+                Instrument Sans Light<br>
+                400 weight • 0.08em spacing
+            </div>
+            <div class="logo-variants">
+                <div>
+                    <div class="variant light">
+                        <img src="logo-v2-3-light.svg" alt="Light">
+                    </div>
+                    <div class="variant-label">Claro</div>
+                </div>
+                <div>
+                    <div class="variant dark">
+                        <img src="logo-v2-3-light.svg" alt="Dark" style="filter: invert(1);">
+                    </div>
+                    <div class="variant-label">Oscuro</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="recommendation">
+        <h2>💡 Mi Recomendación</h2>
+        <p>
+            Para una web moderna como la que estamos creando (estilo TrumpRx), te recomiendo la <strong>Serif Elegante</strong> o la <strong>Sans Bold</strong>.<br><br>
+
+            <strong>Serif</strong> si quieres proyectar <em>profesionalismo y autoridad</em> (más tradicional pero muy moderna).<br>
+            <strong>Bold</strong> si quieres ser más <em>directa y startup-friendly</em> (más tech y accesible).<br><br>
+
+            La <strong>Light</strong> es hermosa pero puede perderse en pantallas pequeñas.
+        </p>
+    </div>
+</body>
+</html>

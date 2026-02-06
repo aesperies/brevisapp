@@ -5,38 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BREVIS - How to Add Content</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, sans-serif; color: #2C3544; background: #FAFBFC; line-height: 1.6; }
-        .nav { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); z-index: 100; }
-        .nav img { height: 32px; }
-        .nav a { font-size: 14px; font-weight: 600; color: #2C3544; text-decoration: none; }
-        .nav a:hover { color: #2BBCC0; }
-        .container { max-width: 720px; margin: 0 auto; padding: 120px 24px 80px; }
-        h1 { font-size: 36px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
-        .subtitle { font-size: 16px; color: #7A8599; margin-bottom: 48px; }
-        .method { margin-bottom: 48px; }
-        .method-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-        .method-number { width: 32px; height: 32px; background: #2C3544; color: #FFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
-        .method-title { font-size: 20px; font-weight: 700; }
-        .method-body { padding-left: 44px; }
-        .method-body p { margin-bottom: 12px; color: #4A5568; font-size: 15px; }
-        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        body { font-family: 'Instrument Sans', -apple-system, sans-serif; color: #000000; background: #FFFFFF; line-height: 1.6; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 24px 48px; background: rgba(255,255,255,0.98); backdrop-filter: blur(20px); border-bottom: 1px solid #E5E5E5; z-index: 100; }
+        .nav img { height: 40px; }
+        .nav a { font-size: 15px; font-weight: 500; color: #666666; text-decoration: none; }
+        .nav a:hover { color: #000000; }
+        .container { max-width: 800px; margin: 0 auto; padding: 160px 48px 120px; }
+        h1 { font-family: 'Instrument Serif', serif; font-size: 48px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 16px; }
+        .subtitle { font-size: 18px; color: #666666; margin-bottom: 64px; font-weight: 500; }
+        .method { margin-bottom: 72px; }
+        .method-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+        .method-number { width: 40px; height: 40px; background: #000000; color: #FFFFFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+        .method-title { font-family: 'Instrument Serif', serif; font-size: 24px; font-weight: 600; }
+        .method-body { padding-left: 56px; }
+        .method-body p { margin-bottom: 16px; color: #333333; font-size: 15px; }
+        .tag { display: inline-block; padding: 6px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
         .tag-all { background: rgba(43,188,192,0.1); color: #2BBCC0; }
         .tag-twitter { background: rgba(29,155,240,0.1); color: #1D9BF0; }
         .tag-linkedin { background: rgba(0,119,181,0.1); color: #0077B5; }
-        .steps { list-style: none; margin: 12px 0; }
-        .steps li { position: relative; padding: 8px 0 8px 24px; font-size: 14px; color: #4A5568; }
-        .steps li::before { content: ''; position: absolute; left: 0; top: 16px; width: 8px; height: 8px; background: #2BBCC0; border-radius: 50%; }
-        .code { background: #F0F4F7; padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: #2C3544; margin: 12px 0; word-break: break-all; }
-        .divider { border: none; border-top: 1px solid #E8ECF0; margin: 48px 0; }
-        .footer { text-align: center; font-size: 13px; color: #7A8599; }
+        .steps { list-style: none; margin: 16px 0; }
+        .steps li { position: relative; padding: 12px 0 12px 32px; font-size: 14px; color: #333333; }
+        .steps li::before { content: ''; position: absolute; left: 8px; top: 20px; width: 8px; height: 8px; background: #2BBCC0; border-radius: 50%; }
+        .code { background: #F5F5F5; padding: 12px 16px; border-radius: 6px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: #000000; margin: 16px 0; word-break: break-all; }
+        .divider { border: none; border-top: 1px solid #E5E5E5; margin: 80px 0; }
+        .footer { text-align: center; font-size: 13px; color: #999999; }
     </style>
 </head>
 <body>
     <div class="nav">
-        <a href="/"><img src="/logo-new.png" alt="brevis"></a>
+        <a href="/"><img src="./logo-v2-3-light.svg" alt="brevis"></a>
         <a href="/">Back to app</a>
     </div>
     <div class="container">

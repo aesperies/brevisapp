@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BREVIS - Opciones de Logo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Instrument Sans', sans-serif;
+            padding: 60px 40px;
+            background: #FAFAFA;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 48px;
+            font-weight: 600;
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo-option {
+            background: white;
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+        }
+
+        .logo-option:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .logo-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 24px;
+            color: #2BBCC0;
+        }
+
+        .logo-container {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .logo-variants {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 24px;
+        }
+
+        .variant {
+            padding: 24px;
+            border-radius: 8px;
+            flex: 1;
+        }
+
+        .variant.dark {
+            background: #000000;
+        }
+
+        .variant.light {
+            background: #F5F5F5;
+        }
+
+        .variant.color {
+            background: #2BBCC0;
+        }
+
+        .variant img {
+            max-width: 100%;
+        }
+
+        .description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Opciones de Logo - BREVIS</h1>
+
+    <div class="logo-grid">
+        <!-- Option 1 -->
+        <div class="logo-option">
+            <div class="logo-title">Opción 1: Bold Tipográfico</div>
+            <div class="logo-container">
+                <img src="logo-option-1.svg" alt="Logo Option 1">
+            </div>
+            <p class="description">
+                Logo tipográfico bold con underline turquesa. Minimalista y directo. Usa Instrument Serif para elegancia moderna.
+            </p>
+        </div>
+
+        <!-- Option 2 -->
+        <div class="logo-option">
+            <div class="logo-title">Opción 2: Documentos Apilados</div>
+            <div class="logo-container">
+                <img src="logo-option-2.svg" alt="Logo Option 2">
+            </div>
+            <p class="description">
+                Icono de documentos apilados que representa organización y múltiples newsletters. Visual y memorable.
+            </p>
+        </div>
+
+        <!-- Option 3 -->
+        <div class="logo-option">
+            <div class="logo-title">Opción 3: B en Círculo</div>
+            <div class="logo-container">
+                <img src="logo-option-3.svg" alt="Logo Option 3">
+            </div>
+            <p class="description">
+                Monograma con la B destacada en círculo negro. Contraste turquesa/negro. Fuerte identidad de marca.
+            </p>
+        </div>
+
+        <!-- Option 4 -->
+        <div class="logo-option">
+            <div class="logo-title">Opción 4: Monograma BR</div>
+            <div class="logo-container">
+                <img src="logo-option-4.svg" alt="Logo Option 4">
+            </div>
+            <p class="description">
+                Monograma BR en badge turquesa. Perfecto para favicon y app icon. Reconocible a cualquier tamaño.
+            </p>
+        </div>
+
+        <!-- Option 5 -->
+        <div class="logo-option">
+            <div class="logo-title">Opción 5: Contracción Visual</div>
+            <div class="logo-container">
+                <img src="logo-option-5.svg" alt="Logo Option 5">
+            </div>
+            <p class="description">
+                Representa visualmente el proceso de resumir: texto largo → texto corto. Comunica la funcionalidad core.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

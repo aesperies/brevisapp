@@ -1,9 +1,12 @@
-<svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Favicon: Solo el icono de papers (32x32) -->
-  <g transform="translate(5, 2)">
+<svg width="220" height="60" viewBox="0 0 220 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- V2-3 with Bold Sans Font -->
+  <g>
+    <!-- Three papers fanned out -->
     <rect x="6" y="14" width="24" height="32" rx="3" fill="#E5E5E5" transform="rotate(-8 18 30)"/>
     <rect x="12" y="14" width="24" height="32" rx="3" fill="#CCCCCC"/>
     <rect x="18" y="14" width="24" height="32" rx="3" fill="#2BBCC0" transform="rotate(8 30 30)"/>
+    <!-- Arrow icon on center paper -->
     <path d="M 24 28 L 24 34 M 21 31 L 24 34 L 27 31" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
+  <text x="52" y="39" font-family="Instrument Sans, sans-serif" font-size="36" font-weight="700" fill="#000000" letter-spacing="-0.03em">BREVIS</text>
 </svg>

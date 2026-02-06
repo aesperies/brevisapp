@@ -1,0 +1,9 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Option 4: Minimalist BR monogram -->
+  <g>
+    <rect x="10" y="10" width="30" height="40" rx="4" fill="#2BBCC0"/>
+    <path d="M 18 22 L 18 48 M 18 22 L 26 22 Q 32 22 32 28 Q 32 32 28 33 Q 33 34 33 39 Q 33 45 26 45 L 18 45"
+          stroke="#000000" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="50" y="38" font-family="Instrument Sans, sans-serif" font-size="28" font-weight="700" fill="#000000">BREVIS</text>
+</svg>

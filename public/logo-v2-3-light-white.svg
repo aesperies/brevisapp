@@ -1,0 +1,12 @@
+<svg width="220" height="60" viewBox="0 0 220 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- V2-3 Light White (para fondos oscuros) -->
+  <g>
+    <!-- Three papers fanned out -->
+    <rect x="6" y="14" width="24" height="32" rx="3" fill="#FFFFFF" transform="rotate(-8 18 30)"/>
+    <rect x="12" y="14" width="24" height="32" rx="3" fill="#F0F0F0"/>
+    <rect x="18" y="14" width="24" height="32" rx="3" fill="#FFFFFF" transform="rotate(8 30 30)"/>
+    <!-- Arrow icon on center paper -->
+    <path d="M 24 28 L 24 34 M 21 31 L 24 34 L 27 31" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="52" y="37" font-family="Instrument Sans, sans-serif" font-size="32" font-weight="400" fill="#FFFFFF" letter-spacing="0.08em">BREVIS</text>
+</svg>

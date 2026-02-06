@@ -1,0 +1,14 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Option 2: Icon + Text (Document stack) -->
+  <g>
+    <!-- Stacked documents icon -->
+    <rect x="8" y="18" width="24" height="28" rx="3" fill="#2BBCC0"/>
+    <rect x="14" y="12" width="24" height="28" rx="3" fill="#000000" opacity="0.2"/>
+    <rect x="20" y="6" width="24" height="28" rx="3" fill="#000000" opacity="0.1"/>
+    <!-- Lines inside front document -->
+    <line x1="14" y1="24" x2="26" y2="24" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <line x1="14" y1="30" x2="26" y2="30" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <line x1="14" y1="36" x2="22" y2="36" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <text x="52" y="38" font-family="Instrument Sans, sans-serif" font-size="28" font-weight="700" fill="#000000">BREVIS</text>
+</svg>
