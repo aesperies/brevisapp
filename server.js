@@ -1592,7 +1592,7 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) =
             // Parsed mode: text and html are separate fields
             toEmail = req.body.to || '';
             fromEmail = req.body.from || '';
-            subject = req.body.subject || 'Sin título';
+            subject = req.body.subject || 'Untitled';
             htmlContent = req.body.html || '';
             textContent = req.body.text || '';
             console.log('📨 Using parsed mode (text/html fields)');
@@ -1602,14 +1602,14 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) =
             const parsed = await simpleParser(req.body.email);
             toEmail = req.body.to || parsed.to?.text || '';
             fromEmail = req.body.from || parsed.from?.text || '';
-            subject = req.body.subject || parsed.subject || 'Sin título';
+            subject = req.body.subject || parsed.subject || 'Untitled';
             htmlContent = parsed.html || '';
             textContent = parsed.text || '';
             console.log('📨 Parsed email - text length:', textContent.length, 'html length:', htmlContent.length);
         } else {
             toEmail = req.body.to || '';
             fromEmail = req.body.from || '';
-            subject = req.body.subject || 'Sin título';
+            subject = req.body.subject || 'Untitled';
         }
 
         // Prefer HTML content (cleaned), fallback to cleaned text

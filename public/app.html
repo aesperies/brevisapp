@@ -264,6 +264,13 @@
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: var(--btn-dark); color: var(--bg-primary); border-color: var(--btn-dark); }
         .btn-primary:hover { background: var(--btn-dark-hover); }
+        .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .sidebar-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+        .close-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .newsletter-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+        .user-name-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+        .tag-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         .btn-small { padding: 8px 16px; font-size: 13px; }
         .btn-full { width: 100%; }
         .email-display {
@@ -889,6 +896,11 @@
             color: var(--text-muted);
             font-size: 13px;
         }
+        @media (max-width: 1024px) {
+            .landing-headline { font-size: 48px; }
+            .landing-features-inner { grid-template-columns: repeat(2, 1fr); }
+            .landing-features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 768px) {
             .landing-headline { font-size: 36px; }
             .landing-subtitle { font-size: 16px; }
@@ -896,13 +908,24 @@
             .landing-form { flex-direction: column; }
             .landing-btn { width: 100%; }
         }
+        @media (max-width: 1024px) {
+            .sidebar { width: 220px; }
+            .main-content { margin-left: 220px; }
+            .container { padding: 0 24px; }
+            .header { padding: 24px 0; margin-bottom: 24px; }
+            .sidebar-logo { padding: 0 16px 24px; margin-bottom: 24px; }
+            .sidebar-item { padding: 12px 16px; gap: 10px; }
+            .sidebar-title { padding: 0 16px; }
+        }
         @media (max-width: 768px) {
-            .sidebar { display: none; }
+            .sidebar { display: none; width: 260px; }
             .sidebar.sidebar-open { display: flex; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
             .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 199; }
             .sidebar-overlay.active { display: block; }
             .main-content { margin-left: 0; }
+            .container { padding: 0 16px; }
             .mobile-menu-btn { display: flex !important; }
+            .mobile-sidebar-close { display: block !important; }
         }
         .mobile-menu-btn {
             display: none;
@@ -2098,6 +2121,12 @@
                 } else if (params.get('checkout') === 'cancel') {
                     window.history.replaceState({}, '', window.location.pathname);
                 }
+
+                // Poll for new newsletters every 60 seconds
+                const pollInterval = setInterval(() => {
+                    fetchNewsletters();
+                }, 60000);
+                return () => clearInterval(pollInterval);
             }, []);
 
             // Close tag dropdown when clicking outside
@@ -2696,6 +2725,14 @@
                 <div className="app-layout">
                     {sidebarOpen && <div className="sidebar-overlay active" onClick={() => setSidebarOpen(false)}></div>}
                     <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+                        {sidebarOpen && (
+                            <button onClick={() => setSidebarOpen(false)}
+                                aria-label="Close sidebar"
+                                style={{position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)', zIndex: 10, display: 'none'}}
+                                className="mobile-sidebar-close">
+                                ✕
+                            </button>
+                        )}
                         {/* Sidebar sections rendered based on sidebarOrder */}
                         {(() => {
                             const handleDragStart = (e, sectionId) => {
@@ -3617,8 +3654,8 @@
                                 <div className="modal-header">
                                     <h2 className="modal-title">
                                         {showBatchResult.type === 'brief'
-                                            ? React.createElement(React.Fragment, null, React.createElement(LucideIcon, {name: 'file-text', size: 18, style: {marginRight: '8px'}}), 'Brief Ejecutivo')
-                                            : React.createElement(React.Fragment, null, React.createElement(LucideIcon, {name: 'bar-chart-3', size: 18, style: {marginRight: '8px'}}), 'Reporte Completo')}
+                                            ? React.createElement(React.Fragment, null, React.createElement(LucideIcon, {name: 'file-text', size: 18, style: {marginRight: '8px'}}), language === 'es' ? 'Brief Ejecutivo' : 'Executive Brief')
+                                            : React.createElement(React.Fragment, null, React.createElement(LucideIcon, {name: 'bar-chart-3', size: 18, style: {marginRight: '8px'}}), language === 'es' ? 'Reporte Completo' : 'Full Report')}
                                     </h2>
                                     <button className="close-btn" onClick={() => setShowBatchResult(null)}>×</button>
                                 </div>
@@ -3674,10 +3711,10 @@
                                         a.click();
                                         URL.revokeObjectURL(url);
                                     }}>
-                                        <LucideIcon name="download" size={14} /> Descargar
+                                        <LucideIcon name="download" size={14} /> {language === 'es' ? 'Descargar' : 'Download'}
                                     </button>
                                     <button className="btn btn-primary" onClick={() => setShowBatchResult(null)}>
-                                        Cerrar
+                                        {language === 'es' ? 'Cerrar' : 'Close'}
                                     </button>
                                 </div>
                             </div>
@@ -3941,7 +3978,7 @@ postHeight();
                                     <label className="form-label">{translations.profile.newPassword}</label>
                                     <input type="password" className="form-input" value={formData.newPassword}
                                         onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
-                                        placeholder="Dejar en blanco para no cambiar" />
+                                        placeholder={language === 'es' ? 'Dejar en blanco para no cambiar' : 'Leave blank to keep current'} />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Kindle Email</label>
