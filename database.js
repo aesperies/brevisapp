@@ -182,7 +182,7 @@ export async function createInitialUser() {
 }
 
 // Safe user columns (excludes password_hash)
-const USER_COLUMNS = 'id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date';
+const USER_COLUMNS = 'id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date, email_verified';
 
 // Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {
