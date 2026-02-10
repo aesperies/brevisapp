@@ -311,6 +311,25 @@ export const dbHelpers = {
         return result.rows[0] || null;
     },
 
+    getNewslettersByIds: async (ids, userId) => {
+        if (!ids || ids.length === 0) return [];
+        const intIds = ids.map(id => parseInt(id));
+        const result = await pool.query(`
+            SELECT n.*,
+                COALESCE(
+                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color))
+                    FILTER (WHERE t.id IS NOT NULL),
+                    '[]'::json
+                ) AS tags
+            FROM newsletters n
+            LEFT JOIN newsletter_tags nt ON n.id = nt.newsletter_id
+            LEFT JOIN tags t ON nt.tag_id = t.id
+            WHERE n.id = ANY($1) AND n.user_id = $2
+            GROUP BY n.id
+        `, [intIds, userId]);
+        return result.rows;
+    },
+
     createNewsletter: async (userId, title, sender, content, url) => {
         const result = await pool.query(`
             INSERT INTO newsletters (user_id, title, sender, content, url, is_read)

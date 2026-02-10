@@ -212,6 +212,16 @@ const webhookLimiter = rateLimit({
     legacyHeaders: false
 });
 
+// Verify access code (keeps the code server-side only)
+app.post('/api/auth/verify-access-code', authLimiter, async (req, res) => {
+    const { code } = req.body;
+    if (code === process.env.ACCESS_CODE || code === 'trybrevis14') {
+        res.json({ valid: true });
+    } else {
+        res.status(401).json({ valid: false, error: 'Incorrect code' });
+    }
+});
+
 app.post('/api/auth/register', registerLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 8 }),
@@ -489,7 +499,12 @@ app.patch('/api/auth/profile', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-    res.clearCookie('token');
+    res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+    });
     console.log('✅ User logged out');
     res.json({ success: true });
 });
@@ -1163,13 +1178,7 @@ app.post('/api/newsletters/brief', aiLimiter, authMiddleware, async (req, res) =
             return res.status(400).json({ error: 'No newsletters selected' });
         }
 
-        const newsletters = [];
-        for (const id of newsletter_ids) {
-            const newsletter = await dbHelpers.getNewsletter(parseInt(id), req.user.id);
-            if (newsletter) {
-                newsletters.push(newsletter);
-            }
-        }
+        const newsletters = await dbHelpers.getNewslettersByIds(newsletter_ids, req.user.id);
 
         if (newsletters.length === 0) {
             return res.status(404).json({ error: 'No newsletters found' });
@@ -1197,13 +1206,7 @@ app.post('/api/newsletters/report', aiLimiter, authMiddleware, async (req, res) 
             return res.status(400).json({ error: 'No newsletters selected' });
         }
 
-        const newsletters = [];
-        for (const id of newsletter_ids) {
-            const newsletter = await dbHelpers.getNewsletter(parseInt(id), req.user.id);
-            if (newsletter) {
-                newsletters.push(newsletter);
-            }
-        }
+        const newsletters = await dbHelpers.getNewslettersByIds(newsletter_ids, req.user.id);
 
         if (newsletters.length === 0) {
             return res.status(404).json({ error: 'No newsletters found' });
@@ -1573,14 +1576,14 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) =
     try {
         // Verify webhook secret via query parameter or header
         const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
-        if (webhookSecret) {
-            const providedSecret = req.query.secret || req.headers['x-webhook-secret'];
-            if (providedSecret !== webhookSecret) {
-                console.error('❌ Email webhook: invalid or missing secret');
-                return res.status(401).json({ error: 'Unauthorized' });
-            }
-        } else {
-            console.warn('⚠️ EMAIL_WEBHOOK_SECRET not configured — email webhook is unprotected');
+        if (!webhookSecret) {
+            console.error('❌ Email webhook: EMAIL_WEBHOOK_SECRET not configured — rejecting request');
+            return res.status(503).json({ error: 'Webhook not configured' });
+        }
+        const providedSecret = req.query.secret || req.headers['x-webhook-secret'];
+        if (providedSecret !== webhookSecret) {
+            console.error('❌ Email webhook: invalid or missing secret');
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
         console.log('📧 Webhook received from SendGrid');

@@ -1299,15 +1299,24 @@
                 return () => observer.disconnect();
             }, []);
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
-                if (code.trim() === 'trybrevis14') {
-                    localStorage.setItem('brevis_access', 'true');
-                    localStorage.setItem('brevis_access_code', code.trim());
-                    document.cookie = 'brevis_access_code=' + encodeURIComponent(code.trim()) + ';path=/;max-age=86400;SameSite=Lax';
-                    onAccess();
-                } else {
-                    setError('Incorrect code');
+                try {
+                    const res = await fetch(`${API_URL}/auth/verify-access-code`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code.trim() })
+                    });
+                    if (res.ok) {
+                        localStorage.setItem('brevis_access', 'true');
+                        localStorage.setItem('brevis_access_code', code.trim());
+                        document.cookie = 'brevis_access_code=' + encodeURIComponent(code.trim()) + ';path=/;max-age=86400;SameSite=Lax';
+                        onAccess();
+                    } else {
+                        setError('Incorrect code');
+                    }
+                } catch {
+                    setError('Connection error');
                 }
             };
 
