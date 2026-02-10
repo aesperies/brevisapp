@@ -40,9 +40,10 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)
             pass: process.env.SMTP_PASSWORD
         }
     });
-    console.log('✅ Email transporter configured for Kindle');
+    console.log('✅ Email transporter configured (verification, password reset, Kindle)');
 } else {
-    console.log('⚠️  Email transporter not configured (Kindle feature disabled)');
+    console.log('⚠️  Email transporter not configured — set SMTP_HOST, SMTP_USER, SMTP_PASSWORD');
+    console.log('   Email verification, password reset, and Kindle features will be disabled');
 }
 
 // Initialize OpenAI for text-to-speech (optional)
