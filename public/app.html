@@ -1663,6 +1663,16 @@
 
             useEffect(() => { if (hasAccess) checkAuth(); else setLoading(false); }, [hasAccess]);
 
+            // Detect ?verified=true from email verification redirect
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('verified') === 'true') {
+                    showToast(language === 'es' ? 'Email verificado correctamente' : 'Email verified successfully', 'success');
+                    window.history.replaceState({}, '', window.location.pathname);
+                    checkAuth();
+                }
+            }, []);
+
             const checkAuth = async () => {
                 try {
                     const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });

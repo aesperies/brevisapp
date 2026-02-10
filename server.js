@@ -401,9 +401,9 @@ app.get('/api/auth/verify-email', async (req, res) => {
         const user = await dbHelpers.verifyEmail(token);
         if (user) {
             console.log('✅ Email verified:', maskEmail(user.email));
-            res.redirect('/?verified=true');
+            res.redirect('/app.html?verified=true');
         } else {
-            res.redirect('/?error=invalid_token');
+            res.redirect('/app.html?error=invalid_token');
         }
     } catch (error) {
         console.error('❌ Email verification error:', error);
