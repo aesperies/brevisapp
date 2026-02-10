@@ -22,7 +22,7 @@ const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 import Parser from 'rss-parser';
 
-import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers } from './database.js';
+import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers, getDb } from './database.js';
 import { generateToken, verifyToken, authMiddleware } from './auth.js';
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
 
@@ -58,6 +58,13 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Mask emails in logs for privacy (an***@gmail.com)
+const maskEmail = (email) => {
+    if (!email || !email.includes('@')) return '***';
+    const [local, domain] = email.split('@');
+    return local.slice(0, 2) + '***@' + domain;
+};
 
 console.log('🚀 Starting BREVIS server...');
 console.log('📁 Directory:', __dirname);
@@ -235,11 +242,11 @@ app.post('/api/auth/register', registerLimiter, [
         }
 
         const { email, password, name, accessCode } = req.body;
-        console.log('📝 Registration attempt:', email);
+        console.log('📝 Registration attempt:', maskEmail(email));
 
         const existingUser = await dbHelpers.findUserByEmail(email);
         if (existingUser) {
-            console.log('❌ User already exists:', email);
+            console.log('❌ User already exists:', maskEmail(email));
             return res.status(400).json({ error: 'User already exists' });
         }
 
@@ -254,7 +261,7 @@ app.post('/api/auth/register', registerLimiter, [
             secure: process.env.NODE_ENV === 'production'
         });
         
-        console.log('✅ User registered:', email);
+        console.log('✅ User registered:', maskEmail(email));
 
         // Send verification email
         if (emailTransporter) {
@@ -276,7 +283,7 @@ app.post('/api/auth/register', registerLimiter, [
                         </div>
                     `
                 });
-                console.log('✅ Verification email sent to:', email);
+                console.log('✅ Verification email sent to:', maskEmail(email));
             } catch (emailErr) {
                 console.error('⚠️ Failed to send verification email:', emailErr.message);
             }
@@ -313,17 +320,17 @@ app.post('/api/auth/login', authLimiter, [
         }
 
         const { email, password } = req.body;
-        console.log('🔐 Login attempt:', email);
+        console.log('🔐 Login attempt:', maskEmail(email));
         
         const user = await dbHelpers.findUserByEmail(email);
         if (!user) {
-            console.log('❌ User not found:', email);
+            console.log('❌ User not found:', maskEmail(email));
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const isValid = await dbHelpers.verifyPassword(user.id, password);
         if (!isValid) {
-            console.log('❌ Invalid password for:', email);
+            console.log('❌ Invalid password for:', maskEmail(email));
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -341,7 +348,7 @@ app.post('/api/auth/login', authLimiter, [
             secure: process.env.NODE_ENV === 'production'
         });
 
-        console.log('✅ User logged in:', email);
+        console.log('✅ User logged in:', maskEmail(email));
 
         res.json({
             user: {
@@ -369,7 +376,7 @@ app.get('/api/auth/verify-email', async (req, res) => {
         if (!token) return res.redirect('/?error=invalid_token');
         const user = await dbHelpers.verifyEmail(token);
         if (user) {
-            console.log('✅ Email verified:', user.email);
+            console.log('✅ Email verified:', maskEmail(user.email));
             res.redirect('/?verified=true');
         } else {
             res.redirect('/?error=invalid_token');
@@ -405,7 +412,7 @@ app.post('/api/auth/resend-verification', authMiddleware, async (req, res) => {
                 </div>
             `
         });
-        console.log('✅ Verification email resent to:', user.email);
+        console.log('✅ Verification email resent to:', maskEmail(user.email));
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Resend verification error:', error);
@@ -452,7 +459,7 @@ app.post('/api/auth/forgot-password', authLimiter, [
                     </div>
                 `
             });
-            console.log('✅ Password reset email sent to:', email);
+            console.log('✅ Password reset email sent to:', maskEmail(email));
         } else {
             console.log('⚠️ SMTP not configured. Reset token:', token);
         }
@@ -655,7 +662,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
             return res.redirect('/?error=google_auth_failed');
         }
 
-        console.log('🔐 Google login for:', profile.email);
+        console.log('🔐 Google login for:', maskEmail(profile.email));
 
         // Find or create user
         let user = await dbHelpers.findUserByEmail(profile.email);
@@ -665,7 +672,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
             const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
             user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0], plan);
             res.clearCookie('brevis_access_code');
-            console.log('✅ New user created via Google:', profile.email, '| plan:', plan);
+            console.log('✅ New user created via Google:', maskEmail(profile.email), '| plan:', plan);
         }
         // Google-authenticated emails are inherently verified
         if (!user.email_verified) {
@@ -680,7 +687,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
             secure: process.env.NODE_ENV === 'production'
         });
 
-        console.log('✅ Google login successful:', profile.email);
+        console.log('✅ Google login successful:', maskEmail(profile.email));
         res.redirect('/');
     } catch (error) {
         console.error('❌ Google OAuth error:', error);
@@ -1184,7 +1191,7 @@ app.post('/api/newsletters/:id/kindle', authMiddleware, async (req, res) => {
             attachments: []
         });
 
-        console.log(`✅ Newsletter ${newsletter.id} sent to Kindle: ${user.kindle_email}`);
+        console.log(`✅ Newsletter ${newsletter.id} sent to Kindle: ${maskEmail(user.kindle_email)}`);
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Send to Kindle error:', error);
@@ -1528,7 +1535,7 @@ app.post('/api/stripe/checkout', authMiddleware, async (req, res) => {
             metadata: { user_id: user.id.toString(), plan }
         });
 
-        console.log('✅ Checkout session created for:', user.email, plan, interval);
+        console.log('✅ Checkout session created for:', maskEmail(user.email), plan, interval);
         res.json({ url: session.url });
     } catch (error) {
         console.error('❌ Stripe checkout error:', error);
@@ -1554,7 +1561,7 @@ app.post('/api/stripe/portal', authMiddleware, async (req, res) => {
             return_url: baseUrl
         });
 
-        console.log('✅ Portal session created for:', user.email);
+        console.log('✅ Portal session created for:', maskEmail(user.email));
         res.json({ url: session.url });
     } catch (error) {
         console.error('❌ Stripe portal error:', error);
@@ -1621,7 +1628,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                         plan,
                         stripe_subscription_id: subscription.id
                     });
-                    console.log('✅ Subscription updated:', user.email, plan);
+                    console.log('✅ Subscription updated:', maskEmail(user.email), plan);
                 }
                 break;
             }
@@ -1635,7 +1642,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                         plan: 'free',
                         stripe_subscription_id: null
                     });
-                    console.log('✅ Subscription cancelled, downgraded:', user.email);
+                    console.log('✅ Subscription cancelled, downgraded:', maskEmail(user.email));
                 }
                 break;
             }
@@ -1644,11 +1651,11 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                 const invoice = event.data.object;
                 const user = await dbHelpers.findUserByStripeCustomerId(invoice.customer);
                 if (user) {
-                    console.warn('⚠️ Payment failed for:', user.email, '| attempt:', invoice.attempt_count);
+                    console.warn('⚠️ Payment failed for:', maskEmail(user.email), '| attempt:', invoice.attempt_count);
                     // Downgrade after 3 failed attempts
                     if (invoice.attempt_count >= 3) {
                         await dbHelpers.updateUser(user.id, { plan: 'free' });
-                        console.log('❌ Downgraded to free after 3 failed payments:', user.email);
+                        console.log('❌ Downgraded to free after 3 failed payments:', maskEmail(user.email));
                     }
                 }
                 break;
@@ -1659,7 +1666,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                 const user = await dbHelpers.findUserByStripeCustomerId(subscription.customer);
                 if (user) {
                     await dbHelpers.updateUser(user.id, { plan: 'free' });
-                    console.log('⏸️ Subscription paused, downgraded:', user.email);
+                    console.log('⏸️ Subscription paused, downgraded:', maskEmail(user.email));
                 }
                 break;
             }
@@ -1761,7 +1768,7 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) =
             return res.status(404).json({ error: 'User not found' });
         }
 
-        console.log('✅ User found:', user.email);
+        console.log('✅ User found:', maskEmail(user.email));
 
         const urls = extractUrls(content);
 
@@ -1773,7 +1780,7 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) =
             urls[0] || null
         );
 
-        console.log('✅ Newsletter added via email for:', user.email, '- content length:', newsletter.content?.length || 0);
+        console.log('✅ Newsletter added via email for:', maskEmail(user.email), '- content length:', newsletter.content?.length || 0);
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Webhook error:', error);
@@ -1801,8 +1808,18 @@ app.post('/api/waitlist', [
     }
 });
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'BREVIS is running' });
+app.get('/health', async (req, res) => {
+    const health = { status: 'ok', uptime: Math.floor(process.uptime()) };
+    try {
+        await getDb().query('SELECT 1');
+        health.db = 'connected';
+    } catch {
+        health.db = 'disconnected';
+        health.status = 'degraded';
+    }
+    health.stripe = stripe ? 'configured' : 'not configured';
+    health.email = emailTransporter ? 'configured' : 'not configured';
+    res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
 
 // ============= SUBSCRIPTION / RSS ROUTES =============
