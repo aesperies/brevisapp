@@ -1673,6 +1673,15 @@
                 }
             }, []);
 
+            // Refresh user data when tab regains focus (e.g. after verifying email in another tab)
+            useEffect(() => {
+                const onVisible = () => {
+                    if (document.visibilityState === 'visible' && hasAccess) checkAuth();
+                };
+                document.addEventListener('visibilitychange', onVisible);
+                return () => document.removeEventListener('visibilitychange', onVisible);
+            }, [hasAccess]);
+
             const checkAuth = async () => {
                 try {
                     const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
