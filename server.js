@@ -1969,6 +1969,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// API 404 handler — return JSON, not HTML
+app.all('/api/*', (req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
+});
+
 // SPA fallback - serve app.html for all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'app.html'));
