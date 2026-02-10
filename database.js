@@ -7,6 +7,9 @@ const { Pool } = pg;
 // PostgreSQL connection pool
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
     // Railway uses self-signed certs; set DATABASE_SSL_VERIFY=true if you have proper CA certs
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: process.env.DATABASE_SSL_VERIFY === 'true' } : false
 });
@@ -68,7 +71,9 @@ export async function setupDatabase() {
             );
 
             -- Indexes for better performance
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_newsletters_user ON newsletters(user_id);
+            CREATE INDEX IF NOT EXISTS idx_newsletters_user_date ON newsletters(user_id, date_added DESC);
             CREATE INDEX IF NOT EXISTS idx_tags_user ON tags(user_id);
             CREATE INDEX IF NOT EXISTS idx_newsletter_tags_newsletter ON newsletter_tags(newsletter_id);
             CREATE INDEX IF NOT EXISTS idx_newsletter_tags_tag ON newsletter_tags(tag_id);
@@ -442,14 +447,17 @@ export const dbHelpers = {
     },
 
     findValidPasswordReset: async (token) => {
+        // Atomic: find AND mark as used in one query to prevent race conditions
         const result = await pool.query(`
-            SELECT * FROM password_resets
+            UPDATE password_resets SET used = 1
             WHERE token = $1 AND used = 0 AND expires_at > NOW()
+            RETURNING *
         `, [token]);
         return result.rows[0] || null;
     },
 
     markPasswordResetUsed: async (token) => {
+        // Kept for backwards compatibility, but findValidPasswordReset now marks as used atomically
         await pool.query(`UPDATE password_resets SET used = 1 WHERE token = $1`, [token]);
     },
 

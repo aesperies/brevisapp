@@ -398,13 +398,13 @@ app.post('/api/auth/reset-password', authLimiter, [
 
         const { token, password } = req.body;
 
+        // findValidPasswordReset atomically marks the token as used (prevents race conditions)
         const resetRecord = await dbHelpers.findValidPasswordReset(token);
         if (!resetRecord) {
             return res.status(400).json({ error: 'Invalid or expired reset link' });
         }
 
         await dbHelpers.updatePasswordHash(resetRecord.user_id, password);
-        await dbHelpers.markPasswordResetUsed(token);
 
         console.log('✅ Password reset for user:', resetRecord.user_id);
         res.json({ success: true });
@@ -1847,6 +1847,17 @@ app.get('/', (req, res) => {
 // SPA fallback - serve app.html for all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'app.html'));
+});
+
+// ============= GLOBAL ERROR HANDLERS =============
+
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('❌ Unhandled Rejection:', reason);
 });
 
 // ============= SERVER START =============
