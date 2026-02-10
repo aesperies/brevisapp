@@ -85,6 +85,18 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMP;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
+        `);
+
+        // Email verification tokens
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS email_verifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                token VARCHAR(255) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         `);
 
         // Waitlist table
@@ -459,6 +471,28 @@ export const dbHelpers = {
     markPasswordResetUsed: async (token) => {
         // Kept for backwards compatibility, but findValidPasswordReset now marks as used atomically
         await pool.query(`UPDATE password_resets SET used = 1 WHERE token = $1`, [token]);
+    },
+
+    createEmailVerification: async (userId, token, expiresAt) => {
+        // Delete previous tokens for this user
+        await pool.query(`DELETE FROM email_verifications WHERE user_id = $1`, [userId]);
+        await pool.query(`
+            INSERT INTO email_verifications (user_id, token, expires_at) VALUES ($1, $2, $3)
+        `, [userId, token, expiresAt]);
+    },
+
+    verifyEmail: async (token) => {
+        // Atomic: find valid token and mark user as verified
+        const result = await pool.query(`
+            UPDATE users SET email_verified = 1
+            FROM email_verifications ev
+            WHERE users.id = ev.user_id AND ev.token = $1 AND ev.expires_at > NOW()
+            RETURNING users.id, users.email
+        `, [token]);
+        if (result.rows[0]) {
+            await pool.query(`DELETE FROM email_verifications WHERE token = $1`, [token]);
+        }
+        return result.rows[0] || null;
     },
 
     updatePasswordHash: async (userId, newPassword) => {

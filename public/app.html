@@ -2961,6 +2961,20 @@
                                     )}
                                 </div>
                             </div>
+                            {!user.email_verified && (
+                                <div style={{background: 'var(--accent)', color: '#fff', padding: '10px 16px', borderRadius: '8px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px'}}>
+                                    <span>{language === 'es' ? '📧 Verifica tu email para asegurar tu cuenta' : '📧 Verify your email to secure your account'}</span>
+                                    <button onClick={async () => {
+                                        try {
+                                            const res = await fetch(`${API_URL}/auth/resend-verification`, { method: 'POST', credentials: 'include' });
+                                            if (res.ok) showToast(language === 'es' ? 'Email enviado' : 'Email sent', 'success');
+                                            else showToast(language === 'es' ? 'Error al enviar' : 'Failed to send', 'error');
+                                        } catch { showToast('Error', 'error'); }
+                                    }} style={{background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap', marginLeft: '12px'}}>
+                                        {language === 'es' ? 'Reenviar' : 'Resend'}
+                                    </button>
+                                </div>
+                            )}
                             <div className="email-display">
                                 <div className="email-label">{translations.email.label}</div>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>

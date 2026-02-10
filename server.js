@@ -256,6 +256,32 @@ app.post('/api/auth/register', registerLimiter, [
         
         console.log('✅ User registered:', email);
 
+        // Send verification email
+        if (emailTransporter) {
+            try {
+                const verifyToken = crypto.randomBytes(32).toString('hex');
+                const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+                await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
+                const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+                await emailTransporter.sendMail({
+                    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                    to: email,
+                    subject: 'BREVIS - Verify your email',
+                    html: `
+                        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+                            <h2 style="color: #2C3544; margin-bottom: 16px;">Welcome to BREVIS!</h2>
+                            <p style="color: #4A5568; line-height: 1.6;">Please verify your email address to get the most out of your account:</p>
+                            <a href="${verifyUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify Email</a>
+                            <p style="color: #7A8599; font-size: 13px;">This link expires in 24 hours.</p>
+                        </div>
+                    `
+                });
+                console.log('✅ Verification email sent to:', email);
+            } catch (emailErr) {
+                console.error('⚠️ Failed to send verification email:', emailErr.message);
+            }
+        }
+
         res.json({
             user: {
                 id: user.id,
@@ -265,7 +291,8 @@ app.post('/api/auth/register', registerLimiter, [
                 plan: user.plan,
                 language: user.language,
                 kindle_email: user.kindle_email,
-                trial_end_date: user.trial_end_date
+                trial_end_date: user.trial_end_date,
+                email_verified: false
             }
         });
     } catch (error) {
@@ -325,12 +352,64 @@ app.post('/api/auth/login', authLimiter, [
                 plan: user.plan,
                 language: user.language,
                 kindle_email: user.kindle_email,
-                trial_end_date: user.trial_end_date
+                trial_end_date: user.trial_end_date,
+                email_verified: !!user.email_verified
             }
         });
     } catch (error) {
         console.error('❌ Login error:', error);
         res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// Email verification - user clicks link from email
+app.get('/api/auth/verify-email', async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) return res.redirect('/?error=invalid_token');
+        const user = await dbHelpers.verifyEmail(token);
+        if (user) {
+            console.log('✅ Email verified:', user.email);
+            res.redirect('/?verified=true');
+        } else {
+            res.redirect('/?error=invalid_token');
+        }
+    } catch (error) {
+        console.error('❌ Email verification error:', error);
+        res.redirect('/?error=verification_failed');
+    }
+});
+
+// Resend verification email
+app.post('/api/auth/resend-verification', authMiddleware, async (req, res) => {
+    try {
+        const user = await dbHelpers.findUserById(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (user.email_verified) return res.json({ success: true, message: 'Already verified' });
+        if (!emailTransporter) return res.status(503).json({ error: 'Email service not configured' });
+
+        const verifyToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
+        const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+        await emailTransporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to: user.email,
+            subject: 'BREVIS - Verify your email',
+            html: `
+                <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+                    <h2 style="color: #2C3544; margin-bottom: 16px;">Verify your email</h2>
+                    <p style="color: #4A5568; line-height: 1.6;">Click the button below to verify your email address:</p>
+                    <a href="${verifyUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify Email</a>
+                    <p style="color: #7A8599; font-size: 13px;">This link expires in 24 hours.</p>
+                </div>
+            `
+        });
+        console.log('✅ Verification email resent to:', user.email);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Resend verification error:', error);
+        res.status(500).json({ error: 'Failed to resend verification email' });
     }
 });
 
@@ -429,7 +508,8 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
                 email_code: user.email_code,
                 plan: user.plan,
                 language: user.language,
-                kindle_email: user.kindle_email
+                kindle_email: user.kindle_email,
+                email_verified: !!user.email_verified
             }
         });
     } catch (error) {
@@ -586,6 +666,10 @@ app.get('/api/auth/google/callback', async (req, res) => {
             user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0], plan);
             res.clearCookie('brevis_access_code');
             console.log('✅ New user created via Google:', profile.email, '| plan:', plan);
+        }
+        // Google-authenticated emails are inherently verified
+        if (!user.email_verified) {
+            await dbHelpers.updateUser(user.id, { email_verified: 1 });
         }
 
         const token = generateToken(user);
@@ -1552,6 +1636,30 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                         stripe_subscription_id: null
                     });
                     console.log('✅ Subscription cancelled, downgraded:', user.email);
+                }
+                break;
+            }
+
+            case 'invoice.payment_failed': {
+                const invoice = event.data.object;
+                const user = await dbHelpers.findUserByStripeCustomerId(invoice.customer);
+                if (user) {
+                    console.warn('⚠️ Payment failed for:', user.email, '| attempt:', invoice.attempt_count);
+                    // Downgrade after 3 failed attempts
+                    if (invoice.attempt_count >= 3) {
+                        await dbHelpers.updateUser(user.id, { plan: 'free' });
+                        console.log('❌ Downgraded to free after 3 failed payments:', user.email);
+                    }
+                }
+                break;
+            }
+
+            case 'customer.subscription.paused': {
+                const subscription = event.data.object;
+                const user = await dbHelpers.findUserByStripeCustomerId(subscription.customer);
+                if (user) {
+                    await dbHelpers.updateUser(user.id, { plan: 'free' });
+                    console.log('⏸️ Subscription paused, downgraded:', user.email);
                 }
                 break;
             }
