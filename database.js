@@ -229,19 +229,20 @@ export const dbHelpers = {
         return user.plan;
     },
 
-    createUser: async (email, password, name) => {
+    createUser: async (email, password, name, plan = 'pro') => {
         const passwordHash = await bcrypt.hash(password, 10);
         const emailCode = generateEmailCode();
 
-        // Nuevo usuario obtiene 15 días de prueba gratis del plan Pro
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 15);
+        // Premium users (via access code) get no trial expiration
+        // Pro users get 15-day free trial
+        const trialEndDate = plan === 'premium' ? null : new Date();
+        if (trialEndDate) trialEndDate.setDate(trialEndDate.getDate() + 15);
 
         const result = await pool.query(`
             INSERT INTO users (email, password_hash, name, email_code, plan, trial_end_date, newsletters_count, newsletters_limit, language, is_active)
-            VALUES ($1, $2, $3, $4, 'pro', $5, 0, 10, 'es', 1)
+            VALUES ($1, $2, $3, $4, $5, $6, 0, 10, 'es', 1)
             RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
-        `, [email, passwordHash, name, emailCode, trialEndDate]);
+        `, [email, passwordHash, name, emailCode, plan, trialEndDate]);
 
         return result.rows[0];
     },

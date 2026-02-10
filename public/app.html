@@ -1303,6 +1303,8 @@
                 e.preventDefault();
                 if (code.trim() === 'trybrevis14') {
                     localStorage.setItem('brevis_access', 'true');
+                    localStorage.setItem('brevis_access_code', code.trim());
+                    document.cookie = 'brevis_access_code=' + encodeURIComponent(code.trim()) + ';path=/;max-age=86400;SameSite=Lax';
                     onAccess();
                 } else {
                     setError('Incorrect code');
@@ -1783,11 +1785,12 @@
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
+                    const payload = isLogin ? formData : { ...formData, accessCode: localStorage.getItem('brevis_access_code') || '' };
                     const res = await fetch(`${API_URL}/auth/${isLogin ? 'login' : 'register'}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify(formData)
+                        body: JSON.stringify(payload)
                     });
                     if (res.ok) onLogin();
                     else { const d = await res.json(); showToast(d.error || 'Error', 'error'); }

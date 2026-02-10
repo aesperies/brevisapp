@@ -224,16 +224,17 @@ app.post('/api/auth/register', registerLimiter, [
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { email, password, name } = req.body;
+        const { email, password, name, accessCode } = req.body;
         console.log('📝 Registration attempt:', email);
-        
+
         const existingUser = await dbHelpers.findUserByEmail(email);
         if (existingUser) {
             console.log('❌ User already exists:', email);
             return res.status(400).json({ error: 'User already exists' });
         }
 
-        const user = await dbHelpers.createUser(email, password, name);
+        const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
+        const user = await dbHelpers.createUser(email, password, name, plan);
         const token = generateToken(user);
         
         res.cookie('token', token, { 
@@ -565,8 +566,11 @@ app.get('/api/auth/google/callback', async (req, res) => {
         let user = await dbHelpers.findUserByEmail(profile.email);
         if (!user) {
             const randomPass = crypto.randomBytes(32).toString('hex');
-            user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0]);
-            console.log('✅ New user created via Google:', profile.email);
+            const accessCode = req.cookies.brevis_access_code || '';
+            const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
+            user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0], plan);
+            res.clearCookie('brevis_access_code');
+            console.log('✅ New user created via Google:', profile.email, '| plan:', plan);
         }
 
         const token = generateToken(user);
