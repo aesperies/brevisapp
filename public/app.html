@@ -3828,29 +3828,22 @@
                                 newsletter.content.includes('<') ? (
                                     <iframe
                                         className="newsletter-iframe"
-                                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>${iframeStyles}</style></head><body>${newsletter.content}<script>
-function postHeight(){var h=document.body.scrollHeight;window.parent.postMessage({type:'iframe-resize',height:h},'*');}
-window.addEventListener('load',function(){postHeight();document.querySelectorAll('img').forEach(function(i){i.addEventListener('load',postHeight);});new ResizeObserver(postHeight).observe(document.body);});
-postHeight();
-\x3c/script></body></html>`}
-                                        sandbox="allow-scripts allow-popups"
+                                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>${iframeStyles}</style></head><body>${newsletter.content}</body></html>`}
+                                        sandbox="allow-same-origin allow-popups"
                                         title="Newsletter content"
                                         style={{minHeight: '500px'}}
                                         onLoad={(e) => {
                                             const iframe = e.target;
-                                            const handler = (event) => {
-                                                if (event.data?.type === 'iframe-resize' && event.data.height) {
-                                                    iframe.style.height = event.data.height + 40 + 'px';
-                                                }
+                                            const resizeIframe = () => {
+                                                const h = iframe.contentDocument?.body?.scrollHeight;
+                                                if (h) iframe.style.height = h + 40 + 'px';
                                             };
-                                            window.addEventListener('message', handler);
-                                            iframe._cleanupHandler = handler;
-                                        }}
-                                        ref={(el) => {
-                                            if (!el) return;
-                                            return () => {
-                                                if (el._cleanupHandler) window.removeEventListener('message', el._cleanupHandler);
-                                            };
+                                            resizeIframe();
+                                            const imgs = iframe.contentDocument?.querySelectorAll('img');
+                                            if (imgs) imgs.forEach(img => img.addEventListener('load', resizeIframe));
+                                            if (iframe.contentDocument?.body) {
+                                                new ResizeObserver(resizeIframe).observe(iframe.contentDocument.body);
+                                            }
                                         }}
                                     />
                                 ) : (
