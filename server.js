@@ -40,6 +40,14 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)
             pass: process.env.SMTP_PASSWORD
         }
     });
+    // Verify SMTP connection on startup
+    emailTransporter.verify((err, success) => {
+        if (err) {
+            console.error('❌ SMTP connection failed:', err.message);
+        } else {
+            console.log('✅ SMTP connection verified successfully');
+        }
+    });
     console.log('✅ Email transporter configured (verification, password reset, Kindle)');
 } else {
     console.log('⚠️  Email transporter not configured — set SMTP_HOST, SMTP_USER, SMTP_PASSWORD');
@@ -287,6 +295,8 @@ app.post('/api/auth/register', registerLimiter, [
                 console.log('✅ Verification email sent to:', maskEmail(email));
             } catch (emailErr) {
                 console.error('⚠️ Failed to send verification email:', emailErr.message);
+                console.error('   SMTP response:', emailErr.response);
+                console.error('   SMTP code:', emailErr.responseCode);
             }
         }
 
@@ -416,7 +426,9 @@ app.post('/api/auth/resend-verification', authMiddleware, async (req, res) => {
         console.log('✅ Verification email resent to:', maskEmail(user.email));
         res.json({ success: true });
     } catch (error) {
-        console.error('❌ Resend verification error:', error);
+        console.error('❌ Resend verification error:', error.message);
+        console.error('   SMTP response:', error.response);
+        console.error('   SMTP code:', error.responseCode);
         res.status(500).json({ error: 'Failed to resend verification email' });
     }
 });
