@@ -15,6 +15,7 @@ import Stripe from 'stripe';
 
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import OpenAI from 'openai';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -28,30 +29,43 @@ import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerfor
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
 
-// Initialize nodemailer transporter for Kindle emails (optional)
-let emailTransporter = null;
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
-    emailTransporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false,
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD
-        }
-    });
-    // Verify SMTP connection on startup
-    emailTransporter.verify((err, success) => {
-        if (err) {
-            console.error('❌ SMTP connection failed:', err.message);
-        } else {
-            console.log('✅ SMTP connection verified successfully');
-        }
-    });
-    console.log('✅ Email transporter configured (verification, password reset, Kindle)');
+// Email sending: prefer SendGrid API (works on Railway), fallback to SMTP
+let emailEnabled = false;
+const EMAIL_FROM = process.env.SMTP_FROM || process.env.SMTP_USER || 'info@brevisapp.com';
+
+if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    emailEnabled = true;
+    console.log('✅ Email configured via SendGrid API (verification, password reset, Kindle)');
+} else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    emailEnabled = true;
+    console.log('✅ Email configured via SMTP (verification, password reset, Kindle)');
 } else {
-    console.log('⚠️  Email transporter not configured — set SMTP_HOST, SMTP_USER, SMTP_PASSWORD');
+    console.log('⚠️  Email not configured — set SENDGRID_API_KEY or SMTP_HOST/SMTP_USER/SMTP_PASSWORD');
     console.log('   Email verification, password reset, and Kindle features will be disabled');
+}
+
+// Unified email sender: uses SendGrid API or SMTP
+async function sendEmail({ to, subject, html, text }) {
+    if (!emailEnabled) throw new Error('Email service not configured');
+
+    if (process.env.SENDGRID_API_KEY) {
+        await sgMail.send({
+            to,
+            from: EMAIL_FROM,
+            subject,
+            html: html || undefined,
+            text: text || undefined
+        });
+    } else {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: false,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
+        });
+        await transporter.sendMail({ from: EMAIL_FROM, to, subject, html, text });
+    }
 }
 
 // Initialize OpenAI for text-to-speech (optional)
@@ -273,14 +287,13 @@ app.post('/api/auth/register', registerLimiter, [
         console.log('✅ User registered:', maskEmail(email));
 
         // Send verification email
-        if (emailTransporter) {
+        if (emailEnabled) {
             try {
                 const verifyToken = crypto.randomBytes(32).toString('hex');
                 const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
                 await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
                 const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
-                await emailTransporter.sendMail({
-                    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                await sendEmail({
                     to: email,
                     subject: 'BREVIS - Verify your email',
                     html: `
@@ -404,14 +417,13 @@ app.post('/api/auth/resend-verification', authMiddleware, async (req, res) => {
         const user = await dbHelpers.findUserById(req.user.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (user.email_verified) return res.json({ success: true, message: 'Already verified' });
-        if (!emailTransporter) return res.status(503).json({ error: 'Email service not configured' });
+        if (!emailEnabled) return res.status(503).json({ error: 'Email service not configured' });
 
         const verifyToken = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
         await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
         const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
-        await emailTransporter.sendMail({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        await sendEmail({
             to: user.email,
             subject: 'BREVIS - Verify your email',
             html: `
@@ -458,9 +470,8 @@ app.post('/api/auth/forgot-password', authLimiter, [
 
         const resetUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/reset-password?token=${token}`;
 
-        if (emailTransporter) {
-            await emailTransporter.sendMail({
-                from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        if (emailEnabled) {
+            await sendEmail({
                 to: email,
                 subject: 'BREVIS - Reset your password',
                 html: `
@@ -1166,7 +1177,7 @@ app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, async (req, 
 // Send newsletter to Kindle
 app.post('/api/newsletters/:id/kindle', authMiddleware, async (req, res) => {
     try {
-        if (!emailTransporter) {
+        if (!emailEnabled) {
             return res.status(503).json({ error: 'Email service not configured' });
         }
 
@@ -1196,12 +1207,10 @@ app.post('/api/newsletters/:id/kindle', authMiddleware, async (req, res) => {
             .trim();
 
         // Send email to Kindle
-        await emailTransporter.sendMail({
-            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        await sendEmail({
             to: user.kindle_email,
             subject: newsletter.title,
-            text: `${newsletter.title}\n\nFrom: ${newsletter.sender}\n\n${plainContent}`,
-            attachments: []
+            text: `${newsletter.title}\n\nFrom: ${newsletter.sender}\n\n${plainContent}`
         });
 
         console.log(`✅ Newsletter ${newsletter.id} sent to Kindle: ${maskEmail(user.kindle_email)}`);
@@ -1831,7 +1840,7 @@ app.get('/health', async (req, res) => {
         health.status = 'degraded';
     }
     health.stripe = stripe ? 'configured' : 'not configured';
-    health.email = emailTransporter ? 'configured' : 'not configured';
+    health.email = emailEnabled ? 'configured' : 'not configured';
     res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
 
