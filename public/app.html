@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BREVIS</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <style>
         :root {
             --bg-primary: #FFFFFF;
@@ -17,7 +19,7 @@
             --bg-hover: #F5F5F5;
             --text-primary: #000000;
             --text-secondary: #666666;
-            --text-muted: #999999;
+            --text-muted: #767676;
             --text-body: #333333;
             --border: #E5E5E5;
             --border-light: #F0F0F0;
@@ -40,7 +42,7 @@
             --bg-hover: #333333;
             --text-primary: #FFFFFF;
             --text-secondary: #B3B3B3;
-            --text-muted: #808080;
+            --text-muted: #949494;
             --text-body: #E0E0E0;
             --border: #383838;
             --border-light: #2A2A2A;
@@ -189,7 +191,7 @@
             font-weight: 600;
             text-transform: uppercase;
         }
-        .plan-badge.pro { background: var(--accent); }
+        .plan-badge.pro, .plan-badge.standard { background: var(--accent); }
         .user-name-button {
             padding: 8px 16px;
             background: transparent;
@@ -340,7 +342,7 @@
             height: 18px;
             cursor: pointer;
         }
-        .newsletter-title { font-family: 'Instrument Serif', serif; font-size: 16px; font-weight: 600; margin-bottom: 4px; cursor: pointer; color: var(--text-primary); }
+        .newsletter-title { font-family: 'Instrument Serif', serif; font-size: 19px; font-weight: 400; line-height: 1.3; margin-bottom: 4px; cursor: pointer; color: var(--text-primary); transition: color 0.2s ease; }
         .newsletter-title:hover { color: var(--accent); text-decoration: none; }
         .newsletter-meta { font-size: 12px; color: var(--text-secondary); }
         .newsletter-tag {
@@ -936,6 +938,8 @@
         .toast-success { background: var(--text-primary); color: var(--bg-primary); }
         .toast-error { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
         .toast-info { background: #F0F9FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+        [data-theme="dark"] .toast-error { background: #451A1A; color: #FCA5A5; border-color: #7F1D1D; }
+        [data-theme="dark"] .toast-info { background: #1E293B; color: #93C5FD; border-color: #1E40AF; }
         @keyframes toastIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -1483,7 +1487,7 @@
                             </div>
                             <div className="landing-pricing-card featured">
                                 <div style={{fontSize: '11px', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px'}}>Most popular</div>
-                                <div className="landing-pricing-card-name">Pro</div>
+                                <div className="landing-pricing-card-name">Standard</div>
                                 <div className="landing-pricing-card-price">${landingBilling === 'month' ? '7.99' : '69.99'}</div>
                                 <div className="landing-pricing-card-period">/{landingBilling === 'month' ? 'month' : 'year'}</div>
                                 <ul className="landing-pricing-card-features">
@@ -1498,7 +1502,7 @@
                                 <div className="landing-pricing-card-price">${landingBilling === 'month' ? '9.99' : '89.99'}</div>
                                 <div className="landing-pricing-card-period">/{landingBilling === 'month' ? 'month' : 'year'}</div>
                                 <ul className="landing-pricing-card-features">
-                                    <li><LucideIcon name="check" size={16} color="var(--accent)" /> Everything in Pro</li>
+                                    <li><LucideIcon name="check" size={16} color="var(--accent)" /> Everything in Standard</li>
                                     <li><LucideIcon name="check" size={16} color="var(--accent)" /> Deep Reports</li>
                                     <li><LucideIcon name="check" size={16} color="var(--accent)" /> Priority support</li>
                                     <li><LucideIcon name="check" size={16} color="var(--accent)" /> Early access to new features</li>
@@ -1582,15 +1586,15 @@
                         <div style={{fontSize: '40px', marginBottom: '16px'}}>
                             {status === 'saving' ? '...' : status === 'success' ? '✓' : '✗'}
                         </div>
-                        <div style={{fontSize: '16px', fontWeight: 600, color: '#2C3544', marginBottom: '8px'}}>
+                        <div style={{fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px'}}>
                             {status === 'saving' ? 'Saving to BREVIS...' : message}
                         </div>
                         {status === 'success' && (
-                            <div style={{fontSize: '13px', color: '#7A8599'}}>This window will close automatically.</div>
+                            <div style={{fontSize: '13px', color: 'var(--text-muted)'}}>This window will close automatically.</div>
                         )}
                         {status === 'error' && (
                             <button onClick={() => window.close()}
-                                style={{marginTop: '12px', padding: '8px 20px', border: '1px solid #E8ECF0', borderRadius: '6px', background: '#FFF', cursor: 'pointer', fontFamily: 'inherit'}}>
+                                style={{marginTop: '12px', padding: '8px 20px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--bg-primary)', cursor: 'pointer', fontFamily: 'inherit'}}>
                                 Close
                             </button>
                         )}
@@ -1677,8 +1681,8 @@
                         <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
                             <img src="./logo-v2-3-light.svg" alt="brevis" style={{height: '36px'}} />
                         </div>
-                        <h3 style={{marginBottom: '12px', color: '#2C3544'}}>Password updated</h3>
-                        <p style={{color: '#7A8599', marginBottom: '20px'}}>You can now log in with your new password.</p>
+                        <h3 style={{marginBottom: '12px', color: 'var(--text-primary)'}}>Password updated</h3>
+                        <p style={{color: 'var(--text-muted)', marginBottom: '20px'}}>You can now log in with your new password.</p>
                         <a href="/" className="btn btn-primary" style={{textDecoration: 'none'}}>Go to login</a>
                     </div>
                 </div>
@@ -1690,7 +1694,7 @@
                         <div className="logo-container" style={{justifyContent: 'center', marginBottom: '16px'}}>
                             <img src="./logo-v2-3-light.svg" alt="brevis" style={{height: '36px'}} />
                         </div>
-                        <h3 style={{textAlign: 'center', marginBottom: '24px', color: '#2C3544'}}>Set new password</h3>
+                        <h3 style={{textAlign: 'center', marginBottom: '24px', color: 'var(--text-primary)'}}>Set new password</h3>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label className="form-label">New password</label>
@@ -1801,7 +1805,7 @@
                         {isLogin && (
                             <div style={{textAlign: 'center', marginTop: '12px'}}>
                                 <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); setForgotStatus('idle'); }}
-                                    style={{fontSize: '13px', color: '#7A8599', textDecoration: 'none'}}>
+                                    style={{fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none'}}>
                                     {translations.auth.forgot}
                                 </a>
                             </div>
@@ -1809,17 +1813,17 @@
                         {forgotMode && (
                             <div className="modal-overlay" onClick={() => setForgotMode(false)}>
                                 <div className="auth-box" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px', margin: '0 auto'}}>
-                                    <h3 style={{marginBottom: '8px', color: '#2C3544'}}>{translations.auth.forgotTitle}</h3>
+                                    <h3 style={{marginBottom: '8px', color: 'var(--text-primary)'}}>{translations.auth.forgotTitle}</h3>
                                     {forgotStatus === 'sent' ? (
                                         <div>
-                                            <p style={{color: '#4A5568', fontSize: '14px', lineHeight: 1.5, marginBottom: '20px'}}>{translations.auth.forgotSent}</p>
+                                            <p style={{color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.5, marginBottom: '20px'}}>{translations.auth.forgotSent}</p>
                                             <button className="btn btn-full" onClick={() => setForgotMode(false)}>
                                                 {translations.auth.backToLogin}
                                             </button>
                                         </div>
                                     ) : (
                                         <div>
-                                            <p style={{color: '#7A8599', fontSize: '13px', marginBottom: '16px'}}>{translations.auth.forgotDesc}</p>
+                                            <p style={{color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px'}}>{translations.auth.forgotDesc}</p>
                                             <form onSubmit={async (e) => {
                                                 e.preventDefault();
                                                 setForgotStatus('loading');
@@ -1847,11 +1851,11 @@
                             </div>
                         )}
                         <div style={{display: 'flex', alignItems: 'center', gap: '12px', margin: '24px 0'}}>
-                            <div style={{flex: 1, height: '1px', background: '#E8ECF0'}} />
-                            <span style={{fontSize: '12px', color: '#7A8599', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                            <div style={{flex: 1, height: '1px', background: 'var(--border)'}} />
+                            <span style={{fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                                 {language === 'es' ? 'o' : 'or'}
                             </span>
-                            <div style={{flex: 1, height: '1px', background: '#E8ECF0'}} />
+                            <div style={{flex: 1, height: '1px', background: 'var(--border)'}} />
                         </div>
                         <a href="/api/auth/google" className="btn btn-full" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', textDecoration: 'none'}}>
                             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -2085,6 +2089,15 @@
                 fetchSubscriptions();
                 loadSavedReports();
                 loadProjects();
+
+                // Detect Stripe checkout result
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('checkout') === 'success') {
+                    showToast(language === 'es' ? 'Plan actualizado con éxito' : 'Plan upgraded successfully', 'success');
+                    window.history.replaceState({}, '', window.location.pathname);
+                } else if (params.get('checkout') === 'cancel') {
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
             }, []);
 
             // Close tag dropdown when clicking outside
@@ -2901,8 +2914,18 @@
                             </div>
                             <div className="email-display">
                                 <div className="email-label">{translations.email.label}</div>
-                                <div className="email-code">{user.email_code}@{emailDomain}</div>
-                                <div style={{marginTop: '8px', fontSize: '12px', color: '#7A8599'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                    <div className="email-code">{user.email_code}@{emailDomain}</div>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${user.email_code}@${emailDomain}`);
+                                            showToast(language === 'es' ? 'Email copiado' : 'Email copied', 'success');
+                                        }}
+                                        style={{background: 'none', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', color: 'var(--text-secondary)'}}>
+                                        <LucideIcon name="copy" size={14} />
+                                    </button>
+                                </div>
+                                <div style={{marginTop: '8px', fontSize: '12px', color: 'var(--text-muted)'}}>
                                     {language === 'es'
                                         ? 'Guárdalo como "BREVIS" en tus contactos para enviarlo más rápidamente'
                                         : 'Save it as "BREVIS" in your contacts for faster forwarding'}
@@ -2953,7 +2976,7 @@
                                                 {showBulkTagMenu && (
                                                     <div className="tag-dropdown" style={{position: 'absolute', top: '100%', left: 0, marginTop: '4px', minWidth: '150px'}}>
                                                         {tags.length === 0 ? (
-                                                            <div style={{padding: '8px 12px', color: '#7A8599', fontSize: '13px'}}>
+                                                            <div style={{padding: '8px 12px', color: 'var(--text-muted)', fontSize: '13px'}}>
                                                                 {language === 'es' ? 'No hay etiquetas' : 'No tags'}
                                                             </div>
                                                         ) : tags.map(tag => (
@@ -2968,7 +2991,7 @@
                                             <button className="btn btn-small" onClick={bulkDelete} title={language === 'es' ? 'Eliminar' : 'Delete'} style={{color: '#EF4444'}}>
                                                 <LucideIcon name="trash-2" size={14} />
                                             </button>
-                                            <span style={{borderLeft: '1px solid #E8ECF0', height: '20px', margin: '0 8px'}}></span>
+                                            <span style={{borderLeft: '1px solid var(--border)', height: '20px', margin: '0 8px'}}></span>
                                             {user.plan !== 'free' && (
                                                 <button className="btn btn-small" onClick={generateBrief} disabled={generatingBatch}>
                                                     {generatingBatch ? <span className="loading-spinner"></span> : <LucideIcon name="file-text" size={14} />} {translations.selection.brief}
@@ -2998,6 +3021,29 @@
                                 <div className="empty-state">
                                     <div className="empty-title">{translations.empty.title}</div>
                                     <div className="empty-text">{translations.empty.subtitle}</div>
+                                    {user && newsletters.length === 0 && (
+                                        <div style={{margin: '24px auto', maxWidth: '400px', textAlign: 'left'}}>
+                                            <div style={{background: 'var(--bg-secondary)', borderRadius: '8px', padding: '16px', marginBottom: '16px'}}>
+                                                <div style={{fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px'}}>
+                                                    {language === 'es' ? 'Tu dirección BREVIS:' : 'Your BREVIS address:'}
+                                                </div>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                                    <code style={{fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', flex: 1}}>{user.email_code}@{emailDomain}</code>
+                                                    <button onClick={() => {
+                                                        navigator.clipboard.writeText(`${user.email_code}@${emailDomain}`);
+                                                        showToast(language === 'es' ? 'Email copiado' : 'Email copied', 'success');
+                                                    }} className="btn btn-primary btn-small">
+                                                        <LucideIcon name="copy" size={14} /> {language === 'es' ? 'Copiar' : 'Copy'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div style={{fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6}}>
+                                                <div style={{marginBottom: '8px'}}><strong>1.</strong> {language === 'es' ? 'Copia tu dirección BREVIS' : 'Copy your BREVIS address'}</div>
+                                                <div style={{marginBottom: '8px'}}><strong>2.</strong> {language === 'es' ? 'Reenvía un newsletter a esa dirección' : 'Forward a newsletter to that address'}</div>
+                                                <div><strong>3.</strong> {language === 'es' ? 'Aparecerá aquí en segundos' : 'It will appear here in seconds'}</div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div style={{display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px'}}>
                                         <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
                                             {translations.nav.add}
@@ -3023,7 +3069,19 @@
                                         )}
                                         <div className="newsletter-card-content">
                                             <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
-                                                <h2 className="newsletter-title" onClick={() => setReadingNewsletter(newsletter)}>
+                                                <h2 className="newsletter-title" onClick={() => {
+                                    setReadingNewsletter(newsletter);
+                                    if (!newsletter.is_read) {
+                                        fetch(`${API_URL}/newsletters/${newsletter.id}`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'include',
+                                            body: JSON.stringify({ is_read: 1 })
+                                        }).then(res => {
+                                            if (res.ok) setNewsletters(prev => prev.map(n => n.id === newsletter.id ? { ...n, is_read: 1 } : n));
+                                        }).catch(() => {});
+                                    }
+                                }}>
                                                     {cleanTitle(newsletter.title)}
                                                 </h2>
                                                 {!newsletter.is_read && <span className="badge">{translations.newsletter.new}</span>}
@@ -3043,10 +3101,10 @@
                                                     <div className="summary-header" onClick={() => toggleSummaryCollapse(newsletter.id)}>
                                                         <span className="summary-label">{translations.newsletter.summary}</span>
                                                         <button className="summary-toggle">
-                                                            {collapsedSummaries[newsletter.id] ? '▲' : '▼'}
+                                                            {collapsedSummaries[newsletter.id] ? '▼' : '▲'}
                                                         </button>
                                                     </div>
-                                                    <div className={`summary-content ${collapsedSummaries[newsletter.id] ? '' : 'collapsed'}`}>
+                                                    <div className={`summary-content ${collapsedSummaries[newsletter.id] ? 'collapsed' : ''}`}>
                                                         {formatSummary(newsletter.summary)}
                                                     </div>
                                                 </div>
@@ -3083,7 +3141,7 @@
                                                                 </div>
                                                             );
                                                         })}
-                                                        <div className="tag-dropdown-item" style={{borderTop: tags.length > 0 ? '1px solid #E8ECF0' : 'none', color: '#2BBCC0', fontWeight: 500}}
+                                                        <div className="tag-dropdown-item" style={{borderTop: tags.length > 0 ? '1px solid var(--border)' : 'none', color: '#2BBCC0', fontWeight: 500}}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setShowTagMenuFor(null);
@@ -3129,7 +3187,7 @@
                                     </div>
                                 ))
                             )}
-                            <div className="footer">BREVIS Pro — 2026</div>
+                            <div className="footer">BREVIS — 2026</div>
                         </div>
                     </div>
 
@@ -3277,7 +3335,7 @@
 
                     {showTagManager && (
                         <TagManager tags={tags} onClose={() => setShowTagManager(false)}
-                            onUpdate={fetchTags} translations={translations} language={language} />
+                            onUpdate={fetchTags} translations={translations} language={language} setConfirmModal={setConfirmModal} />
                     )}
 
                     {showNewsBuilder && (
@@ -3367,11 +3425,11 @@
                                             </h3>
                                             <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                                 {subscriptions.map(sub => (
-                                                    <div key={sub.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8FAFB', borderRadius: '6px'}}>
+                                                    <div key={sub.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '6px'}}>
                                                         <svg width="16" height="16" fill="none" stroke="#2BBCC0" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 5c7.18 0 13 5.82 13 13M6 11c3.87 0 7 3.13 7 7M6 17h.01"/></svg>
                                                         <div style={{flex: 1, minWidth: 0}}>
                                                             <div style={{fontWeight: '500', fontSize: '14px'}}>{sub.name}</div>
-                                                            <div style={{fontSize: '11px', color: '#7A8599', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                                            <div style={{fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                                                                 {sub.url}
                                                                 {sub.last_fetched && ` — ${language === 'es' ? 'Última sync' : 'Last sync'}: ${new Date(sub.last_fetched).toLocaleDateString()}`}
                                                             </div>
@@ -3397,7 +3455,7 @@
                                             </div>
                                         </div>
                                     ) : (
-                                        <div style={{textAlign: 'center', padding: '20px', color: '#7A8599', fontSize: '14px'}}>
+                                        <div style={{textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '14px'}}>
                                             {language === 'es'
                                                 ? 'No hay suscripciones. Añade una URL de Substack o importa un archivo OPML.'
                                                 : 'No subscriptions. Add a Substack URL or import an OPML file.'}
@@ -3416,7 +3474,7 @@
                                     <button className="close-btn" onClick={() => setShowBookmarkletModal(false)}>×</button>
                                 </div>
                                 <div className="modal-body">
-                                    <p style={{fontSize: '14px', color: '#4A5568', marginBottom: '20px', lineHeight: 1.5}}>
+                                    <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5}}>
                                         {translations.import_.bookmarkletDesc}
                                     </p>
                                     <div style={{textAlign: 'center', marginBottom: '20px'}}>
@@ -3438,7 +3496,7 @@
                                             {translations.import_.bookmarkletBtn}
                                         </a>
                                     </div>
-                                    <div style={{fontSize: '12px', color: '#7A8599', textAlign: 'center'}}>
+                                    <div style={{fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center'}}>
                                         {language === 'es'
                                             ? 'Funciona con Twitter/X, LinkedIn y cualquier página web.'
                                             : 'Works with Twitter/X, LinkedIn, and any web page.'}
@@ -3457,16 +3515,16 @@
                                 </div>
                                 <div className="modal-body">
                                     {/* Billing toggle */}
-                                    <div style={{display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '0', background: '#F0F4F7', borderRadius: '8px', padding: '3px'}}>
+                                    <div style={{display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '0', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px'}}>
                                         <button onClick={() => setBillingInterval('month')}
                                             style={{flex: 1, padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                                                background: billingInterval === 'month' ? '#2C3544' : 'transparent',
+                                                background: billingInterval === 'month' ? 'var(--btn-dark)' : 'transparent',
                                                 color: billingInterval === 'month' ? '#FFF' : '#7A8599'}}>
                                             {language === 'es' ? 'Mensual' : 'Monthly'}
                                         </button>
                                         <button onClick={() => setBillingInterval('year')}
                                             style={{flex: 1, padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                                                background: billingInterval === 'year' ? '#2C3544' : 'transparent',
+                                                background: billingInterval === 'year' ? 'var(--btn-dark)' : 'transparent',
                                                 color: billingInterval === 'year' ? '#FFF' : '#7A8599'}}>
                                             {language === 'es' ? 'Anual (-27%)' : 'Annual (-27%)'}
                                         </button>
@@ -3475,27 +3533,27 @@
                                     {/* Plan cards */}
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
                                         {/* Free */}
-                                        <div style={{padding: '16px', border: '1px solid #E8ECF0', borderRadius: '8px', opacity: user.plan === 'free' ? 0.6 : 1}}>
+                                        <div style={{padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', opacity: user.plan === 'free' ? 0.6 : 1}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Free</h3>
-                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)'}}>
                                                         {language === 'es' ? 'Newsletters ilimitadas' : 'Unlimited newsletters'}
                                                     </p>
                                                 </div>
                                                 <div style={{textAlign: 'right'}}>
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>$0</div>
-                                                    {user.plan === 'free' && <span style={{fontSize: '11px', color: '#7A8599'}}>{language === 'es' ? 'Plan actual' : 'Current'}</span>}
+                                                    {user.plan === 'free' && <span style={{fontSize: '11px', color: 'var(--text-muted)'}}>{language === 'es' ? 'Plan actual' : 'Current'}</span>}
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Standard (formerly Pro) */}
-                                        <div style={{padding: '16px', border: (user.plan === 'pro' || user.plan === 'standard') ? '2px solid #2BBCC0' : '1px solid #E8ECF0', borderRadius: '8px'}}>
+                                        <div style={{padding: '16px', border: (user.plan === 'pro' || user.plan === 'standard') ? '2px solid #2BBCC0' : '1px solid var(--border)', borderRadius: '8px'}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Standard</h3>
-                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)'}}>
                                                         {language === 'es' ? 'Resúmenes AI + Briefs' : 'AI Summaries + Briefs'}
                                                     </p>
                                                 </div>
@@ -3503,7 +3561,7 @@
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>
                                                         ${billingInterval === 'month' ? '8' : '79.99'}
                                                     </div>
-                                                    <span style={{fontSize: '11px', color: '#7A8599'}}>
+                                                    <span style={{fontSize: '11px', color: 'var(--text-muted)'}}>
                                                         /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
                                                     </span>
                                                 </div>
@@ -3520,11 +3578,11 @@
                                         </div>
 
                                         {/* Premium */}
-                                        <div style={{padding: '16px', border: user.plan === 'premium' ? '2px solid #2BBCC0' : '1px solid #E8ECF0', borderRadius: '8px'}}>
+                                        <div style={{padding: '16px', border: user.plan === 'premium' ? '2px solid #2BBCC0' : '1px solid var(--border)', borderRadius: '8px'}}>
                                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
                                                 <div>
                                                     <h3 style={{margin: 0, fontSize: '16px'}}>Premium</h3>
-                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: '#7A8599'}}>
+                                                    <p style={{margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)'}}>
                                                         {language === 'es' ? 'Todo de Standard + Reports' : 'Everything in Standard + Reports'}
                                                     </p>
                                                 </div>
@@ -3532,7 +3590,7 @@
                                                     <div style={{fontSize: '20px', fontWeight: '700'}}>
                                                         ${billingInterval === 'month' ? '10' : '99.99'}
                                                     </div>
-                                                    <span style={{fontSize: '11px', color: '#7A8599'}}>
+                                                    <span style={{fontSize: '11px', color: 'var(--text-muted)'}}>
                                                         /{billingInterval === 'month' ? (language === 'es' ? 'mes' : 'mo') : (language === 'es' ? 'año' : 'yr')}
                                                     </span>
                                                 </div>
@@ -3733,23 +3791,29 @@
                                 newsletter.content.includes('<') ? (
                                     <iframe
                                         className="newsletter-iframe"
-                                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>${iframeStyles}</style></head><body>${newsletter.content}</body></html>`}
-                                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>${iframeStyles}</style></head><body>${newsletter.content}<script>
+function postHeight(){var h=document.body.scrollHeight;window.parent.postMessage({type:'iframe-resize',height:h},'*');}
+window.addEventListener('load',function(){postHeight();document.querySelectorAll('img').forEach(function(i){i.addEventListener('load',postHeight);});new ResizeObserver(postHeight).observe(document.body);});
+postHeight();
+</script></body></html>`}
+                                        sandbox="allow-scripts allow-popups"
                                         title="Newsletter content"
                                         style={{minHeight: '500px'}}
                                         onLoad={(e) => {
                                             const iframe = e.target;
-                                            const resizeIframe = () => {
-                                                const h = iframe.contentDocument?.body?.scrollHeight;
-                                                if (h) iframe.style.height = h + 40 + 'px';
+                                            const handler = (event) => {
+                                                if (event.data?.type === 'iframe-resize' && event.data.height) {
+                                                    iframe.style.height = event.data.height + 40 + 'px';
+                                                }
                                             };
-                                            resizeIframe();
-                                            const imgs = iframe.contentDocument?.querySelectorAll('img');
-                                            if (imgs) imgs.forEach(img => img.addEventListener('load', resizeIframe));
-                                            if (iframe.contentDocument?.body) {
-                                                const ro = new ResizeObserver(resizeIframe);
-                                                ro.observe(iframe.contentDocument.body);
-                                            }
+                                            window.addEventListener('message', handler);
+                                            iframe._cleanupHandler = handler;
+                                        }}
+                                        ref={(el) => {
+                                            if (!el) return;
+                                            return () => {
+                                                if (el._cleanupHandler) window.removeEventListener('message', el._cleanupHandler);
+                                            };
                                         }}
                                     />
                                 ) : (
@@ -3884,7 +3948,7 @@
                                     <input type="email" className="form-input" value={formData.kindle_email}
                                         onChange={(e) => setFormData({...formData, kindle_email: e.target.value})}
                                         placeholder="your-name@kindle.com" />
-                                    <div style={{fontSize: '12px', color: '#7A8599', marginTop: '4px'}}>
+                                    <div style={{fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px'}}>
                                         {language === 'es'
                                             ? 'Tu email de Kindle para enviar newsletters directamente'
                                             : 'Your Kindle email to send newsletters directly'}
@@ -3892,7 +3956,7 @@
                                 </div>
                                 <div className="form-group" style={{marginBottom: 0}}>
                                     <label className="form-label">{translations.profile.plan}</label>
-                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#F8FAFB', borderRadius: '6px'}}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '6px'}}>
                                         <span style={{fontWeight: '600'}}>{translations.plans[user.plan]}</span>
                                         <button type="button" className="btn btn-small" onClick={onUpgrade}>
                                             {translations.profile.changePlan}
@@ -3914,7 +3978,7 @@
             );
         }
 
-        function TagManager({ tags, onClose, onUpdate, translations, language }) {
+        function TagManager({ tags, onClose, onUpdate, translations, language, setConfirmModal }) {
             const [newTag, setNewTag] = useState({ name: '', color: '#2C3544' });
             const colors = ['#2C3544', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
 
@@ -3939,12 +4003,19 @@
                     }
                 } catch (e) { console.error('Error:', e); }
             };
-            const deleteTag = async (id) => {
-                if (!confirm(txt.confirmDelete)) return;
-                try {
-                    const res = await fetch(`${API_URL}/tags/${id}`, { method: 'DELETE', credentials: 'include' });
-                    if (res.ok) onUpdate();
-                } catch (e) { console.error('Error:', e); }
+            const deleteTag = (id) => {
+                setConfirmModal({
+                    title: txt.confirmDelete,
+                    message: language === 'es' ? '¿Estás seguro?' : 'Are you sure?',
+                    confirmText: language === 'es' ? 'Eliminar' : 'Delete',
+                    cancelText: language === 'es' ? 'Cancelar' : 'Cancel',
+                    onConfirm: async () => {
+                        try {
+                            const res = await fetch(`${API_URL}/tags/${id}`, { method: 'DELETE', credentials: 'include' });
+                            if (res.ok) onUpdate();
+                        } catch (e) { console.error('Error:', e); }
+                    }
+                });
             };
             return (
                 <div className="modal-overlay" onClick={onClose}>
@@ -3967,7 +4038,7 @@
                                             <button key={color} type="button" onClick={() => setNewTag({...newTag, color})}
                                                 style={{
                                                     width: '40px', height: '40px', borderRadius: '50%', background: color,
-                                                    border: newTag.color === color ? '3px solid #2C3544' : '1px solid #E8ECF0',
+                                                    border: newTag.color === color ? '3px solid #2C3544' : '1px solid var(--border)',
                                                     cursor: 'pointer'
                                                 }} />
                                         ))}
@@ -3982,7 +4053,7 @@
                                     </h3>
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                         {tags.map(tag => (
-                                            <div key={tag.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#F8FAFB', borderRadius: '6px'}}>
+                                            <div key={tag.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '6px'}}>
                                                 <span style={{width: '24px', height: '24px', borderRadius: '50%', background: tag.color}} />
                                                 <span style={{flex: 1, fontWeight: '500'}}>{tag.name}</span>
                                                 <button className="btn btn-small" onClick={() => deleteTag(tag.id)}>{txt.delete}</button>
@@ -4523,7 +4594,7 @@
                                 {/* Generated Content */}
                                 {generatedContent && (
                                     <div style={{marginTop: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, maxHeight: 300, overflowY: 'auto'}}>
-                                        <div dangerouslySetInnerHTML={{__html: generatedContent}} />
+                                        <div dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(generatedContent)}} />
                                     </div>
                                 )}
                             </div>
@@ -4645,7 +4716,7 @@
 
                                     {generatedContent && (
                                         <div style={{marginTop: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, maxHeight: 200, overflowY: 'auto'}}>
-                                            <div dangerouslySetInnerHTML={{__html: generatedContent}} />
+                                            <div dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(generatedContent)}} />
                                         </div>
                                     )}
                                 </div>

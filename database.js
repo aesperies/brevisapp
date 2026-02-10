@@ -1,24 +1,19 @@
 import pg from 'pg';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 const { Pool } = pg;
 
 // PostgreSQL connection pool
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    // Railway uses self-signed certs; set DATABASE_SSL_VERIFY=true if you have proper CA certs
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: process.env.DATABASE_SSL_VERIFY === 'true' } : false
 });
 
-export function generateEmailCode(email) {
-    // Generate deterministic code from email so it never changes
-    let hash = 0;
-    for (let i = 0; i < email.length; i++) {
-        const char = email.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-    // Convert to base36 and take 8 characters
-    const code = Math.abs(hash).toString(36).substring(0, 8).padEnd(8, '0');
+export function generateEmailCode() {
+    // Generate cryptographically random code (16 chars, hex)
+    const code = crypto.randomBytes(8).toString('hex');
     return 'brief-' + code;
 }
 
@@ -140,27 +135,37 @@ export async function createInitialUser() {
         const count = parseInt(result.rows[0].count);
 
         if (count === 0) {
-            const email = 'admin@personalbrief.com';
-            const password = 'changeme123';
+            const email = process.env.ADMIN_EMAIL;
+            const password = process.env.ADMIN_PASSWORD;
+
+            if (!email || !password) {
+                console.log('\n⚠️  No users exist. Set ADMIN_EMAIL and ADMIN_PASSWORD env vars to create an initial admin user.\n');
+                return;
+            }
+
+            if (password.length < 12) {
+                console.error('❌ ADMIN_PASSWORD must be at least 12 characters.');
+                return;
+            }
+
             const passwordHash = await bcrypt.hash(password, 10);
-            const emailCode = generateEmailCode(email);
+            const emailCode = generateEmailCode();
 
             await pool.query(`
                 INSERT INTO users (email, password_hash, name, email_code, plan, newsletters_count, newsletters_limit, language, is_active)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             `, [email, passwordHash, 'Admin', emailCode, 'premium', 0, -1, 'es', 1]);
 
-            console.log('\n🎉 Initial admin user created:');
-            console.log('   Email:', email);
-            console.log('   Password:', password);
-            console.log('   Plan: Premium');
-            console.log('   ⚠️  CHANGE PASSWORD AFTER FIRST LOGIN!\n');
+            console.log('\n✅ Initial admin user created with provided credentials.\n');
         }
     } catch (error) {
         console.error('❌ Error creating initial user:', error);
         throw error;
     }
 }
+
+// Safe user columns (excludes password_hash)
+const USER_COLUMNS = 'id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date';
 
 // Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {
@@ -169,17 +174,22 @@ export const dbHelpers = {
 
     // Users
     findUserByEmail: async (email) => {
-        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        const result = await pool.query(`SELECT ${USER_COLUMNS} FROM users WHERE email = $1`, [email]);
+        return result.rows[0] || null;
+    },
+
+    findUserByEmailWithPassword: async (email) => {
+        const result = await pool.query('SELECT id, email, password_hash FROM users WHERE email = $1', [email]);
         return result.rows[0] || null;
     },
 
     findUserById: async (id) => {
-        const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        const result = await pool.query(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [id]);
         return result.rows[0] || null;
     },
 
     findUserByEmailCode: async (emailCode) => {
-        const result = await pool.query('SELECT * FROM users WHERE email_code = $1', [emailCode]);
+        const result = await pool.query(`SELECT ${USER_COLUMNS} FROM users WHERE email_code = $1`, [emailCode]);
         return result.rows[0] || null;
     },
 
@@ -221,7 +231,7 @@ export const dbHelpers = {
 
     createUser: async (email, password, name) => {
         const passwordHash = await bcrypt.hash(password, 10);
-        const emailCode = generateEmailCode(email);
+        const emailCode = generateEmailCode();
 
         // Nuevo usuario obtiene 15 días de prueba gratis del plan Pro
         const trialEndDate = new Date();
@@ -230,7 +240,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             INSERT INTO users (email, password_hash, name, email_code, plan, trial_end_date, newsletters_count, newsletters_limit, language, is_active)
             VALUES ($1, $2, $3, $4, 'pro', $5, 0, 10, 'es', 1)
-            RETURNING *
+            RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
         `, [email, passwordHash, name, emailCode, trialEndDate]);
 
         return result.rows[0];
@@ -246,7 +256,7 @@ export const dbHelpers = {
         const values = [id, ...fields.map(f => updates[f])];
 
         const result = await pool.query(
-            `UPDATE users SET ${setClause} WHERE id = $1 RETURNING *`,
+            `UPDATE users SET ${setClause} WHERE id = $1 RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date`,
             values
         );
         return result.rows[0] || null;
@@ -254,13 +264,13 @@ export const dbHelpers = {
 
     upgradePlan: async (userId, plan) => {
         const result = await pool.query(`
-            UPDATE users SET plan = $1 WHERE id = $2 RETURNING *
+            UPDATE users SET plan = $1 WHERE id = $2 RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
         `, [plan, userId]);
         return result.rows[0] || null;
     },
 
     findUserByStripeCustomerId: async (stripeCustomerId) => {
-        const result = await pool.query('SELECT * FROM users WHERE stripe_customer_id = $1', [stripeCustomerId]);
+        const result = await pool.query(`SELECT ${USER_COLUMNS} FROM users WHERE stripe_customer_id = $1`, [stripeCustomerId]);
         return result.rows[0] || null;
     },
 
@@ -304,7 +314,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             INSERT INTO newsletters (user_id, title, sender, content, url, is_read)
             VALUES ($1, $2, $3, $4, $5, 0)
-            RETURNING *
+            RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
         `, [userId, title, sender, content, url || null]);
         return result.rows[0];
     },
@@ -319,7 +329,7 @@ export const dbHelpers = {
         const values = [parseInt(id), ...fields.map(f => updates[f])];
 
         const result = await pool.query(
-            `UPDATE newsletters SET ${setClause} WHERE id = $1 RETURNING *`,
+            `UPDATE newsletters SET ${setClause} WHERE id = $1 RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date`,
             values
         );
         return result.rows[0] || null;
@@ -340,7 +350,7 @@ export const dbHelpers = {
 
     createTag: async (userId, name, color) => {
         const result = await pool.query(`
-            INSERT INTO tags (user_id, name, color) VALUES ($1, $2, $3) RETURNING *
+            INSERT INTO tags (user_id, name, color) VALUES ($1, $2, $3) RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
         `, [userId, name, color || '#000000']);
         return result.rows[0];
     },
@@ -381,10 +391,10 @@ export const dbHelpers = {
         return result.rows;
     },
 
-    getNewsletterWithTags: async (newsletterId) => {
+    getNewsletterWithTags: async (newsletterId, userId) => {
         const newsletterResult = await pool.query(`
-            SELECT * FROM newsletters WHERE id = $1
-        `, [parseInt(newsletterId)]);
+            SELECT * FROM newsletters WHERE id = $1 AND user_id = $2
+        `, [parseInt(newsletterId), userId]);
 
         if (newsletterResult.rows.length === 0) return null;
 
@@ -433,7 +443,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             INSERT INTO waitlist (email) VALUES ($1)
             ON CONFLICT (email) DO NOTHING
-            RETURNING *
+            RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
         `, [email.toLowerCase().trim()]);
         return result.rows[0] || null;
     }

@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import crypto from 'crypto';
+import dns from 'dns';
+import { promisify } from 'util';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -72,10 +74,22 @@ try {
 }
 
 // Configure multer for SendGrid webhook
-const upload = multer();
+const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } }); // 25MB max
 
 // Middleware
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:", "https:"],
+            connectSrc: ["'self'"],
+            frameSrc: ["'self'", "blob:"],
+        }
+    }
+}));
 app.use(cors({
     origin: [
         'https://brevisapp.com',
@@ -167,6 +181,33 @@ const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 3, // 3 registrations per hour per IP
     message: { error: 'Too many registration attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Rate limiter for AI/expensive operations (summaries, briefs, reports, audio, news builder)
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // 30 AI requests per 15 min per IP
+    message: { error: 'Too many AI requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Rate limiter for URL imports and file uploads
+const importLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: { error: 'Too many import requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Rate limiter for email webhook (prevent flooding)
+const webhookLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 emails per minute
+    message: { error: 'Too many webhook requests' },
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -462,21 +503,34 @@ app.get('/api/auth/google', (req, res) => {
     if (!GOOGLE_CLIENT_ID) {
         return res.status(500).json({ error: 'Google OAuth not configured' });
     }
+    const state = crypto.randomBytes(32).toString('hex');
+    res.cookie('oauth_state', state, {
+        httpOnly: true,
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    });
     const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
         redirect_uri: GOOGLE_REDIRECT_URI,
         response_type: 'code',
         scope: 'openid email profile',
         access_type: 'offline',
-        prompt: 'select_account'
+        prompt: 'select_account',
+        state
     });
     res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
 app.get('/api/auth/google/callback', async (req, res) => {
     try {
-        const { code } = req.query;
-        if (!code) return res.redirect('/?error=google_auth_failed');
+        const { code, state } = req.query;
+        const savedState = req.cookies.oauth_state;
+        res.clearCookie('oauth_state');
+
+        if (!code || !state || !savedState || state !== savedState) {
+            return res.redirect('/?error=google_auth_failed');
+        }
 
         // Exchange code for tokens
         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -510,7 +564,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
         // Find or create user
         let user = await dbHelpers.findUserByEmail(profile.email);
         if (!user) {
-            const randomPass = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            const randomPass = crypto.randomBytes(32).toString('hex');
             user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0]);
             console.log('✅ New user created via Google:', profile.email);
         }
@@ -603,7 +657,7 @@ app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), a
 });
 
 // Word/DOCX upload for News Builder templates
-app.post('/api/news-builder/upload-word', authMiddleware, upload.single('file'), async (req, res) => {
+app.post('/api/news-builder/upload-word', importLimiter, authMiddleware, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -636,7 +690,7 @@ app.post('/api/news-builder/upload-word', authMiddleware, upload.single('file'),
 });
 
 // Generic file upload for News Builder (PDF, Word, TXT, MD, images)
-app.post('/api/news-builder/upload-file', authMiddleware, upload.single('file'), async (req, res) => {
+app.post('/api/news-builder/upload-file', importLimiter, authMiddleware, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -691,6 +745,52 @@ app.post('/api/news-builder/upload-file', authMiddleware, upload.single('file'),
 
 // === URL Import & Bookmarklet ===
 
+const dnsResolve = promisify(dns.resolve);
+
+function isPrivateIP(ip) {
+    const parts = ip.split('.').map(Number);
+    if (parts.length !== 4) return ip === '::1' || ip === '0:0:0:0:0:0:0:1';
+    return (
+        parts[0] === 127 ||
+        parts[0] === 10 ||
+        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+        (parts[0] === 192 && parts[1] === 168) ||
+        (parts[0] === 169 && parts[1] === 254) ||
+        parts[0] === 0
+    );
+}
+
+async function validateUrlForFetch(urlString) {
+    let parsed;
+    try {
+        parsed = new URL(urlString);
+    } catch {
+        return { safe: false, reason: 'Invalid URL' };
+    }
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { safe: false, reason: 'Only HTTP/HTTPS URLs are allowed' };
+    }
+
+    const hostname = parsed.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+        return { safe: false, reason: 'Local addresses are not allowed' };
+    }
+
+    try {
+        const addresses = await dnsResolve(hostname);
+        for (const addr of addresses) {
+            if (isPrivateIP(addr)) {
+                return { safe: false, reason: 'URL resolves to a private IP address' };
+            }
+        }
+    } catch {
+        return { safe: false, reason: 'Could not resolve hostname' };
+    }
+
+    return { safe: true };
+}
+
 function detectPlatform(url) {
     if (/twitter\.com|x\.com/i.test(url)) return 'twitter';
     if (/linkedin\.com/i.test(url)) return 'linkedin';
@@ -699,8 +799,15 @@ function detectPlatform(url) {
 
 async function fetchGenericContent(url) {
     try {
+        const validation = await validateUrlForFetch(url);
+        if (!validation.safe) {
+            console.error('URL blocked:', url, validation.reason);
+            return null;
+        }
+
         const response = await fetch(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' }
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
+            redirect: 'manual'
         });
         const html = await response.text();
 
@@ -792,7 +899,7 @@ async function fetchFullThread(tweetId) {
     return { tweet: initial, thread: tweets };
 }
 
-app.post('/api/import/url', authMiddleware, async (req, res) => {
+app.post('/api/import/url', importLimiter, authMiddleware, async (req, res) => {
     try {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
@@ -870,43 +977,8 @@ app.post('/api/import/url', authMiddleware, async (req, res) => {
     }
 });
 
-app.options('/api/bookmarklet/save', cors());
-app.post('/api/bookmarklet/save', cors(), async (req, res) => {
-    try {
-        const token = req.body.token
-            || req.cookies.token
-            || req.headers.authorization?.replace('Bearer ', '');
-
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
-
-        const decoded = verifyToken(token);
-        if (!decoded) return res.status(401).json({ error: 'Invalid token' });
-
-        const { title, source, content, url } = req.body;
-        if (!content && !url) {
-            return res.status(400).json({ error: 'Content or URL is required' });
-        }
-
-        let finalSource = source;
-        if (!finalSource && url) {
-            try { finalSource = new URL(url).hostname; } catch (e) { finalSource = 'Web'; }
-        }
-
-        const newsletter = await dbHelpers.createNewsletter(
-            decoded.id,
-            title || 'Saved from web',
-            finalSource || 'Web',
-            content || '',
-            url || null
-        );
-
-        console.log('✅ Bookmarklet save:', title);
-        res.json({ success: true, id: newsletter.id });
-    } catch (error) {
-        console.error('❌ Bookmarklet save error:', error);
-        res.status(500).json({ error: 'Failed to save' });
-    }
-});
+// Bookmarklet saves now go through the regular /api/newsletters endpoint
+// via the /bookmarklet-save page (same origin, uses httpOnly cookies)
 
 app.patch('/api/newsletters/:id', authMiddleware, async (req, res) => {
     try {
@@ -940,7 +1012,7 @@ app.delete('/api/newsletters/:id', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/newsletters/:id/summary', authMiddleware, async (req, res) => {
+app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
         
@@ -1018,7 +1090,7 @@ app.post('/api/newsletters/:id/kindle', authMiddleware, async (req, res) => {
 });
 
 // Generate audio for newsletter
-app.post('/api/newsletters/:id/audio', authMiddleware, async (req, res) => {
+app.post('/api/newsletters/:id/audio', aiLimiter, authMiddleware, async (req, res) => {
     try {
         if (!openai) {
             return res.status(503).json({ error: 'Audio service not configured' });
@@ -1074,7 +1146,7 @@ app.post('/api/newsletters/:id/audio', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
+app.post('/api/newsletters/brief', aiLimiter, authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
 
@@ -1108,7 +1180,7 @@ app.post('/api/newsletters/brief', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/newsletters/report', authMiddleware, async (req, res) => {
+app.post('/api/newsletters/report', aiLimiter, authMiddleware, async (req, res) => {
     try {
         const user = await dbHelpers.findUserById(req.user.id);
 
@@ -1144,7 +1216,7 @@ app.post('/api/newsletters/report', authMiddleware, async (req, res) => {
 
 // ============= NEWS BUILDER ROUTES =============
 
-app.post('/api/news-builder/generate', authMiddleware, async (req, res) => {
+app.post('/api/news-builder/generate', aiLimiter, authMiddleware, async (req, res) => {
     try {
         const { template, reportIds } = req.body;
         if (!template || !reportIds?.length) {
@@ -1166,7 +1238,7 @@ app.post('/api/news-builder/generate', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/news-builder/generate-from-project', authMiddleware, async (req, res) => {
+app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, async (req, res) => {
     try {
         const { template, reportContents, urls } = req.body;
         if (!template) {
@@ -1183,8 +1255,14 @@ app.post('/api/news-builder/generate-from-project', authMiddleware, async (req, 
         if (urls?.length) {
             for (const url of urls) {
                 try {
+                    const validation = await validateUrlForFetch(url);
+                    if (!validation.safe) {
+                        console.error('URL blocked in news builder:', url, validation.reason);
+                        continue;
+                    }
                     const response = await fetch(url, {
-                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' }
+                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
+                        redirect: 'manual'
                     });
                     if (response.ok) {
                         const html = await response.text();
@@ -1269,7 +1347,7 @@ app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) =>
             return res.status(404).json({ error: 'Tag not found' });
         }
         await dbHelpers.addTagToNewsletter(newsletterId, tagId);
-        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId);
+        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
         res.json(updatedNewsletter);
     } catch (error) {
         console.error('❌ Add tag error:', error);
@@ -1294,7 +1372,7 @@ app.delete('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) 
             return res.status(404).json({ error: 'Tag not found' });
         }
         await dbHelpers.removeTagFromNewsletter(newsletterId, tagId);
-        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId);
+        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
         res.json(updatedNewsletter);
     } catch (error) {
         console.error('❌ Remove tag error:', error);
@@ -1348,14 +1426,14 @@ app.post('/api/stripe/checkout', authMiddleware, async (req, res) => {
             await dbHelpers.updateUser(user.id, { stripe_customer_id: customerId });
         }
 
-        const baseUrl = req.headers.origin || `https://brevisapp.com`;
+        const baseUrl = process.env.FRONTEND_URL || 'https://brevisapp.com';
 
         const session = await stripe.checkout.sessions.create({
             customer: customerId,
             mode: 'subscription',
             line_items: [{ price: priceId, quantity: 1 }],
-            success_url: `${baseUrl}?checkout=success`,
-            cancel_url: `${baseUrl}?checkout=cancel`,
+            success_url: `${baseUrl}/app.html?checkout=success`,
+            cancel_url: `${baseUrl}/app.html?checkout=cancel`,
             metadata: { user_id: user.id.toString(), plan }
         });
 
@@ -1378,7 +1456,7 @@ app.post('/api/stripe/portal', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'No subscription found' });
         }
 
-        const baseUrl = req.headers.origin || `https://brevisapp.com`;
+        const baseUrl = process.env.FRONTEND_URL || 'https://brevisapp.com';
 
         const session = await stripe.billingPortal.sessions.create({
             customer: user.stripe_customer_id,
@@ -1404,15 +1482,16 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         const sig = req.headers['stripe-signature'];
         const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-        if (webhookSecret && sig) {
-            try {
-                event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-            } catch (err) {
-                console.error('❌ Stripe webhook signature error:', err.message);
-                return res.status(400).json({ error: 'Webhook signature verification failed' });
-            }
-        } else {
-            event = JSON.parse(req.body);
+        if (!webhookSecret || !sig) {
+            console.error('❌ Stripe webhook secret not configured or signature missing');
+            return res.status(400).json({ error: 'Webhook signature verification not configured' });
+        }
+
+        try {
+            event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        } catch (err) {
+            console.error('❌ Stripe webhook signature error:', err.message);
+            return res.status(400).json({ error: 'Webhook signature verification failed' });
         }
 
         console.log('📦 Stripe event:', event.type);
@@ -1486,8 +1565,20 @@ app.get('/api/config/email-domain', (req, res) => {
 
 // ============= EMAIL WEBHOOK =============
 
-app.post('/api/webhook/email', upload.none(), async (req, res) => {
+app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) => {
     try {
+        // Verify webhook secret via query parameter or header
+        const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
+        if (webhookSecret) {
+            const providedSecret = req.query.secret || req.headers['x-webhook-secret'];
+            if (providedSecret !== webhookSecret) {
+                console.error('❌ Email webhook: invalid or missing secret');
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
+        } else {
+            console.warn('⚠️ EMAIL_WEBHOOK_SECRET not configured — email webhook is unprotected');
+        }
+
         console.log('📧 Webhook received from SendGrid');
         console.log('📦 Body fields:', Object.keys(req.body));
 

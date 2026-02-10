@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required. Server cannot start without it.');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export function generateToken(user) {
     return jwt.sign(
