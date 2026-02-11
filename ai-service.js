@@ -3,6 +3,50 @@ import fetch from 'node-fetch';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
+async function anthropicRequest(body, timeoutMs = 30000) {
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(ANTHROPIC_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': ANTHROPIC_API_KEY,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify(body),
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            if (response.status === 429 || response.status === 529) {
+                const retryAfter = parseInt(response.headers.get('retry-after')) || (2 ** attempt * 2);
+                console.warn(`⚠️ Anthropic rate limited (${response.status}), retrying in ${retryAfter}s (attempt ${attempt + 1}/${maxRetries})`);
+                await new Promise(r => setTimeout(r, retryAfter * 1000));
+                continue;
+            }
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Claude API error: ${error}`);
+            }
+
+            const data = await response.json();
+            return data.content[0].text;
+        } catch (error) {
+            clearTimeout(timeout);
+            if (error.name === 'AbortError' && attempt < maxRetries - 1) {
+                console.warn(`⚠️ Anthropic request timed out, retrying (attempt ${attempt + 1}/${maxRetries})`);
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error('Anthropic API: max retries exceeded');
+}
+
 // Plan definitions
 export const PLANS = {
     free: {
@@ -87,34 +131,11 @@ Summary (4-6 bullets):`
     };
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-        const response = await fetch(ANTHROPIC_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 1024,
-                messages: [{
-                    role: 'user',
-                    content: prompts[language] || prompts.es
-                }]
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Claude API error: ${error}`);
-        }
-
-        const data = await response.json();
-        return data.content[0].text;
+        return await anthropicRequest({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompts[language] || prompts.es }]
+        }, 30000);
     } catch (error) {
         console.error('Error generating summary:', error);
         throw error;
@@ -163,34 +184,11 @@ Executive brief:`
     };
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
-        const response = await fetch(ANTHROPIC_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 2048,
-                messages: [{
-                    role: 'user',
-                    content: prompts[language] || prompts.es
-                }]
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Claude API error: ${error}`);
-        }
-
-        const data = await response.json();
-        return data.content[0].text;
+        return await anthropicRequest({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2048,
+            messages: [{ role: 'user', content: prompts[language] || prompts.es }]
+        }, 60000);
     } catch (error) {
         console.error('Error generating brief:', error);
         throw error;
@@ -247,34 +245,11 @@ Report:`
     };
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);
-        const response = await fetch(ANTHROPIC_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
-                messages: [{
-                    role: 'user',
-                    content: prompts[language] || prompts.es
-                }]
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Claude API error: ${error}`);
-        }
-
-        const data = await response.json();
-        return data.content[0].text;
+        return await anthropicRequest({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: prompts[language] || prompts.es }]
+        }, 90000);
     } catch (error) {
         console.error('Error generating report:', error);
         throw error;
@@ -310,34 +285,11 @@ Output only the newsletter content, formatted in clean HTML.`
     };
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);
-        const response = await fetch(ANTHROPIC_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
-                messages: [{
-                    role: 'user',
-                    content: prompts[language] || prompts.es
-                }]
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Claude API error: ${error}`);
-        }
-
-        const data = await response.json();
-        return data.content[0].text;
+        return await anthropicRequest({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: prompts[language] || prompts.es }]
+        }, 90000);
     } catch (error) {
         console.error('Error generating newsletter from template:', error);
         throw error;
@@ -384,34 +336,11 @@ Output only the newsletter content, formatted in clean HTML.`
     };
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);
-        const response = await fetch(ANTHROPIC_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
-                messages: [{
-                    role: 'user',
-                    content: prompts[language] || prompts.es
-                }]
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Claude API error: ${error}`);
-        }
-
-        const data = await response.json();
-        return data.content[0].text;
+        return await anthropicRequest({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: prompts[language] || prompts.es }]
+        }, 90000);
     } catch (error) {
         console.error('Error generating newsletter from project:', error);
         throw error;
