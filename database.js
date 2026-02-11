@@ -351,7 +351,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             INSERT INTO newsletters (user_id, title, sender, content, url, is_read)
             VALUES ($1, $2, $3, $4, $5, 0)
-            RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
+            RETURNING *
         `, [userId, title, sender, content, url || null]);
         return result.rows[0];
     },
@@ -366,7 +366,7 @@ export const dbHelpers = {
         const values = [parseInt(id), ...fields.map(f => updates[f])];
 
         const result = await pool.query(
-            `UPDATE newsletters SET ${setClause} WHERE id = $1 RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date`,
+            `UPDATE newsletters SET ${setClause} WHERE id = $1 RETURNING *`,
             values
         );
         return result.rows[0] || null;
@@ -387,7 +387,7 @@ export const dbHelpers = {
 
     createTag: async (userId, name, color) => {
         const result = await pool.query(`
-            INSERT INTO tags (user_id, name, color) VALUES ($1, $2, $3) RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
+            INSERT INTO tags (user_id, name, color) VALUES ($1, $2, $3) RETURNING *
         `, [userId, name, color || '#000000']);
         return result.rows[0];
     },
@@ -505,7 +505,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             INSERT INTO waitlist (email) VALUES ($1)
             ON CONFLICT (email) DO NOTHING
-            RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
+            RETURNING *
         `, [email.toLowerCase().trim()]);
         return result.rows[0] || null;
     }
