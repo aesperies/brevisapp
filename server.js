@@ -29,6 +29,44 @@ import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerfor
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
 
+// ============= ERROR HANDLING UTILITIES =============
+
+class AppError extends Error {
+    constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {
+        super(message);
+        this.statusCode = statusCode;
+        this.code = code;
+        this.isOperational = true;
+    }
+}
+
+const asyncHandler = (fn) => (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next);
+
+// ============= STRUCTURED LOGGING =============
+
+const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
+const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
+
+const log = {
+    _emit(level, msg, meta = {}) {
+        if (LEVELS[level] > LEVELS[LOG_LEVEL]) return;
+        const entry = { level, msg, ts: new Date().toISOString(), ...meta };
+        // Redact sensitive fields
+        if (entry.email) entry.email = maskEmail(entry.email);
+        if (entry.token) entry.token = '[REDACTED]';
+        if (entry.password) entry.password = '[REDACTED]';
+        if (level === 'error') console.error(JSON.stringify(entry));
+        else console.log(JSON.stringify(entry));
+    },
+    error: (msg, meta) => log._emit('error', msg, meta),
+    warn:  (msg, meta) => log._emit('warn', msg, meta),
+    info:  (msg, meta) => log._emit('info', msg, meta),
+    debug: (msg, meta) => log._emit('debug', msg, meta),
+};
+
+// ============= REQUEST ID MIDDLEWARE =============
+
 // Email sending: prefer SendGrid API (works on Railway), fallback to SMTP
 let emailEnabled = false;
 const EMAIL_FROM = process.env.SMTP_FROM || process.env.SMTP_USER || 'info@brevisapp.com';
@@ -138,6 +176,13 @@ app.use((req, res, next) => {
     }
 });
 app.use(cookieParser());
+
+// Request ID for tracing
+app.use((req, res, next) => {
+    req.id = crypto.randomUUID().slice(0, 8);
+    res.setHeader('X-Request-Id', req.id);
+    next();
+});
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -256,358 +301,316 @@ app.post('/api/auth/register', registerLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 8 }),
     body('name').notEmpty()
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            console.log('❌ Validation errors:', errors.array());
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { email, password, name, accessCode } = req.body;
-        console.log('📝 Registration attempt:', maskEmail(email));
-
-        const existingUser = await dbHelpers.findUserByEmail(email);
-        if (existingUser) {
-            console.log('❌ User already exists:', maskEmail(email));
-            return res.status(400).json({ error: 'User already exists' });
-        }
-
-        const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
-        const user = await dbHelpers.createUser(email, password, name, plan);
-        const token = generateToken(user);
-        
-        res.cookie('token', token, { 
-            httpOnly: true,
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production'
-        });
-        
-        console.log('✅ User registered:', maskEmail(email));
-
-        // Send verification email
-        if (emailEnabled) {
-            try {
-                const verifyToken = crypto.randomBytes(32).toString('hex');
-                const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-                await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
-                const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
-                await sendEmail({
-                    to: email,
-                    subject: 'BREVIS - Verify your email',
-                    html: `
-                        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-                            <h2 style="color: #2C3544; margin-bottom: 16px;">Welcome to BREVIS!</h2>
-                            <p style="color: #4A5568; line-height: 1.6;">Please verify your email address to get the most out of your account:</p>
-                            <a href="${verifyUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify Email</a>
-                            <p style="color: #7A8599; font-size: 13px;">This link expires in 24 hours.</p>
-                        </div>
-                    `
-                });
-                console.log('✅ Verification email sent to:', maskEmail(email));
-            } catch (emailErr) {
-                console.error('⚠️ Failed to send verification email:', emailErr.message);
-                console.error('   SMTP response:', emailErr.response);
-                console.error('   SMTP code:', emailErr.responseCode);
-            }
-        }
-
-        res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                email_code: user.email_code,
-                plan: user.plan,
-                language: user.language,
-                kindle_email: user.kindle_email,
-                trial_end_date: user.trial_end_date,
-                email_verified: false
-            }
-        });
-    } catch (error) {
-        console.error('❌ Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        console.log('❌ Validation errors:', errors.array());
+        return res.status(400).json({ errors: errors.array() });
     }
-});
+
+    const { email, password, name, accessCode } = req.body;
+    console.log('📝 Registration attempt:', maskEmail(email));
+
+    const existingUser = await dbHelpers.findUserByEmail(email);
+    if (existingUser) {
+        console.log('❌ User already exists:', maskEmail(email));
+        return res.status(400).json({ error: 'User already exists' });
+    }
+
+    const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
+    const user = await dbHelpers.createUser(email, password, name, plan);
+    const token = generateToken(user);
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    });
+
+    console.log('✅ User registered:', maskEmail(email));
+
+    // Send verification email
+    if (emailEnabled) {
+        try {
+            const verifyToken = crypto.randomBytes(32).toString('hex');
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+            await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
+            const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+            await sendEmail({
+                to: email,
+                subject: 'BREVIS - Verify your email',
+                html: `
+                    <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+                        <h2 style="color: #2C3544; margin-bottom: 16px;">Welcome to BREVIS!</h2>
+                        <p style="color: #4A5568; line-height: 1.6;">Please verify your email address to get the most out of your account:</p>
+                        <a href="${verifyUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify Email</a>
+                        <p style="color: #7A8599; font-size: 13px;">This link expires in 24 hours.</p>
+                    </div>
+                `
+            });
+            console.log('✅ Verification email sent to:', maskEmail(email));
+        } catch (emailErr) {
+            console.error('⚠️ Failed to send verification email:', emailErr.message);
+            console.error('   SMTP response:', emailErr.response);
+            console.error('   SMTP code:', emailErr.responseCode);
+        }
+    }
+
+    res.json({
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            email_code: user.email_code,
+            plan: user.plan,
+            language: user.language,
+            kindle_email: user.kindle_email,
+            trial_end_date: user.trial_end_date,
+            email_verified: false
+        }
+    });
+}));
 
 app.post('/api/auth/login', authLimiter, [
     body('email').isEmail().normalizeEmail(),
     body('password').notEmpty()
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            console.log('❌ Validation errors:', errors.array());
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { email, password } = req.body;
-        console.log('🔐 Login attempt:', maskEmail(email));
-        
-        const user = await dbHelpers.findUserByEmail(email);
-        if (!user) {
-            console.log('❌ User not found:', maskEmail(email));
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        const isValid = await dbHelpers.verifyPassword(user.id, password);
-        if (!isValid) {
-            console.log('❌ Invalid password for:', maskEmail(email));
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        // Verificar si el periodo de prueba ha expirado
-        const currentPlan = await dbHelpers.checkAndUpdateTrialStatus(user.id);
-        if (currentPlan) {
-            user.plan = currentPlan;
-        }
-
-        const token = generateToken(user);
-        res.cookie('token', token, {
-            httpOnly: true,
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production'
-        });
-
-        console.log('✅ User logged in:', maskEmail(email));
-
-        res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                email_code: user.email_code,
-                plan: user.plan,
-                language: user.language,
-                kindle_email: user.kindle_email,
-                trial_end_date: user.trial_end_date,
-                email_verified: !!user.email_verified
-            }
-        });
-    } catch (error) {
-        console.error('❌ Login error:', error);
-        res.status(500).json({ error: 'Login failed' });
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        console.log('❌ Validation errors:', errors.array());
+        return res.status(400).json({ errors: errors.array() });
     }
-});
+
+    const { email, password } = req.body;
+    console.log('🔐 Login attempt:', maskEmail(email));
+
+    const user = await dbHelpers.findUserByEmail(email);
+    if (!user) {
+        console.log('❌ User not found:', maskEmail(email));
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isValid = await dbHelpers.verifyPassword(user.id, password);
+    if (!isValid) {
+        console.log('❌ Invalid password for:', maskEmail(email));
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verificar si el periodo de prueba ha expirado
+    const currentPlan = await dbHelpers.checkAndUpdateTrialStatus(user.id);
+    if (currentPlan) {
+        user.plan = currentPlan;
+    }
+
+    const token = generateToken(user);
+    res.cookie('token', token, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    });
+
+    console.log('✅ User logged in:', maskEmail(email));
+
+    res.json({
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            email_code: user.email_code,
+            plan: user.plan,
+            language: user.language,
+            kindle_email: user.kindle_email,
+            trial_end_date: user.trial_end_date,
+            email_verified: !!user.email_verified
+        }
+    });
+}));
 
 // Email verification - user clicks link from email
-app.get('/api/auth/verify-email', async (req, res) => {
-    try {
-        const { token } = req.query;
-        if (!token) return res.redirect('/?error=invalid_token');
-        const user = await dbHelpers.verifyEmail(token);
-        if (user) {
-            console.log('✅ Email verified:', maskEmail(user.email));
-            res.redirect('/app.html?verified=true');
-        } else {
-            res.redirect('/app.html?error=invalid_token');
-        }
-    } catch (error) {
-        console.error('❌ Email verification error:', error);
-        res.redirect('/?error=verification_failed');
+app.get('/api/auth/verify-email', asyncHandler(async (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.redirect('/?error=invalid_token');
+    const user = await dbHelpers.verifyEmail(token);
+    if (user) {
+        console.log('✅ Email verified:', maskEmail(user.email));
+        res.redirect('/app.html?verified=true');
+    } else {
+        res.redirect('/app.html?error=invalid_token');
     }
-});
+}));
 
 // Resend verification email
-app.post('/api/auth/resend-verification', authMiddleware, async (req, res) => {
-    try {
-        const user = await dbHelpers.findUserById(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        if (user.email_verified) return res.json({ success: true, message: 'Already verified' });
-        if (!emailEnabled) return res.status(503).json({ error: 'Email service not configured' });
+app.post('/api/auth/resend-verification', authMiddleware, asyncHandler(async (req, res) => {
+    const user = await dbHelpers.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.email_verified) return res.json({ success: true, message: 'Already verified' });
+    if (!emailEnabled) return res.status(503).json({ error: 'Email service not configured' });
 
-        const verifyToken = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
-        const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
-        await sendEmail({
-            to: user.email,
-            subject: 'BREVIS - Verify your email',
-            html: `
-                <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-                    <h2 style="color: #2C3544; margin-bottom: 16px;">Verify your email</h2>
-                    <p style="color: #4A5568; line-height: 1.6;">Click the button below to verify your email address:</p>
-                    <a href="${verifyUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify Email</a>
-                    <p style="color: #7A8599; font-size: 13px;">This link expires in 24 hours.</p>
-                </div>
-            `
-        });
-        console.log('✅ Verification email resent to:', maskEmail(user.email));
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Resend verification error:', error.message);
-        console.error('   SMTP response:', error.response);
-        console.error('   SMTP code:', error.responseCode);
-        res.status(500).json({ error: 'Failed to resend verification email' });
-    }
-});
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await dbHelpers.createEmailVerification(user.id, verifyToken, expiresAt);
+    const verifyUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+    await sendEmail({
+        to: user.email,
+        subject: 'BREVIS - Verify your email',
+        html: `
+            <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+                <h2 style="color: #2C3544; margin-bottom: 16px;">Verify your email</h2>
+                <p style="color: #4A5568; line-height: 1.6;">Click the button below to verify your email address:</p>
+                <a href="${verifyUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify Email</a>
+                <p style="color: #7A8599; font-size: 13px;">This link expires in 24 hours.</p>
+            </div>
+        `
+    });
+    console.log('✅ Verification email resent to:', maskEmail(user.email));
+    res.json({ success: true });
+}));
 
 // Password reset - request
 app.post('/api/auth/forgot-password', authLimiter, [
     body('email').isEmail().normalizeEmail()
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ error: 'Invalid email' });
-        }
-
-        const { email } = req.body;
-        const user = await dbHelpers.findUserByEmail(email);
-
-        // Always return success to avoid leaking whether email exists
-        if (!user) {
-            return res.json({ success: true });
-        }
-
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-        await dbHelpers.createPasswordReset(user.id, token, expiresAt);
-
-        const resetUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/reset-password?token=${token}`;
-
-        if (emailEnabled) {
-            await sendEmail({
-                to: email,
-                subject: 'BREVIS - Reset your password',
-                html: `
-                    <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-                        <h2 style="color: #2C3544; margin-bottom: 16px;">Reset your password</h2>
-                        <p style="color: #4A5568; line-height: 1.6;">You requested a password reset for your BREVIS account. Click the button below to set a new password:</p>
-                        <a href="${resetUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset Password</a>
-                        <p style="color: #7A8599; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-                    </div>
-                `
-            });
-            console.log('✅ Password reset email sent to:', maskEmail(email));
-        } else {
-            console.log('⚠️ SMTP not configured. Reset token:', token);
-        }
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Forgot password error:', error);
-        res.status(500).json({ error: 'Failed to process request' });
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Invalid email' });
     }
-});
+
+    const { email } = req.body;
+    const user = await dbHelpers.findUserByEmail(email);
+
+    // Always return success to avoid leaking whether email exists
+    if (!user) {
+        return res.json({ success: true });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await dbHelpers.createPasswordReset(user.id, token, expiresAt);
+
+    const resetUrl = `${process.env.FRONTEND_URL || req.protocol + '://' + req.get('host')}/reset-password?token=${token}`;
+
+    if (emailEnabled) {
+        await sendEmail({
+            to: email,
+            subject: 'BREVIS - Reset your password',
+            html: `
+                <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+                    <h2 style="color: #2C3544; margin-bottom: 16px;">Reset your password</h2>
+                    <p style="color: #4A5568; line-height: 1.6;">You requested a password reset for your BREVIS account. Click the button below to set a new password:</p>
+                    <a href="${resetUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2C3544; color: #FFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset Password</a>
+                    <p style="color: #7A8599; font-size: 13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+                </div>
+            `
+        });
+        console.log('✅ Password reset email sent to:', maskEmail(email));
+    } else {
+        console.log('⚠️ SMTP not configured. Reset token:', token);
+    }
+
+    res.json({ success: true });
+}));
 
 // Password reset - execute
 app.post('/api/auth/reset-password', authLimiter, [
     body('token').notEmpty(),
     body('password').isLength({ min: 8 })
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ error: 'Password must be at least 8 characters' });
-        }
-
-        const { token, password } = req.body;
-
-        // findValidPasswordReset atomically marks the token as used (prevents race conditions)
-        const resetRecord = await dbHelpers.findValidPasswordReset(token);
-        if (!resetRecord) {
-            return res.status(400).json({ error: 'Invalid or expired reset link' });
-        }
-
-        await dbHelpers.updatePasswordHash(resetRecord.user_id, password);
-
-        console.log('✅ Password reset for user:', resetRecord.user_id);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Reset password error:', error);
-        res.status(500).json({ error: 'Failed to reset password' });
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
-});
 
-app.get('/api/auth/me', authMiddleware, async (req, res) => {
-    try {
-        const user = await dbHelpers.findUserById(req.user.id);
-        if (!user) {
-            console.log('❌ Get user error: User not found for ID:', req.user.id);
-            return res.status(404).json({ error: 'User not found' });
-        }
-        res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                email_code: user.email_code,
-                plan: user.plan,
-                language: user.language,
-                kindle_email: user.kindle_email,
-                email_verified: !!user.email_verified
-            }
-        });
-    } catch (error) {
-        console.error('❌ Get user error:', error);
-        res.status(500).json({ error: 'Failed to get user' });
+    const { token, password } = req.body;
+
+    // findValidPasswordReset atomically marks the token as used (prevents race conditions)
+    const resetRecord = await dbHelpers.findValidPasswordReset(token);
+    if (!resetRecord) {
+        return res.status(400).json({ error: 'Invalid or expired reset link' });
     }
-});
+
+    await dbHelpers.updatePasswordHash(resetRecord.user_id, password);
+
+    console.log('✅ Password reset for user:', resetRecord.user_id);
+    res.json({ success: true });
+}));
+
+app.get('/api/auth/me', authMiddleware, asyncHandler(async (req, res) => {
+    const user = await dbHelpers.findUserById(req.user.id);
+    if (!user) {
+        console.log('❌ Get user error: User not found for ID:', req.user.id);
+        return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            email_code: user.email_code,
+            plan: user.plan,
+            language: user.language,
+            kindle_email: user.kindle_email,
+            email_verified: !!user.email_verified
+        }
+    });
+}));
 
 // Update user profile
-app.patch('/api/auth/profile', authMiddleware, async (req, res) => {
-    try {
-        const { name, kindle_email, language, password } = req.body;
-        const db = dbHelpers.getDb();
+app.patch('/api/auth/profile', authMiddleware, asyncHandler(async (req, res) => {
+    const { name, kindle_email, language, password } = req.body;
+    const db = dbHelpers.getDb();
 
-        // Handle password change separately (uses its own hashing)
-        if (password !== undefined && password.length >= 8) {
-            await dbHelpers.updatePasswordHash(req.user.id, password);
-            console.log('✅ Password updated for user:', req.user.id);
-        } else if (password !== undefined && password.length > 0) {
-            return res.status(400).json({ error: 'Password must be at least 8 characters' });
-        }
-
-        const updates = [];
-        const values = [];
-        let paramIndex = 1;
-
-        if (name !== undefined) {
-            updates.push(`name = $${paramIndex++}`);
-            values.push(name);
-        }
-        if (kindle_email !== undefined) {
-            updates.push(`kindle_email = $${paramIndex++}`);
-            values.push(kindle_email);
-        }
-        if (language !== undefined) {
-            updates.push(`language = $${paramIndex++}`);
-            values.push(language);
-        }
-
-        let user;
-        if (updates.length > 0) {
-            values.push(req.user.id);
-            const query = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-            const result = await db.query(query, values);
-            user = result.rows[0];
-        } else {
-            // Just fetch current user if only password was changed
-            user = await dbHelpers.findUserById(req.user.id);
-        }
-
-        console.log('✅ User profile updated:', user.id);
-        res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                email_code: user.email_code,
-                plan: user.plan,
-                language: user.language,
-                kindle_email: user.kindle_email
-            }
-        });
-    } catch (error) {
-        console.error('❌ Update profile error:', error);
-        res.status(500).json({ error: 'Failed to update profile' });
+    // Handle password change separately (uses its own hashing)
+    if (password !== undefined && password.length >= 8) {
+        await dbHelpers.updatePasswordHash(req.user.id, password);
+        console.log('✅ Password updated for user:', req.user.id);
+    } else if (password !== undefined && password.length > 0) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
-});
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+        updates.push(`name = $${paramIndex++}`);
+        values.push(name);
+    }
+    if (kindle_email !== undefined) {
+        updates.push(`kindle_email = $${paramIndex++}`);
+        values.push(kindle_email);
+    }
+    if (language !== undefined) {
+        updates.push(`language = $${paramIndex++}`);
+        values.push(language);
+    }
+
+    let user;
+    if (updates.length > 0) {
+        values.push(req.user.id);
+        const query = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+        const result = await db.query(query, values);
+        user = result.rows[0];
+    } else {
+        // Just fetch current user if only password was changed
+        user = await dbHelpers.findUserById(req.user.id);
+    }
+
+    console.log('✅ User profile updated:', user.id);
+    res.json({
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            email_code: user.email_code,
+            plan: user.plan,
+            language: user.language,
+            kindle_email: user.kindle_email
+        }
+    });
+}));
 
 app.post('/api/auth/logout', (req, res) => {
     res.clearCookie('token', {
@@ -649,7 +652,7 @@ app.get('/api/auth/google', (req, res) => {
     res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
-app.get('/api/auth/google/callback', async (req, res) => {
+app.get('/api/auth/google/callback', asyncHandler(async (req, res) => {
     try {
         const { code, state } = req.query;
         const savedState = req.cookies.oauth_state;
@@ -717,165 +720,135 @@ app.get('/api/auth/google/callback', async (req, res) => {
         console.error('❌ Google OAuth error:', error);
         res.redirect('/?error=google_auth_failed');
     }
-});
+}));
 
 // ============= NEWSLETTER ROUTES =============
 
-app.get('/api/newsletters', authMiddleware, async (req, res) => {
-    try {
-        const newsletters = await dbHelpers.getNewsletters(req.user.id);
-        res.json(newsletters);
-    } catch (error) {
-        console.error('❌ Get newsletters error:', error);
-        res.status(500).json({ error: 'Failed to get newsletters' });
-    }
-});
+app.get('/api/newsletters', authMiddleware, asyncHandler(async (req, res) => {
+    const newsletters = await dbHelpers.getNewsletters(req.user.id);
+    res.json(newsletters);
+}));
 
-app.get('/api/newsletters/:id', authMiddleware, async (req, res) => {
-    try {
-        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
-        res.json(newsletter);
-    } catch (error) {
-        console.error('❌ Get newsletter error:', error);
-        res.status(500).json({ error: 'Failed to get newsletter' });
+app.get('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) => {
+    const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
     }
-});
+    res.json(newsletter);
+}));
 
-app.post('/api/newsletters', authMiddleware, async (req, res) => {
-    try {
-        const { title, source, content, url } = req.body;
-        const newsletter = await dbHelpers.createNewsletter(
-            req.user.id,
-            title,
-            source,
-            content,
-            url
-        );
-        console.log('✅ Newsletter created:', title);
-        res.json(newsletter);
-    } catch (error) {
-        console.error('❌ Create newsletter error:', error);
-        res.status(500).json({ error: 'Failed to create newsletter' });
-    }
-});
+app.post('/api/newsletters', authMiddleware, asyncHandler(async (req, res) => {
+    const { title, source, content, url } = req.body;
+    const newsletter = await dbHelpers.createNewsletter(
+        req.user.id,
+        title,
+        source,
+        content,
+        url
+    );
+    console.log('✅ Newsletter created:', title);
+    res.json(newsletter);
+}));
 
-app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-        if (req.file.mimetype !== 'application/pdf') {
-            return res.status(400).json({ error: 'Only PDF files are supported' });
-        }
-        if (req.file.size > 10 * 1024 * 1024) {
-            return res.status(400).json({ error: 'File too large (max 10MB)' });
-        }
-        const data = await pdfParse(req.file.buffer);
-        const title = req.file.originalname.replace(/\.pdf$/i, '');
-        const content = data.text || '';
-        if (!content.trim()) {
-            return res.status(400).json({ error: 'Could not extract text from PDF' });
-        }
-        const newsletter = await dbHelpers.createNewsletter(
-            req.user.id, title, 'PDF Upload', content, ''
-        );
-        console.log('✅ PDF newsletter created:', title);
-        res.json(newsletter);
-    } catch (error) {
-        console.error('❌ PDF upload error:', error);
-        res.status(500).json({ error: 'Failed to process PDF' });
+app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
     }
-});
+    if (req.file.mimetype !== 'application/pdf') {
+        return res.status(400).json({ error: 'Only PDF files are supported' });
+    }
+    if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: 'File too large (max 10MB)' });
+    }
+    const data = await pdfParse(req.file.buffer);
+    const title = req.file.originalname.replace(/\.pdf$/i, '');
+    const content = data.text || '';
+    if (!content.trim()) {
+        return res.status(400).json({ error: 'Could not extract text from PDF' });
+    }
+    const newsletter = await dbHelpers.createNewsletter(
+        req.user.id, title, 'PDF Upload', content, ''
+    );
+    console.log('✅ PDF newsletter created:', title);
+    res.json(newsletter);
+}));
 
 // Word/DOCX upload for News Builder templates
-app.post('/api/news-builder/upload-word', importLimiter, authMiddleware, upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-        const validMimes = [
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/msword'
-        ];
-        if (!validMimes.includes(req.file.mimetype)) {
-            return res.status(400).json({ error: 'Only Word files (.docx, .doc) are supported' });
-        }
-        if (req.file.size > 10 * 1024 * 1024) {
-            return res.status(400).json({ error: 'File too large (max 10MB)' });
-        }
-
-        const result = await mammoth.convertToHtml({ buffer: req.file.buffer });
-        const content = result.value || '';
-
-        if (!content.trim()) {
-            return res.status(400).json({ error: 'Could not extract content from Word file' });
-        }
-
-        const name = req.file.originalname.replace(/\.(docx?|doc)$/i, '');
-        console.log('✅ Word file processed:', name);
-        res.json({ name, content });
-    } catch (error) {
-        console.error('❌ Word upload error:', error);
-        res.status(500).json({ error: 'Failed to process Word file' });
+app.post('/api/news-builder/upload-word', importLimiter, authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
     }
-});
+    const validMimes = [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword'
+    ];
+    if (!validMimes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: 'Only Word files (.docx, .doc) are supported' });
+    }
+    if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: 'File too large (max 10MB)' });
+    }
+
+    const result = await mammoth.convertToHtml({ buffer: req.file.buffer });
+    const content = result.value || '';
+
+    if (!content.trim()) {
+        return res.status(400).json({ error: 'Could not extract content from Word file' });
+    }
+
+    const name = req.file.originalname.replace(/\.(docx?|doc)$/i, '');
+    console.log('✅ Word file processed:', name);
+    res.json({ name, content });
+}));
 
 // Generic file upload for News Builder (PDF, Word, TXT, MD, images)
-app.post('/api/news-builder/upload-file', importLimiter, authMiddleware, upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-        if (req.file.size > 10 * 1024 * 1024) {
-            return res.status(400).json({ error: 'File too large (max 10MB)' });
-        }
-
-        const mime = req.file.mimetype;
-        const name = req.file.originalname;
-        let content = '';
-
-        // PDF
-        if (mime === 'application/pdf') {
-            try {
-                const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
-                const data = await pdfParse(req.file.buffer);
-                content = data.text || '';
-            } catch (e) {
-                console.error('PDF parse error:', e);
-                return res.status(400).json({ error: 'Could not parse PDF' });
-            }
-        }
-        // Word
-        else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || mime === 'application/msword') {
-            const result = await mammoth.convertToHtml({ buffer: req.file.buffer });
-            content = result.value || '';
-        }
-        // Plain text / Markdown
-        else if (mime === 'text/plain' || mime === 'text/markdown' || name.endsWith('.md') || name.endsWith('.txt')) {
-            content = req.file.buffer.toString('utf-8');
-        }
-        // Images - store a placeholder
-        else if (mime.startsWith('image/')) {
-            content = `[Image: ${name}]`;
-        }
-        else {
-            return res.status(400).json({ error: 'Unsupported file type' });
-        }
-
-        if (!content.trim()) {
-            return res.status(400).json({ error: 'Could not extract content from file' });
-        }
-
-        console.log('✅ File processed:', name);
-        res.json({ name, content });
-    } catch (error) {
-        console.error('❌ File upload error:', error);
-        res.status(500).json({ error: 'Failed to process file' });
+app.post('/api/news-builder/upload-file', importLimiter, authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
     }
-});
+    if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: 'File too large (max 10MB)' });
+    }
+
+    const mime = req.file.mimetype;
+    const name = req.file.originalname;
+    let content = '';
+
+    // PDF
+    if (mime === 'application/pdf') {
+        try {
+            const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
+            const data = await pdfParse(req.file.buffer);
+            content = data.text || '';
+        } catch (e) {
+            console.error('PDF parse error:', e);
+            return res.status(400).json({ error: 'Could not parse PDF' });
+        }
+    }
+    // Word
+    else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || mime === 'application/msword') {
+        const result = await mammoth.convertToHtml({ buffer: req.file.buffer });
+        content = result.value || '';
+    }
+    // Plain text / Markdown
+    else if (mime === 'text/plain' || mime === 'text/markdown' || name.endsWith('.md') || name.endsWith('.txt')) {
+        content = req.file.buffer.toString('utf-8');
+    }
+    // Images - store a placeholder
+    else if (mime.startsWith('image/')) {
+        content = `[Image: ${name}]`;
+    }
+    else {
+        return res.status(400).json({ error: 'Unsupported file type' });
+    }
+
+    if (!content.trim()) {
+        return res.status(400).json({ error: 'Could not extract content from file' });
+    }
+
+    console.log('✅ File processed:', name);
+    res.json({ name, content });
+}));
 
 // === URL Import & Bookmarklet ===
 
@@ -1033,9 +1006,8 @@ async function fetchFullThread(tweetId) {
     return { tweet: initial, thread: tweets };
 }
 
-app.post('/api/import/url', importLimiter, authMiddleware, async (req, res) => {
-    try {
-        const { url } = req.body;
+app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
 
         const platform = detectPlatform(url);
@@ -1105,262 +1077,217 @@ app.post('/api/import/url', importLimiter, authMiddleware, async (req, res) => {
             console.log(`✅ Imported generic URL:`, genericContent.title);
             res.json(newsletter);
         }
-    } catch (error) {
-        console.error('❌ Import URL error:', error);
-        res.status(500).json({ error: 'Failed to import content from URL' });
-    }
-});
+}));
 
 // Bookmarklet saves now go through the regular /api/newsletters endpoint
 // via the /bookmarklet-save page (same origin, uses httpOnly cookies)
 
-app.patch('/api/newsletters/:id', authMiddleware, async (req, res) => {
-    try {
-        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
-
-        const updates = {};
-        if (req.body.is_read !== undefined) {
-            updates.is_read = req.body.is_read;
-        }
-
-        const updated = await dbHelpers.updateNewsletter(parseInt(req.params.id), updates);
-        console.log('✅ Newsletter updated:', req.params.id, updates);
-        res.json(updated);
-    } catch (error) {
-        console.error('❌ Update newsletter error:', error);
-        res.status(500).json({ error: 'Failed to update newsletter' });
+app.patch('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) => {
+    const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
     }
-});
 
-app.delete('/api/newsletters/:id', authMiddleware, async (req, res) => {
-    try {
-        await dbHelpers.deleteNewsletter(parseInt(req.params.id), req.user.id);
-        console.log('✅ Newsletter deleted:', req.params.id);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Delete newsletter error:', error);
-        res.status(500).json({ error: 'Failed to delete newsletter' });
+    const updates = {};
+    if (req.body.is_read !== undefined) {
+        updates.is_read = req.body.is_read;
     }
-});
 
-app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, async (req, res) => {
-    try {
-        const user = await dbHelpers.findUserById(req.user.id);
-        
-        if (!canUserPerformAction(user, 'generate_summary')) {
-            return res.status(403).json({ error: 'Upgrade to Standard to generate summaries' });
-        }
+    const updated = await dbHelpers.updateNewsletter(parseInt(req.params.id), updates);
+    console.log('✅ Newsletter updated:', req.params.id, updates);
+    res.json(updated);
+}));
 
-        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
+app.delete('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) => {
+    await dbHelpers.deleteNewsletter(parseInt(req.params.id), req.user.id);
+    console.log('✅ Newsletter deleted:', req.params.id);
+    res.json({ success: true });
+}));
 
-        if (newsletter.summary) {
-            return res.json({ summary: newsletter.summary });
-        }
+app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    const user = await dbHelpers.findUserById(req.user.id);
 
-        const summary = await generateSummary(newsletter, user.language);
-        await dbHelpers.updateNewsletter(newsletter.id, { summary });
-        
-        console.log('✅ Summary generated for newsletter:', newsletter.id);
-        res.json({ summary });
-    } catch (error) {
-        console.error('❌ Generate summary error:', error);
-        res.status(500).json({ error: 'Failed to generate summary' });
+    if (!canUserPerformAction(user, 'generate_summary')) {
+        return res.status(403).json({ error: 'Upgrade to Standard to generate summaries' });
     }
-});
+
+    const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
+    }
+
+    if (newsletter.summary) {
+        return res.json({ summary: newsletter.summary });
+    }
+
+    const summary = await generateSummary(newsletter, user.language);
+    await dbHelpers.updateNewsletter(newsletter.id, { summary });
+
+    console.log('✅ Summary generated for newsletter:', newsletter.id);
+    res.json({ summary });
+}));
 
 // Send newsletter to Kindle
-app.post('/api/newsletters/:id/kindle', authMiddleware, async (req, res) => {
-    try {
-        if (!emailEnabled) {
-            return res.status(503).json({ error: 'Email service not configured' });
-        }
-
-        const user = await dbHelpers.findUserById(req.user.id);
-        if (!user.kindle_email) {
-            return res.status(400).json({
-                error: 'Kindle email not configured. Please add your Kindle email in your profile settings.'
-            });
-        }
-
-        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
-
-        // Strip HTML tags for Kindle (plain text works better)
-        const plainContent = newsletter.content
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<[^>]+>/g, '\n')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/\n\s*\n/g, '\n\n')
-            .trim();
-
-        // Send email to Kindle
-        await sendEmail({
-            to: user.kindle_email,
-            subject: newsletter.title,
-            text: `${newsletter.title}\n\nFrom: ${newsletter.sender}\n\n${plainContent}`
-        });
-
-        console.log(`✅ Newsletter ${newsletter.id} sent to Kindle: ${maskEmail(user.kindle_email)}`);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Send to Kindle error:', error);
-        res.status(500).json({ error: 'Failed to send to Kindle' });
+app.post('/api/newsletters/:id/kindle', authMiddleware, asyncHandler(async (req, res) => {
+    if (!emailEnabled) {
+        return res.status(503).json({ error: 'Email service not configured' });
     }
-});
+
+    const user = await dbHelpers.findUserById(req.user.id);
+    if (!user.kindle_email) {
+        return res.status(400).json({
+            error: 'Kindle email not configured. Please add your Kindle email in your profile settings.'
+        });
+    }
+
+    const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
+    }
+
+    // Strip HTML tags for Kindle (plain text works better)
+    const plainContent = newsletter.content
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, '\n')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/\n\s*\n/g, '\n\n')
+        .trim();
+
+    // Send email to Kindle
+    await sendEmail({
+        to: user.kindle_email,
+        subject: newsletter.title,
+        text: `${newsletter.title}\n\nFrom: ${newsletter.sender}\n\n${plainContent}`
+    });
+
+    console.log(`✅ Newsletter ${newsletter.id} sent to Kindle: ${maskEmail(user.kindle_email)}`);
+    res.json({ success: true });
+}));
 
 // Generate audio for newsletter
-app.post('/api/newsletters/:id/audio', aiLimiter, authMiddleware, async (req, res) => {
-    try {
-        if (!openai) {
-            return res.status(503).json({ error: 'Audio service not configured' });
-        }
-
-        const user = await dbHelpers.findUserById(req.user.id);
-
-        // Require Pro or Premium plan for audio generation
-        if (!canUserPerformAction(user, 'generate_summary')) {
-            return res.status(403).json({ error: 'Upgrade to Standard to generate audio' });
-        }
-
-        const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
-
-        // Strip HTML for better TTS
-        const plainContent = newsletter.content
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-        // Limit content length for TTS (OpenAI has a 4096 char limit)
-        const contentForTTS = plainContent.substring(0, 4000);
-        const textToSpeak = `${newsletter.title}. ${contentForTTS}`;
-
-        // Generate audio using OpenAI TTS
-        const mp3Response = await openai.audio.speech.create({
-            model: 'tts-1',
-            voice: user.language === 'es' ? 'nova' : 'alloy',
-            input: textToSpeak,
-            speed: 1.0
-        });
-
-        // Convert to buffer and send as base64 or save to temp file
-        const buffer = Buffer.from(await mp3Response.arrayBuffer());
-        const base64Audio = buffer.toString('base64');
-        const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
-
-        console.log(`✅ Audio generated for newsletter ${newsletter.id}`);
-        res.json({ audioUrl });
-    } catch (error) {
-        console.error('❌ Generate audio error:', error);
-        res.status(500).json({ error: 'Failed to generate audio' });
+app.post('/api/newsletters/:id/audio', aiLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    if (!openai) {
+        return res.status(503).json({ error: 'Audio service not configured' });
     }
-});
 
-app.post('/api/newsletters/brief', aiLimiter, authMiddleware, async (req, res) => {
-    try {
-        const user = await dbHelpers.findUserById(req.user.id);
+    const user = await dbHelpers.findUserById(req.user.id);
 
-        if (!canUserPerformAction(user, 'generate_brief')) {
-            return res.status(403).json({ error: 'Upgrade to Standard to generate briefs' });
-        }
-
-        const { newsletter_ids, purpose } = req.body;
-        if (!newsletter_ids || newsletter_ids.length === 0) {
-            return res.status(400).json({ error: 'No newsletters selected' });
-        }
-
-        const newsletters = await dbHelpers.getNewslettersByIds(newsletter_ids, req.user.id);
-
-        if (newsletters.length === 0) {
-            return res.status(404).json({ error: 'No newsletters found' });
-        }
-
-        const brief = await generateBatchBrief(newsletters, user.language, purpose || '');
-        console.log('✅ Brief generated for', newsletters.length, 'newsletters, purpose:', purpose || 'none');
-        res.json({ brief });
-    } catch (error) {
-        console.error('❌ Generate brief error:', error);
-        res.status(500).json({ error: 'Failed to generate brief' });
+    // Require Pro or Premium plan for audio generation
+    if (!canUserPerformAction(user, 'generate_summary')) {
+        return res.status(403).json({ error: 'Upgrade to Standard to generate audio' });
     }
-});
 
-app.post('/api/newsletters/report', aiLimiter, authMiddleware, async (req, res) => {
-    try {
-        const user = await dbHelpers.findUserById(req.user.id);
-
-        if (!canUserPerformAction(user, 'generate_report')) {
-            return res.status(403).json({ error: 'Upgrade to Premium to generate reports' });
-        }
-
-        const { newsletter_ids, purpose } = req.body;
-        if (!newsletter_ids || newsletter_ids.length === 0) {
-            return res.status(400).json({ error: 'No newsletters selected' });
-        }
-
-        const newsletters = await dbHelpers.getNewslettersByIds(newsletter_ids, req.user.id);
-
-        if (newsletters.length === 0) {
-            return res.status(404).json({ error: 'No newsletters found' });
-        }
-
-        const report = await generateBatchReport(newsletters, user.language, purpose || '');
-        console.log('✅ Report generated for', newsletters.length, 'newsletters, purpose:', purpose || 'none');
-        res.json({ report });
-    } catch (error) {
-        console.error('❌ Generate report error:', error);
-        res.status(500).json({ error: 'Failed to generate report' });
+    const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
     }
-});
+
+    // Strip HTML for better TTS
+    const plainContent = newsletter.content
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Limit content length for TTS (OpenAI has a 4096 char limit)
+    const contentForTTS = plainContent.substring(0, 4000);
+    const textToSpeak = `${newsletter.title}. ${contentForTTS}`;
+
+    // Generate audio using OpenAI TTS
+    const mp3Response = await openai.audio.speech.create({
+        model: 'tts-1',
+        voice: user.language === 'es' ? 'nova' : 'alloy',
+        input: textToSpeak,
+        speed: 1.0
+    });
+
+    // Convert to buffer and send as base64 or save to temp file
+    const buffer = Buffer.from(await mp3Response.arrayBuffer());
+    const base64Audio = buffer.toString('base64');
+    const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
+
+    console.log(`✅ Audio generated for newsletter ${newsletter.id}`);
+    res.json({ audioUrl });
+}));
+
+app.post('/api/newsletters/brief', aiLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    const user = await dbHelpers.findUserById(req.user.id);
+
+    if (!canUserPerformAction(user, 'generate_brief')) {
+        return res.status(403).json({ error: 'Upgrade to Standard to generate briefs' });
+    }
+
+    const { newsletter_ids, purpose } = req.body;
+    if (!newsletter_ids || newsletter_ids.length === 0) {
+        return res.status(400).json({ error: 'No newsletters selected' });
+    }
+
+    const newsletters = await dbHelpers.getNewslettersByIds(newsletter_ids, req.user.id);
+
+    if (newsletters.length === 0) {
+        return res.status(404).json({ error: 'No newsletters found' });
+    }
+
+    const brief = await generateBatchBrief(newsletters, user.language, purpose || '');
+    console.log('✅ Brief generated for', newsletters.length, 'newsletters, purpose:', purpose || 'none');
+    res.json({ brief });
+}));
+
+app.post('/api/newsletters/report', aiLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    const user = await dbHelpers.findUserById(req.user.id);
+
+    if (!canUserPerformAction(user, 'generate_report')) {
+        return res.status(403).json({ error: 'Upgrade to Premium to generate reports' });
+    }
+
+    const { newsletter_ids, purpose } = req.body;
+    if (!newsletter_ids || newsletter_ids.length === 0) {
+        return res.status(400).json({ error: 'No newsletters selected' });
+    }
+
+    const newsletters = await dbHelpers.getNewslettersByIds(newsletter_ids, req.user.id);
+
+    if (newsletters.length === 0) {
+        return res.status(404).json({ error: 'No newsletters found' });
+    }
+
+    const report = await generateBatchReport(newsletters, user.language, purpose || '');
+    console.log('✅ Report generated for', newsletters.length, 'newsletters, purpose:', purpose || 'none');
+    res.json({ report });
+}));
 
 // ============= NEWS BUILDER ROUTES =============
 
-app.post('/api/news-builder/generate', aiLimiter, authMiddleware, async (req, res) => {
-    try {
-        const { template, reportIds } = req.body;
-        if (!template || !reportIds?.length) {
-            return res.status(400).json({ error: 'Template and reports required' });
-        }
-
-        const user = await dbHelpers.findUserById(req.user.id);
-        if (!canUserPerformAction(user, 'generate_report')) {
-            return res.status(403).json({ error: 'Upgrade to Premium to use News Builder' });
-        }
-
-        const { generateNewsletterFromTemplate } = await import('./ai-service.js');
-        const content = await generateNewsletterFromTemplate(template, reportIds, user.language);
-        console.log('✅ Newsletter generated from template');
-        res.json({ content });
-    } catch (error) {
-        console.error('❌ News builder error:', error);
-        res.status(500).json({ error: 'Failed to generate newsletter' });
+app.post('/api/news-builder/generate', aiLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    const { template, reportIds } = req.body;
+    if (!template || !reportIds?.length) {
+        return res.status(400).json({ error: 'Template and reports required' });
     }
-});
 
-app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, async (req, res) => {
-    try {
-        const { template, reportContents, urls } = req.body;
+    const user = await dbHelpers.findUserById(req.user.id);
+    if (!canUserPerformAction(user, 'generate_report')) {
+        return res.status(403).json({ error: 'Upgrade to Premium to use News Builder' });
+    }
+
+    const { generateNewsletterFromTemplate } = await import('./ai-service.js');
+    const content = await generateNewsletterFromTemplate(template, reportIds, user.language);
+    console.log('✅ Newsletter generated from template');
+    res.json({ content });
+}));
+
+app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, asyncHandler(async (req, res) => {
+    const { template, reportContents, urls } = req.body;
         if (!template) {
             return res.status(400).json({ error: 'Template required' });
         }
@@ -1409,96 +1336,67 @@ app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, a
         );
         console.log('✅ Newsletter generated from project');
         res.json({ content });
-    } catch (error) {
-        console.error('❌ News builder project error:', error);
-        res.status(500).json({ error: 'Failed to generate newsletter' });
-    }
-});
+}));
 
 // ============= TAG ROUTES =============
 
-app.get('/api/tags', authMiddleware, async (req, res) => {
-    try {
-        const tags = await dbHelpers.getTags(req.user.id);
-        res.json(tags);
-    } catch (error) {
-        console.error('❌ Get tags error:', error);
-        res.status(500).json({ error: 'Failed to get tags' });
-    }
-});
+app.get('/api/tags', authMiddleware, asyncHandler(async (req, res) => {
+    const tags = await dbHelpers.getTags(req.user.id);
+    res.json(tags);
+}));
 
-app.post('/api/tags', authMiddleware, async (req, res) => {
-    try {
-        const { name, color } = req.body;
-        const tag = await dbHelpers.createTag(req.user.id, name, color);
-        console.log('✅ Tag created:', name);
-        res.json(tag);
-    } catch (error) {
-        console.error('❌ Create tag error:', error);
-        res.status(500).json({ error: 'Failed to create tag' });
-    }
-});
+app.post('/api/tags', authMiddleware, asyncHandler(async (req, res) => {
+    const { name, color } = req.body;
+    const tag = await dbHelpers.createTag(req.user.id, name, color);
+    console.log('✅ Tag created:', name);
+    res.json(tag);
+}));
 
-app.delete('/api/tags/:id', authMiddleware, async (req, res) => {
-    try {
-        await dbHelpers.deleteTag(parseInt(req.params.id), req.user.id);
-        console.log('✅ Tag deleted:', req.params.id);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Delete tag error:', error);
-        res.status(500).json({ error: 'Failed to delete tag' });
-    }
-});
+app.delete('/api/tags/:id', authMiddleware, asyncHandler(async (req, res) => {
+    await dbHelpers.deleteTag(parseInt(req.params.id), req.user.id);
+    console.log('✅ Tag deleted:', req.params.id);
+    res.json({ success: true });
+}));
 
-app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) => {
-    try {
-        const newsletterId = parseInt(req.params.id);
-        const tagId = parseInt(req.params.tagId);
-        if (isNaN(newsletterId) || isNaN(tagId)) {
-            return res.status(400).json({ error: 'Invalid ID' });
-        }
-        // Verify ownership of both newsletter and tag
-        const newsletter = await dbHelpers.getNewsletter(newsletterId, req.user.id);
-        const tags = await dbHelpers.getTags(req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
-        if (!tags.some(t => t.id === tagId)) {
-            return res.status(404).json({ error: 'Tag not found' });
-        }
-        await dbHelpers.addTagToNewsletter(newsletterId, tagId);
-        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
-        res.json(updatedNewsletter);
-    } catch (error) {
-        console.error('❌ Add tag error:', error);
-        res.status(500).json({ error: 'Failed to add tag' });
+app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, asyncHandler(async (req, res) => {
+    const newsletterId = parseInt(req.params.id);
+    const tagId = parseInt(req.params.tagId);
+    if (isNaN(newsletterId) || isNaN(tagId)) {
+        return res.status(400).json({ error: 'Invalid ID' });
     }
-});
+    // Verify ownership of both newsletter and tag
+    const newsletter = await dbHelpers.getNewsletter(newsletterId, req.user.id);
+    const tags = await dbHelpers.getTags(req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
+    }
+    if (!tags.some(t => t.id === tagId)) {
+        return res.status(404).json({ error: 'Tag not found' });
+    }
+    await dbHelpers.addTagToNewsletter(newsletterId, tagId);
+    const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
+    res.json(updatedNewsletter);
+}));
 
-app.delete('/api/newsletters/:id/tags/:tagId', authMiddleware, async (req, res) => {
-    try {
-        const newsletterId = parseInt(req.params.id);
-        const tagId = parseInt(req.params.tagId);
-        if (isNaN(newsletterId) || isNaN(tagId)) {
-            return res.status(400).json({ error: 'Invalid ID' });
-        }
-        // Verify ownership of both newsletter and tag
-        const newsletter = await dbHelpers.getNewsletter(newsletterId, req.user.id);
-        const tags = await dbHelpers.getTags(req.user.id);
-        if (!newsletter) {
-            return res.status(404).json({ error: 'Newsletter not found' });
-        }
-        if (!tags.some(t => t.id === tagId)) {
-            return res.status(404).json({ error: 'Tag not found' });
-        }
-        await dbHelpers.removeTagFromNewsletter(newsletterId, tagId);
-        const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
-        res.json(updatedNewsletter);
-    } catch (error) {
-        console.error('❌ Remove tag error:', error);
-        res.status(500).json({ error: 'Failed to remove tag' });
+app.delete('/api/newsletters/:id/tags/:tagId', authMiddleware, asyncHandler(async (req, res) => {
+    const newsletterId = parseInt(req.params.id);
+    const tagId = parseInt(req.params.tagId);
+    if (isNaN(newsletterId) || isNaN(tagId)) {
+        return res.status(400).json({ error: 'Invalid ID' });
     }
-});
+    // Verify ownership of both newsletter and tag
+    const newsletter = await dbHelpers.getNewsletter(newsletterId, req.user.id);
+    const tags = await dbHelpers.getTags(req.user.id);
+    if (!newsletter) {
+        return res.status(404).json({ error: 'Newsletter not found' });
+    }
+    if (!tags.some(t => t.id === tagId)) {
+        return res.status(404).json({ error: 'Tag not found' });
+    }
+    await dbHelpers.removeTagFromNewsletter(newsletterId, tagId);
+    const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
+    res.json(updatedNewsletter);
+}));
 
 // ============= PLAN ROUTES =============
 
@@ -1519,9 +1417,8 @@ const STRIPE_PRICES = {
     premium_year: process.env.STRIPE_PRICE_PREMIUM_ANNUAL
 };
 
-app.post('/api/stripe/checkout', authMiddleware, async (req, res) => {
-    try {
-        if (!stripe) {
+app.post('/api/stripe/checkout', authMiddleware, asyncHandler(async (req, res) => {
+    if (!stripe) {
             return res.status(500).json({ error: 'Stripe not configured' });
         }
 
@@ -1557,44 +1454,34 @@ app.post('/api/stripe/checkout', authMiddleware, async (req, res) => {
             metadata: { user_id: user.id.toString(), plan }
         });
 
-        console.log('✅ Checkout session created for:', maskEmail(user.email), plan, interval);
-        res.json({ url: session.url });
-    } catch (error) {
-        console.error('❌ Stripe checkout error:', error);
-        res.status(500).json({ error: 'Failed to create checkout session' });
+    console.log('✅ Checkout session created for:', maskEmail(user.email), plan, interval);
+    res.json({ url: session.url });
+}));
+
+app.post('/api/stripe/portal', authMiddleware, asyncHandler(async (req, res) => {
+    if (!stripe) {
+        return res.status(500).json({ error: 'Stripe not configured' });
     }
-});
 
-app.post('/api/stripe/portal', authMiddleware, async (req, res) => {
-    try {
-        if (!stripe) {
-            return res.status(500).json({ error: 'Stripe not configured' });
-        }
-
-        const user = await dbHelpers.findUserById(req.user.id);
-        if (!user.stripe_customer_id) {
-            return res.status(400).json({ error: 'No subscription found' });
-        }
-
-        const baseUrl = process.env.FRONTEND_URL || 'https://brevisapp.com';
-
-        const session = await stripe.billingPortal.sessions.create({
-            customer: user.stripe_customer_id,
-            return_url: baseUrl
-        });
-
-        console.log('✅ Portal session created for:', maskEmail(user.email));
-        res.json({ url: session.url });
-    } catch (error) {
-        console.error('❌ Stripe portal error:', error);
-        res.status(500).json({ error: 'Failed to create portal session' });
+    const user = await dbHelpers.findUserById(req.user.id);
+    if (!user.stripe_customer_id) {
+        return res.status(400).json({ error: 'No subscription found' });
     }
-});
+
+    const baseUrl = process.env.FRONTEND_URL || 'https://brevisapp.com';
+
+    const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripe_customer_id,
+        return_url: baseUrl
+    });
+
+    console.log('✅ Portal session created for:', maskEmail(user.email));
+    res.json({ url: session.url });
+}));
 
 // Stripe webhook - must use raw body, placed before express.json()
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-        if (!stripe) {
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
+    if (!stripe) {
             return res.status(500).json({ error: 'Stripe not configured' });
         }
 
@@ -1694,12 +1581,8 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
             }
         }
 
-        res.json({ received: true });
-    } catch (error) {
-        console.error('❌ Stripe webhook error:', error);
-        res.status(500).json({ error: 'Webhook processing failed' });
-    }
-});
+    res.json({ received: true });
+}));
 
 app.get('/api/config/email-domain', (req, res) => {
     res.json({
@@ -1709,9 +1592,8 @@ app.get('/api/config/email-domain', (req, res) => {
 
 // ============= EMAIL WEBHOOK =============
 
-app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) => {
-    try {
-        // Verify webhook secret via query parameter or header
+app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
+    // Verify webhook secret via query parameter or header
         const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error('❌ Email webhook: EMAIL_WEBHOOK_SECRET not configured — rejecting request');
@@ -1802,33 +1684,23 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), async (req, res) =
             urls[0] || null
         );
 
-        console.log('✅ Newsletter added via email for:', maskEmail(user.email), '- content length:', newsletter.content?.length || 0);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Webhook error:', error);
-        console.error('Stack:', error.stack);
-        res.status(500).json({ error: 'Error processing email' });
-    }
-});
+    console.log('✅ Newsletter added via email for:', maskEmail(user.email), '- content length:', newsletter.content?.length || 0);
+    res.json({ success: true });
+}));
 
 // Health check
 // ============= WAITLIST =============
 
 app.post('/api/waitlist', [
     body('email').isEmail().normalizeEmail()
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ error: 'Please enter a valid email address' });
-        }
-        await dbHelpers.addToWaitlist(req.body.email);
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Waitlist error:', error);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Please enter a valid email address' });
     }
-});
+    await dbHelpers.addToWaitlist(req.body.email);
+    res.json({ success: true });
+}));
 
 app.get('/health', async (req, res) => {
     const health = { status: 'ok', uptime: Math.floor(process.uptime()) };
@@ -1848,102 +1720,82 @@ app.get('/health', async (req, res) => {
 
 const rssParser = new Parser();
 
-app.get('/api/subscriptions', authMiddleware, async (req, res) => {
-    try {
-        const db = dbHelpers.getDb();
-        const result = await db.query('SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
-        res.json(result.rows);
-    } catch (e) {
-        console.error('❌ Get subscriptions error:', e);
-        res.status(500).json({ error: 'Failed to get subscriptions' });
+app.get('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => {
+    const db = dbHelpers.getDb();
+    const result = await db.query('SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+    res.json(result.rows);
+}));
+
+app.post('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => {
+    let { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+
+    // Normalize URL: add /feed if it's a substack URL without it
+    url = url.trim().replace(/\/+$/, '');
+    if (url.includes('substack.com') && !url.endsWith('/feed')) {
+        url = url + '/feed';
     }
-});
+    if (!url.startsWith('http')) url = 'https://' + url;
 
-app.post('/api/subscriptions', authMiddleware, async (req, res) => {
+    // Validate it's a working RSS feed
+    let feedName;
     try {
-        let { url } = req.body;
-        if (!url) return res.status(400).json({ error: 'URL is required' });
+        const feed = await rssParser.parseURL(url);
+        feedName = feed.title || url.replace(/https?:\/\//, '').split('/')[0];
+    } catch (e) {
+        return res.status(400).json({ error: 'Could not read RSS feed. Make sure the URL is correct.' });
+    }
 
-        // Normalize URL: add /feed if it's a substack URL without it
-        url = url.trim().replace(/\/+$/, '');
-        if (url.includes('substack.com') && !url.endsWith('/feed')) {
-            url = url + '/feed';
-        }
-        if (!url.startsWith('http')) url = 'https://' + url;
+    const db = dbHelpers.getDb();
+    // Check for duplicates
+    const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
+    if (existing.rows.length > 0) return res.status(400).json({ error: 'Already subscribed' });
 
-        // Validate it's a working RSS feed
-        let feedName;
+    const result = await db.query(
+        'INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3) RETURNING *',
+        [req.user.id, url, feedName]
+    );
+    console.log('✅ Subscription added:', feedName, 'for user', req.user.id);
+    res.json(result.rows[0]);
+}));
+
+app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const opmlContent = req.file.buffer.toString('utf-8');
+    // Simple OPML parser: extract xmlUrl attributes
+    const urlMatches = opmlContent.match(/xmlUrl="([^"]+)"/gi) || [];
+    const urls = urlMatches.map(m => m.match(/xmlUrl="([^"]+)"/i)[1]);
+
+    if (urls.length === 0) return res.status(400).json({ error: 'No feeds found in OPML file' });
+
+    const db = dbHelpers.getDb();
+    let added = 0;
+    for (const url of urls) {
         try {
-            const feed = await rssParser.parseURL(url);
-            feedName = feed.title || url.replace(/https?:\/\//, '').split('/')[0];
-        } catch (e) {
-            return res.status(400).json({ error: 'Could not read RSS feed. Make sure the URL is correct.' });
-        }
+            const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
+            if (existing.rows.length > 0) continue;
 
-        const db = dbHelpers.getDb();
-        // Check for duplicates
-        const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
-        if (existing.rows.length > 0) return res.status(400).json({ error: 'Already subscribed' });
-
-        const result = await db.query(
-            'INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3) RETURNING *',
-            [req.user.id, url, feedName]
-        );
-        console.log('✅ Subscription added:', feedName, 'for user', req.user.id);
-        res.json(result.rows[0]);
-    } catch (e) {
-        console.error('❌ Add subscription error:', e);
-        res.status(500).json({ error: 'Failed to add subscription' });
-    }
-});
-
-app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-        const opmlContent = req.file.buffer.toString('utf-8');
-        // Simple OPML parser: extract xmlUrl attributes
-        const urlMatches = opmlContent.match(/xmlUrl="([^"]+)"/gi) || [];
-        const urls = urlMatches.map(m => m.match(/xmlUrl="([^"]+)"/i)[1]);
-
-        if (urls.length === 0) return res.status(400).json({ error: 'No feeds found in OPML file' });
-
-        const db = dbHelpers.getDb();
-        let added = 0;
-        for (const url of urls) {
+            let feedName = url.replace(/https?:\/\//, '').split('/')[0];
             try {
-                const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
-                if (existing.rows.length > 0) continue;
+                const feed = await rssParser.parseURL(url);
+                if (feed.title) feedName = feed.title;
+            } catch (e) { /* use URL as name */ }
 
-                let feedName = url.replace(/https?:\/\//, '').split('/')[0];
-                try {
-                    const feed = await rssParser.parseURL(url);
-                    if (feed.title) feedName = feed.title;
-                } catch (e) { /* use URL as name */ }
-
-                await db.query('INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3)', [req.user.id, url, feedName]);
-                added++;
-            } catch (e) { /* skip invalid feeds */ }
-        }
-
-        console.log('✅ OPML import: added', added, 'feeds for user', req.user.id);
-        res.json({ added, total: urls.length });
-    } catch (e) {
-        console.error('❌ OPML import error:', e);
-        res.status(500).json({ error: 'Failed to import OPML' });
+            await db.query('INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3)', [req.user.id, url, feedName]);
+            added++;
+        } catch (e) { /* skip invalid feeds */ }
     }
-});
 
-app.delete('/api/subscriptions/:id', authMiddleware, async (req, res) => {
-    try {
-        const db = dbHelpers.getDb();
-        await db.query('DELETE FROM subscriptions WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-        res.json({ success: true });
-    } catch (e) {
-        console.error('❌ Delete subscription error:', e);
-        res.status(500).json({ error: 'Failed to delete subscription' });
-    }
-});
+    console.log('✅ OPML import: added', added, 'feeds for user', req.user.id);
+    res.json({ added, total: urls.length });
+}));
+
+app.delete('/api/subscriptions/:id', authMiddleware, asyncHandler(async (req, res) => {
+    const db = dbHelpers.getDb();
+    await db.query('DELETE FROM subscriptions WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    res.json({ success: true });
+}));
 
 // RSS fetch cron - runs every 30 minutes
 async function fetchAllRSSFeeds() {
@@ -1999,6 +1851,31 @@ app.all('/api/*', (req, res) => {
 // SPA fallback - serve app.html for all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'app.html'));
+});
+
+// ============= EXPRESS ERROR MIDDLEWARE =============
+
+app.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
+
+    const statusCode = err.statusCode || 500;
+    const isOperational = err.isOperational || false;
+
+    log.error(`${req.method} ${req.path}`, {
+        reqId: req.id,
+        status: statusCode,
+        message: err.message,
+        ...(statusCode >= 500 && !isOperational ? { stack: err.stack } : {})
+    });
+
+    const clientMessage = isOperational
+        ? err.message
+        : 'An unexpected error occurred. Please try again.';
+
+    res.status(statusCode).json({
+        error: clientMessage,
+        ...(err.code && err.code !== 'INTERNAL_ERROR' ? { code: err.code } : {})
+    });
 });
 
 // ============= GLOBAL ERROR HANDLERS =============

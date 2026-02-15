@@ -25,13 +25,13 @@ export function authMiddleware(req, res, next) {
     const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
-        return res.status(401).json({ error: 'No autorizado' });
+        return res.status(401).json({ error: 'Authentication required' });
     }
     
     const decoded = verifyToken(token);
     
     if (!decoded) {
-        return res.status(401).json({ error: 'Token inválido' });
+        return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
     req.user = decoded;

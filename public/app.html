@@ -931,14 +931,49 @@
             .sidebar-title { padding: 0 16px; }
         }
         @media (max-width: 768px) {
+            /* Sidebar */
             .sidebar { display: none; width: 260px; }
-            .sidebar.sidebar-open { display: flex; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; box-shadow: 4px 0 20px rgba(0,0,0,0.1); }
+            .sidebar.sidebar-open { display: flex; position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; box-shadow: 4px 0 20px rgba(0,0,0,0.1); width: 280px; max-width: 80vw; }
             .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 199; }
             .sidebar-overlay.active { display: block; }
             .main-content { margin-left: 0; }
             .container { padding: 0 16px; }
-            .mobile-menu-btn { display: flex !important; }
+            .mobile-menu-btn { display: flex !important; width: 44px; height: 44px; }
             .mobile-sidebar-close { display: block !important; }
+
+            /* Toast */
+            .toast { max-width: calc(100vw - 40px); }
+
+            /* Forms — prevent iOS zoom */
+            .form-input, .form-textarea, .search-input { font-size: 16px; }
+
+            /* Auth */
+            .auth-box { padding: 32px 20px; }
+
+            /* Modals */
+            .modal { margin: 0; border-radius: 12px; max-height: 90vh; }
+            .modal-overlay { padding: 12px; }
+
+            /* Newsletter cards */
+            .newsletter-card.selecting { padding-left: 48px; }
+
+            /* Dropdowns */
+            .user-dropdown, .tag-dropdown, .actions-dropdown { min-width: 160px; max-width: calc(100vw - 40px); }
+
+            /* Landing sections in app.html */
+            .landing-hero { padding: 60px 20px; }
+            .landing-features, .landing-how-it-works, .landing-pricing, .landing-cta { padding: 60px 20px; }
+            .landing-footer { padding: 40px 20px; }
+            .landing-nav { padding: 16px 20px; }
+            .landing-btn { padding: 16px 32px; }
+        }
+        @media (max-width: 480px) {
+            .landing-headline { font-size: 28px; }
+            .landing-subtitle { font-size: 14px; }
+            .container { padding: 0 12px; }
+            .newsletter-card { padding: 16px; }
+            .empty-state { padding: 40px 16px; }
+            .reader-content { padding: 24px 16px 60px; }
         }
         .mobile-menu-btn {
             display: none;
@@ -1147,6 +1182,9 @@
             .landing-pricing-card.featured { transform: none; }
             .landing-footer-grid { flex-direction: column; gap: 32px; align-items: center; text-align: center; }
             .reader-header-actions .btn-small span:not(:first-child) { display: none; }
+            .landing-cta-section { padding: 60px 20px; }
+            .landing-cta-section h2 { font-size: 32px; }
+            .landing-footer-rich { padding: 40px 20px 32px; }
         }
     </style>
 </head>
@@ -1187,6 +1225,96 @@
             return React.createElement('div', { className: 'toast-container' },
                 toasts.map(t => React.createElement('div', { key: t.id, className: `toast toast-${t.type}` }, t.message))
             );
+        }
+
+        // Centralized API fetch wrapper
+        class ApiError extends Error {
+            constructor(message, status, code) {
+                super(message);
+                this.status = status;
+                this.code = code;
+            }
+        }
+
+        async function apiFetch(path, options = {}) {
+            const url = path.startsWith('http') ? path : `${API_URL}${path}`;
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    ...options,
+                    headers: {
+                        ...(options.body && !(options.body instanceof FormData)
+                            ? { 'Content-Type': 'application/json' }
+                            : {}),
+                        ...options.headers
+                    }
+                });
+
+                if (res.status === 401) {
+                    window.dispatchEvent(new CustomEvent('auth:expired'));
+                    throw new ApiError('Session expired', 401, 'AUTH_EXPIRED');
+                }
+
+                if (res.status === 429) {
+                    showToast('Too many requests. Please wait a moment.', 'error');
+                    throw new ApiError('Rate limited', 429, 'RATE_LIMITED');
+                }
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new ApiError(
+                        data.error || `Request failed (${res.status})`,
+                        res.status,
+                        data.code
+                    );
+                }
+
+                return res;
+            } catch (err) {
+                if (err instanceof ApiError) throw err;
+                showToast('Connection error. Check your internet connection.', 'error');
+                throw new ApiError('Network error', 0, 'NETWORK_ERROR');
+            }
+        }
+
+        // React Error Boundary
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false };
+            }
+            static getDerivedStateFromError() {
+                return { hasError: true };
+            }
+            componentDidCatch(error, info) {
+                console.error('[ErrorBoundary]', error, info.componentStack);
+            }
+            render() {
+                if (this.state.hasError) {
+                    return React.createElement('div', {
+                        style: {
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            height: '100vh', fontFamily: 'Instrument Sans, sans-serif',
+                            padding: '40px', textAlign: 'center'
+                        }
+                    },
+                        React.createElement('h2', { style: { marginBottom: '16px' } }, 'Something went wrong'),
+                        React.createElement('p', {
+                            style: { color: '#666', marginBottom: '24px', maxWidth: '400px' }
+                        }, 'The app encountered an error. Please reload the page.'),
+                        React.createElement('button', {
+                            onClick: () => window.location.reload(),
+                            style: {
+                                padding: '12px 24px', background: '#000', color: '#fff',
+                                border: 'none', borderRadius: '8px', cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: '14px'
+                            }
+                        }, 'Reload')
+                    );
+                }
+                return this.props.children;
+            }
         }
 
         // Clean email subject prefixes (FWD, RE, etc.)
@@ -1672,6 +1800,16 @@
                     checkAuth();
                 }
             }, []);
+
+            // Handle auth expiry (JWT expired mid-session)
+            useEffect(() => {
+                const handleExpired = () => {
+                    setUser(null);
+                    showToast(language === 'es' ? 'Sesion expirada. Inicia sesion de nuevo.' : 'Session expired. Please log in again.', 'error');
+                };
+                window.addEventListener('auth:expired', handleExpired);
+                return () => window.removeEventListener('auth:expired', handleExpired);
+            }, [language]);
 
             // Refresh user data when tab regains focus (e.g. after verifying email in another tab)
             useEffect(() => {
@@ -2246,24 +2384,24 @@
             const fetchNewsletters = async () => {
                 setNewslettersLoading(true);
                 try {
-                    const res = await fetch(`${API_URL}/newsletters`, { credentials: 'include' });
-                    if (res.ok) setNewsletters(await res.json());
-                } catch (e) { console.error('Error:', e); }
+                    const res = await apiFetch('/newsletters');
+                    setNewsletters(await res.json());
+                } catch (e) { /* apiFetch handles auth/network errors */ }
                 finally { setNewslettersLoading(false); }
             };
 
             const fetchTags = async () => {
                 try {
-                    const res = await fetch(`${API_URL}/tags`, { credentials: 'include' });
-                    if (res.ok) setTags(await res.json());
-                } catch (e) { console.error('Error:', e); }
+                    const res = await apiFetch('/tags');
+                    setTags(await res.json());
+                } catch (e) { /* apiFetch handles auth/network errors */ }
             };
 
             const fetchSubscriptions = async () => {
                 try {
-                    const res = await fetch(`${API_URL}/subscriptions`, { credentials: 'include' });
-                    if (res.ok) setSubscriptions(await res.json());
-                } catch (e) { console.error('Error:', e); }
+                    const res = await apiFetch('/subscriptions');
+                    setSubscriptions(await res.json());
+                } catch (e) { /* apiFetch handles auth/network errors */ }
             };
 
             const loadSavedReports = () => {
@@ -2515,28 +2653,22 @@
                 }
                 setGeneratingSummary(prev => ({...prev, [id]: true}));
                 try {
-                    const res = await fetch(`${API_URL}/newsletters/${id}/summary`, {
-                        method: 'POST',
-                        credentials: 'include'
+                    const res = await apiFetch(`/newsletters/${id}/summary`, {
+                        method: 'POST'
                     });
-                    if (!res.ok) {
-                        const error = await res.json();
-                        console.error('Summary error response:', error);
-                        if (error.error && error.error.includes('Upgrade')) {
-                            setShowUpgradeModal(true);
-                            return;
-                        }
-                        throw new Error(error.error || 'Failed to generate summary');
-                    }
                     const data = await res.json();
-                    console.log('Summary response:', data);
                     setNewsletters(newsletters.map(n => n.id === id ? { ...n, summary: data.summary } : n));
                     if (readingNewsletter?.id === id) {
                         setReadingNewsletter({...readingNewsletter, summary: data.summary});
                     }
                 } catch (e) {
-                    console.error('Summary error:', e);
-                    showToast(e.message, 'error');
+                    if (e.status === 403) {
+                        setShowUpgradeModal(true);
+                        return;
+                    }
+                    if (e.code !== 'AUTH_EXPIRED' && e.code !== 'RATE_LIMITED') {
+                        showToast(e.message || 'Error generating summary', 'error');
+                    }
                 } finally {
                     setGeneratingSummary(prev => ({...prev, [id]: false}));
                 }
@@ -2560,16 +2692,10 @@
                         setPromptModal(null);
                         setGeneratingBatch(true);
                         try {
-                            const res = await fetch(`${API_URL}/newsletters/brief`, {
+                            const res = await apiFetch('/newsletters/brief', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
                                 body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
                             });
-                            if (!res.ok) {
-                                const error = await res.json();
-                                throw new Error(error.error || 'Failed');
-                            }
                             const data = await res.json();
                             const result = { type: 'brief', content: data.brief, purpose };
                             setShowBatchResult(result);
@@ -2604,16 +2730,10 @@
                         setPromptModal(null);
                         setGeneratingBatch(true);
                         try {
-                            const res = await fetch(`${API_URL}/newsletters/report`, {
+                            const res = await apiFetch('/newsletters/report', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
                                 body: JSON.stringify({ newsletter_ids: selectedNewsletters, purpose })
                             });
-                            if (!res.ok) {
-                                const error = await res.json();
-                                throw new Error(error.error || 'Failed');
-                            }
                             const data = await res.json();
                             const result = { type: 'report', content: data.report, purpose };
                             setShowBatchResult(result);
@@ -2632,11 +2752,9 @@
 
             const addTagToNewsletter = async (newsletterId, tagId) => {
                 try {
-                    const res = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
-                        method: 'POST',
-                        credentials: 'include'
+                    const res = await apiFetch(`/newsletters/${newsletterId}/tags/${tagId}`, {
+                        method: 'POST'
                     });
-                    if (!res.ok) throw new Error('Failed');
                     const updated = await res.json();
                     setNewsletters(newsletters.map(n => n.id === newsletterId ? updated : n));
                     if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
@@ -2645,11 +2763,9 @@
 
             const removeTagFromNewsletter = async (newsletterId, tagId) => {
                 try {
-                    const res = await fetch(`${API_URL}/newsletters/${newsletterId}/tags/${tagId}`, {
-                        method: 'DELETE',
-                        credentials: 'include'
+                    const res = await apiFetch(`/newsletters/${newsletterId}/tags/${tagId}`, {
+                        method: 'DELETE'
                     });
-                    if (!res.ok) throw new Error('Failed');
                     const updated = await res.json();
                     setNewsletters(newsletters.map(n => n.id === newsletterId ? updated : n));
                     if (readingNewsletter?.id === newsletterId) setReadingNewsletter(updated);
@@ -2661,10 +2777,8 @@
                 const readValue = markRead ? 1 : 0;
                 try {
                     await Promise.all(selectedNewsletters.map(id =>
-                        fetch(`${API_URL}/newsletters/${id}`, {
+                        apiFetch(`/newsletters/${id}`, {
                             method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
                             body: JSON.stringify({ is_read: readValue })
                         })
                     ));
@@ -2693,9 +2807,8 @@
                         setConfirmModal(null);
                         try {
                             await Promise.all(selectedNewsletters.map(id =>
-                                fetch(`${API_URL}/newsletters/${id}`, {
-                                    method: 'DELETE',
-                                    credentials: 'include'
+                                apiFetch(`/newsletters/${id}`, {
+                                    method: 'DELETE'
                                 })
                             ));
                             setNewsletters(newsletters.filter(n => !selectedNewsletters.includes(n.id)));
@@ -2713,9 +2826,8 @@
             const bulkAddTag = async (tagId) => {
                 try {
                     await Promise.all(selectedNewsletters.map(id =>
-                        fetch(`${API_URL}/newsletters/${id}/tags/${tagId}`, {
-                            method: 'POST',
-                            credentials: 'include'
+                        apiFetch(`/newsletters/${id}/tags/${tagId}`, {
+                            method: 'POST'
                         })
                     ));
                     fetchNewsletters(); // Refresh to get updated tags
@@ -4815,7 +4927,7 @@
             );
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        ReactDOM.render(<ErrorBoundary><App /></ErrorBoundary>, document.getElementById('root'));
     </script>
 </body>
 </html>

@@ -14,6 +14,10 @@ const pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: process.env.DATABASE_SSL_VERIFY === 'true' } : false
 });
 
+pool.on('error', (err) => {
+    console.error('❌ [DB] Unexpected pool error:', err.message);
+});
+
 export function generateEmailCode() {
     // Generate cryptographically random code (16 chars, hex)
     const code = crypto.randomBytes(8).toString('hex');

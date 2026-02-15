@@ -30,7 +30,8 @@ async function anthropicRequest(body, timeoutMs = 30000) {
 
             if (!response.ok) {
                 const error = await response.text();
-                throw new Error(`Claude API error: ${error}`);
+                console.error('❌ Claude API error:', error);
+                throw new Error('AI service is temporarily unavailable. Please try again in a few minutes.');
             }
 
             const data = await response.json();
@@ -44,7 +45,7 @@ async function anthropicRequest(body, timeoutMs = 30000) {
             throw error;
         }
     }
-    throw new Error('Anthropic API: max retries exceeded');
+    throw new Error('AI service is temporarily unavailable. Please try again in a few minutes.');
 }
 
 // Plan definitions

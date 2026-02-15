@@ -629,40 +629,47 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 48px;
-            }
+            /* Nav */
+            .nav-container { padding: 16px 20px; }
+            .nav-links { gap: 20px; }
+            .nav-links a { font-size: 14px; }
+            .btn { padding: 10px 24px; font-size: 14px; }
 
-            .hero p {
-                font-size: 18px;
-            }
+            /* Hero */
+            .hero { padding: 120px 20px 60px; min-height: auto; }
+            .hero h1 { font-size: 36px; margin-bottom: 20px; }
+            .hero p { font-size: 16px; margin-bottom: 32px; }
+            .hero-cta { flex-direction: column; align-items: center; }
+            .hero-cta .btn { padding: 16px 32px; font-size: 15px; width: 100%; max-width: 300px; }
 
-            .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
+            /* Stats */
+            .stats-grid { grid-template-columns: 1fr; gap: 32px; }
+            .stat-number { font-size: 36px; }
 
-            .feature {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
+            /* Features */
+            .features, .pricing-section { padding: 80px 20px; }
+            .features h2 { font-size: 32px; }
+            .feature-content h3 { font-size: 28px; }
+            .feature { grid-template-columns: 1fr; gap: 32px; }
+            .feature-visual { height: 250px; }
 
             .feature:nth-child(even) .feature-content {
                 order: 1;
             }
 
-            .pricing-cards {
-                grid-template-columns: 1fr;
-            }
+            /* Pricing */
+            .pricing-cards { grid-template-columns: 1fr; }
+            .pricing-card.featured { transform: scale(1); }
 
-            .pricing-card.featured {
-                transform: scale(1);
-            }
+            /* Footer */
+            .footer-content { grid-template-columns: 1fr; gap: 40px; }
+        }
 
-            .footer-content {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 28px; }
+            .hero p { font-size: 15px; }
+            .nav-links a:not(.btn) { display: none; }
+            .feature-visual { height: 200px; }
         }
     </style>
 </head>
