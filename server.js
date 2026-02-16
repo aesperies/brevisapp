@@ -1603,12 +1603,6 @@ app.post('/api/webhook/email/:secret?', webhookLimiter, upload.none(), asyncHand
         const providedSecret = req.params.secret || req.query.secret || req.headers['x-webhook-secret'];
         if (providedSecret !== webhookSecret) {
             console.error('❌ Email webhook: invalid or missing secret');
-            console.error('   originalUrl:', req.originalUrl);
-            console.error('   path:', req.path);
-            console.error('   params:', JSON.stringify(req.params));
-            console.error('   query:', JSON.stringify(req.query));
-            console.error('   auth header:', req.headers.authorization ? 'present' : 'none');
-            console.error('   method:', req.method);
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
