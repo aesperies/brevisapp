@@ -1587,7 +1587,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
 app.get('/api/config/email-domain', (req, res) => {
     res.json({
-        domain: process.env.EMAIL_DOMAIN || 'newsletters.brevisapp.com'
+        domain: process.env.EMAIL_DOMAIN || 'mail.brevisapp.com'
     });
 });
 
