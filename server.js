@@ -1593,23 +1593,14 @@ app.get('/api/config/email-domain', (req, res) => {
 
 // ============= EMAIL WEBHOOK =============
 
-app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
-    // Verify webhook secret via query parameter, header, or basic auth
+app.post('/api/webhook/email/:secret?', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
+    // Verify webhook secret via path param, query param, header, or basic auth
         const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error('❌ Email webhook: EMAIL_WEBHOOK_SECRET not configured — rejecting request');
             return res.status(503).json({ error: 'Webhook not configured' });
         }
-        let providedSecret = req.query.secret || req.headers['x-webhook-secret'];
-        // Support basic auth (SendGrid preserves credentials in URL unlike query params)
-        if (!providedSecret && req.headers.authorization) {
-            const auth = req.headers.authorization.split(' ')[1];
-            if (auth) {
-                const decoded = Buffer.from(auth, 'base64').toString();
-                // Basic auth format is user:password — secret can be in either field
-                providedSecret = decoded.split(':')[1] || decoded.split(':')[0];
-            }
-        }
+        const providedSecret = req.params.secret || req.query.secret || req.headers['x-webhook-secret'];
         if (providedSecret !== webhookSecret) {
             console.error('❌ Email webhook: invalid or missing secret');
             return res.status(401).json({ error: 'Unauthorized' });
