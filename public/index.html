@@ -18,6 +18,110 @@
     <meta name="twitter:title" content="BREVIS - Organiza tus Newsletters con IA">
     <meta name="twitter:description" content="Organiza, resume y aprovecha tus newsletters con inteligencia artificial.">
     <meta name="twitter:image" content="https://brevisapp.com/og-image.png">
+    <link rel="canonical" href="https://brevisapp.com">
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "BREVIS",
+        "url": "https://brevisapp.com",
+        "logo": "https://brevisapp.com/favicon.svg",
+        "description": "Plataforma SaaS de gestión y resumen de newsletters con inteligencia artificial.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "hola@brevisapp.com",
+          "contactType": "customer support"
+        },
+        "sameAs": []
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "BREVIS",
+        "url": "https://brevisapp.com",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web",
+        "description": "Organiza, resume y aprovecha tus newsletters con inteligencia artificial. Importa newsletters vía email, URL o PDF y obtén resúmenes automáticos con IA.",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Standard",
+            "price": "8.00",
+            "priceCurrency": "USD",
+            "billingPeriod": "P1M",
+            "description": "Newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda avanzada, importar URLs y PDFs, enviar a Kindle."
+          },
+          {
+            "@type": "Offer",
+            "name": "Premium",
+            "price": "10.00",
+            "priceCurrency": "USD",
+            "billingPeriod": "P1M",
+            "description": "Todo en Standard más reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters y soporte prioritario."
+          }
+        ],
+        "featureList": [
+          "Resúmenes automáticos con IA",
+          "Organización con etiquetas",
+          "Búsqueda avanzada",
+          "Importar newsletters vía email",
+          "Importar URLs y PDFs",
+          "Enviar a Kindle",
+          "Reportes personalizados",
+          "Briefings automáticos",
+          "Suscripciones RSS y Substack"
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "¿Qué es BREVIS?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BREVIS es una plataforma SaaS que te ayuda a organizar, resumir y aprovechar tus newsletters usando inteligencia artificial. Centraliza todo tu contenido de newsletters en un solo lugar y obtén resúmenes automáticos con IA."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cómo funciona la IA en BREVIS?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BREVIS usa Claude Sonnet de Anthropic para generar resúmenes concisos de tus newsletters, crear briefings personalizados y analizar tendencias en el contenido que consumes."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cuánto cuesta BREVIS?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BREVIS ofrece dos planes: Standard a $8/mes (newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda, importar URLs y PDFs, Kindle) y Premium a $10/mes (todo en Standard más reportes personalizados, briefings automáticos, análisis de tendencias y generador de newsletters). Todos los planes incluyen 15 días de prueba gratis."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Necesito tarjeta de crédito para la prueba gratis?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Los 15 días de prueba gratis no requieren tarjeta de crédito. Puedes cancelar cuando quieras."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Qué formatos acepta BREVIS para importar contenido?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "BREVIS acepta newsletters por email directo (te asignamos una dirección de email única), importación de URLs de artículos y newsletters, subida de archivos PDF y documentos Word, y suscripción automática a feeds RSS y publicaciones de Substack."
+            }
+          }
+        ]
+      }
+    ]
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -541,6 +645,47 @@
             color: var(--accent);
         }
 
+        /* FAQ Section */
+        .faq {
+            padding: 120px 48px;
+            background: #F9F9F9;
+        }
+
+        .faq h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .faq-list {
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            padding: 32px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-item:first-child {
+            border-top: 1px solid var(--border);
+        }
+
+        .faq-item h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .faq-item p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
         /* CTA Section */
         .cta {
             padding: 160px 48px;
@@ -830,6 +975,33 @@
                     <li>Soporte prioritario</li>
                 </ul>
                 <a href="/app.html" class="btn btn-primary">Comenzar</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <h2>Preguntas frecuentes</h2>
+        <div class="faq-list">
+            <div class="faq-item">
+                <h3>¿Qué es BREVIS?</h3>
+                <p>BREVIS es una plataforma que te ayuda a organizar, resumir y aprovechar tus newsletters usando inteligencia artificial. Centraliza todo tu contenido en un solo lugar y obtén resúmenes automáticos con IA.</p>
+            </div>
+            <div class="faq-item">
+                <h3>¿Cómo funciona la IA?</h3>
+                <p>Usamos Claude Sonnet de Anthropic para generar resúmenes concisos de tus newsletters, crear briefings personalizados y analizar tendencias en el contenido que consumes.</p>
+            </div>
+            <div class="faq-item">
+                <h3>¿Necesito tarjeta de crédito para la prueba gratis?</h3>
+                <p>No. Los 15 días de prueba gratis no requieren tarjeta de crédito. Puedes cancelar cuando quieras sin ningún compromiso.</p>
+            </div>
+            <div class="faq-item">
+                <h3>¿Qué formatos acepta BREVIS?</h3>
+                <p>Puedes importar newsletters por email directo (te asignamos una dirección única), pegar URLs de artículos, subir archivos PDF o Word, y suscribirte automáticamente a feeds RSS y publicaciones de Substack.</p>
+            </div>
+            <div class="faq-item">
+                <h3>¿Puedo cancelar en cualquier momento?</h3>
+                <p>Sí, puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta. Sin penalizaciones ni compromisos.</p>
             </div>
         </div>
     </section>

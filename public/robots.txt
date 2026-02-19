@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# AI search crawlers - explicitly allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+Sitemap: https://brevisapp.com/sitemap.xml

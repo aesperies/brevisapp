@@ -1,0 +1,36 @@
+# BREVIS
+
+> Organiza, resume y aprovecha tus newsletters con inteligencia artificial.
+
+Brevis es una plataforma SaaS de gestión de newsletters con IA para profesionales que valoran su tiempo. Permite centralizar, resumir y analizar newsletters de forma automática usando inteligencia artificial.
+
+## ¿Qué hace Brevis?
+
+- Resume newsletters automáticamente con IA (Claude Sonnet de Anthropic)
+- Organiza contenido con etiquetas y búsqueda avanzada
+- Genera reportes y briefings personalizados sobre tus newsletters
+- Importa newsletters vía email directo, URL o subida de PDF/Word
+- Envía contenido a tu Kindle para leer sin distracciones
+- Suscripciones automáticas a feeds RSS y Substack
+
+## Casos de uso
+
+- Profesionales que reciben demasiados newsletters y quieren resumirlos
+- Equipos que necesitan briefings semanales con lo más importante
+- Investigadores y analistas que siguen múltiples fuentes de información
+- Creadores de contenido que buscan tendencias en su industria
+
+## Precios
+
+- **Standard ($8/mes):** Newsletters ilimitados, resúmenes con IA, organización con etiquetas, búsqueda avanzada, importar URLs y PDFs, enviar a Kindle
+- **Premium ($10/mes):** Todo en Standard + reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters, soporte prioritario
+- Todos los planes incluyen 15 días de prueba gratis, sin tarjeta de crédito
+
+## Información
+
+- URL: https://brevisapp.com
+- App: https://brevisapp.com/app.html
+- Guía de uso: https://brevisapp.com/guide.html
+- Privacidad: https://brevisapp.com/privacy.html
+- Términos: https://brevisapp.com/terms.html
+- Contacto: hola@brevisapp.com
