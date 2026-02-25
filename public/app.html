@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BREVIS - Organize your newsletters with AI</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="BREVIS">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="description" content="Organize, summarize, and get the most out of your newsletters with AI. Designed for professionals who value their time.">
     <!-- Open Graph -->
     <meta property="og:title" content="BREVIS - Organize your newsletters with AI">
@@ -4928,6 +4936,16 @@
         }
 
         ReactDOM.render(<ErrorBoundary><App /></ErrorBoundary>, document.getElementById('root'));
+    </script>
+    <script>
+        // Service Worker - hace que la app funcione como app nativa
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('BREVIS SW registrado:', reg.scope))
+                    .catch(err => console.log('SW error:', err));
+            });
+        }
     </script>
 </body>
 </html>

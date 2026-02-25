@@ -19,6 +19,14 @@
     <meta name="twitter:description" content="Organiza, resume y aprovecha tus newsletters con inteligencia artificial.">
     <meta name="twitter:image" content="https://brevisapp.com/og-image.png">
     <link rel="canonical" href="https://brevisapp.com">
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="BREVIS">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <!-- Schema.org structured data -->
     <script type="application/ld+json">
     [
@@ -61,17 +69,6 @@
             "billingPeriod": "P1M",
             "description": "Todo en Standard más reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters y soporte prioritario."
           }
-        ],
-        "featureList": [
-          "Resúmenes automáticos con IA",
-          "Organización con etiquetas",
-          "Búsqueda avanzada",
-          "Importar newsletters vía email",
-          "Importar URLs y PDFs",
-          "Enviar a Kindle",
-          "Reportes personalizados",
-          "Briefings automáticos",
-          "Suscripciones RSS y Substack"
         ]
       },
       {
@@ -83,23 +80,7 @@
             "name": "¿Qué es BREVIS?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "BREVIS es una plataforma SaaS que te ayuda a organizar, resumir y aprovechar tus newsletters usando inteligencia artificial. Centraliza todo tu contenido de newsletters en un solo lugar y obtén resúmenes automáticos con IA."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Cómo funciona la IA en BREVIS?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BREVIS usa Claude Sonnet de Anthropic para generar resúmenes concisos de tus newsletters, crear briefings personalizados y analizar tendencias en el contenido que consumes."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Cuánto cuesta BREVIS?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BREVIS ofrece dos planes: Standard a $8/mes (newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda, importar URLs y PDFs, Kindle) y Premium a $10/mes (todo en Standard más reportes personalizados, briefings automáticos, análisis de tendencias y generador de newsletters). Todos los planes incluyen 15 días de prueba gratis."
+              "text": "BREVIS es una plataforma SaaS que te ayuda a organizar, resumir y aprovechar tus newsletters usando inteligencia artificial."
             }
           },
           {
@@ -107,22 +88,14 @@
             "name": "¿Necesito tarjeta de crédito para la prueba gratis?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "No. Los 15 días de prueba gratis no requieren tarjeta de crédito. Puedes cancelar cuando quieras."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Qué formatos acepta BREVIS para importar contenido?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "BREVIS acepta newsletters por email directo (te asignamos una dirección de email única), importación de URLs de artículos y newsletters, subida de archivos PDF y documentos Word, y suscripción automática a feeds RSS y publicaciones de Substack."
+              "text": "No. Los 15 días de prueba gratis no requieren tarjeta de crédito."
             }
           }
         ]
       }
     ]
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -133,11 +106,17 @@
         :root {
             --primary: #000000;
             --accent: #2BBCC0;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
             --bg: #FFFFFF;
-            --text: #000000;
-            --text-secondary: #666666;
-            --border: #E5E5E5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F7F7F7;
         }
+
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -147,21 +126,23 @@
             line-height: 1.5;
         }
 
-        /* Navigation */
+        /* ─── NAVIGATION ─────────────────────────────── */
         nav {
             position: fixed;
             top: 0;
             width: 100%;
-            background: rgba(255, 255, 255, 0.98);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             z-index: 1000;
         }
 
         .nav-container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 24px 48px;
+            padding: 0 48px;
+            height: 72px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -171,7 +152,7 @@
             display: flex;
             align-items: center;
             text-decoration: none;
-            height: 40px;
+            height: 36px;
         }
 
         .logo img {
@@ -182,7 +163,7 @@
 
         .nav-links {
             display: flex;
-            gap: 48px;
+            gap: 40px;
             align-items: center;
         }
 
@@ -194,15 +175,38 @@
             transition: color 0.2s;
         }
 
-        .nav-links a:hover {
-            color: var(--primary);
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
         }
 
         .btn {
-            padding: 12px 32px;
+            padding: 12px 28px;
             border-radius: 100px;
             font-weight: 600;
-            font-size: 15px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
             border: none;
@@ -216,634 +220,1120 @@
         }
 
         .btn-primary:hover {
-            background: #333;
+            background: #222;
             transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
         }
 
-        /* Hero Section */
-        .hero {
-            padding: 200px 48px 120px;
-            text-align: center;
-            min-height: 85vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .btn-accent {
+            background: var(--accent);
+            color: white !important;
         }
+
+        .btn-accent:hover {
+            background: var(--accent-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(43,188,192,0.35);
+        }
+
+        /* ─── HERO ───────────────────────────────────── */
+        .hero {
+            padding: 160px 48px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(43,188,192,0.10) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--accent-light);
+            border: 1px solid rgba(43,188,192,0.25);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-dark);
+            margin-bottom: 32px;
+        }
+
+        .hero-label span { font-size: 16px; }
 
         .hero-content {
-            max-width: 900px;
+            max-width: 820px;
             margin: 0 auto;
+            position: relative;
         }
 
         .hero h1 {
             font-family: 'Instrument Serif', serif;
-            font-size: 84px;
+            font-size: 76px;
             font-weight: 600;
-            line-height: 1.05;
-            letter-spacing: -0.03em;
-            margin-bottom: 32px;
+            line-height: 1.06;
+            letter-spacing: -0.035em;
+            margin-bottom: 28px;
             color: var(--primary);
         }
 
-        .hero .accent {
+        .hero h1 em {
+            font-style: italic;
             color: var(--accent);
         }
 
         .hero p {
-            font-size: 24px;
+            font-size: 20px;
             color: var(--text-secondary);
-            margin-bottom: 48px;
-            line-height: 1.5;
-            font-weight: 500;
+            margin-bottom: 44px;
+            line-height: 1.6;
+            font-weight: 400;
+            max-width: 580px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .hero-cta {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             justify-content: center;
-            margin-bottom: 64px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .hero-cta .btn {
-            padding: 18px 48px;
-            font-size: 17px;
+            padding: 16px 40px;
+            font-size: 16px;
         }
 
-        .hero-badge {
-            display: inline-block;
-            padding: 8px 20px;
-            background: #F5F5F5;
+        .hero-note {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 72px;
+        }
+
+        /* ─── APP PREVIEW ─────────────────────────────── */
+        .hero-preview {
+            max-width: 960px;
+            margin: 0 auto;
+            background: var(--primary);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.05);
+            position: relative;
+        }
+
+        .preview-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .preview-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+        }
+
+        .preview-dot:nth-child(1) { background: #ff5f57; }
+        .preview-dot:nth-child(2) { background: #febc2e; }
+        .preview-dot:nth-child(3) { background: #28c840; }
+
+        .preview-url {
+            flex: 1;
+            background: rgba(255,255,255,0.08);
+            border-radius: 6px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .preview-inner {
+            background: #f8f8f8;
+            border-radius: 12px;
+            display: flex;
+            overflow: hidden;
+            height: 420px;
+        }
+
+        .preview-sidebar {
+            width: 220px;
+            background: white;
+            border-right: 1px solid #ebebeb;
+            padding: 20px 16px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .preview-sidebar-logo {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #000;
+            margin-bottom: 20px;
+            padding: 0 4px;
+        }
+
+        .preview-nav-item {
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            cursor: default;
+        }
+
+        .preview-nav-item.active {
+            background: #f0f0f0;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .preview-nav-count {
+            margin-left: auto;
+            background: #2BBCC0;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
             border-radius: 100px;
+        }
+
+        .preview-tag {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .preview-tag-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .preview-main {
+            flex: 1;
+            padding: 20px 24px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .preview-title-text {
             font-size: 14px;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: #000;
         }
 
-        /* Stats Section */
+        .preview-btn-small {
+            background: #000;
+            color: white;
+            border: none;
+            padding: 7px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: default;
+        }
+
+        .preview-card {
+            background: white;
+            border: 1px solid #ebebeb;
+            border-radius: 12px;
+            padding: 16px 18px;
+        }
+
+        .preview-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .preview-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #000;
+            line-height: 1.3;
+        }
+
+        .preview-new-badge {
+            background: #2BBCC0;
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 100px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .preview-card-meta {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .preview-card-tags {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .preview-card-tag {
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .preview-summary-box {
+            background: #f0fafa;
+            border: 1px solid rgba(43,188,192,0.2);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .preview-summary-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .preview-summary-line {
+            height: 8px;
+            background: rgba(43,188,192,0.2);
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .preview-summary-line:nth-child(2) { width: 90%; }
+        .preview-summary-line:nth-child(3) { width: 75%; }
+        .preview-summary-line:nth-child(4) { width: 85%; width: 50%; }
+
+        /* ─── STATS ───────────────────────────────────── */
         .stats {
-            padding: 80px 48px;
-            background: #FAFAFA;
+            padding: 72px 48px;
             border-top: 1px solid var(--border);
             border-bottom: 1px solid var(--border);
+            background: var(--surface);
         }
 
         .stats-grid {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 80px;
+            gap: 0;
             text-align: center;
+        }
+
+        .stat {
+            padding: 0 40px;
+        }
+
+        .stat + .stat {
+            border-left: 1px solid var(--border);
         }
 
         .stat-value {
             font-family: 'Instrument Serif', serif;
-            font-size: 72px;
+            font-size: 60px;
             font-weight: 600;
             letter-spacing: -0.04em;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             color: var(--primary);
         }
 
         .stat-label {
-            font-size: 16px;
+            font-size: 15px;
             color: var(--text-secondary);
             font-weight: 500;
         }
 
-        /* Features Section */
-        .features {
-            padding: 160px 48px;
+        /* ─── HOW IT WORKS ────────────────────────────── */
+        .how {
+            padding: 120px 48px;
             max-width: 1200px;
             margin: 0 auto;
-        }
-
-        .features h2 {
-            font-family: 'Instrument Serif', serif;
-            font-size: 64px;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-            margin-bottom: 80px;
             text-align: center;
         }
 
-        .feature {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 120px;
-            align-items: center;
-            margin-bottom: 160px;
+        .section-label {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            margin-bottom: 16px;
         }
 
-        .feature:nth-child(even) .feature-content {
-            order: 2;
-        }
-
-        .feature-content h3 {
+        .section-title {
             font-family: 'Instrument Serif', serif;
-            font-size: 48px;
+            font-size: 52px;
             font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 24px;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+            color: var(--primary);
         }
 
-        .feature-content p {
-            font-size: 20px;
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 72px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 32px;
+            left: calc(33.33% - 10px);
+            width: calc(33.33% + 20px);
+            height: 1px;
+            background: var(--border);
+        }
+
+        .step {
+            padding: 40px 32px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            text-align: center;
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+
+        .step:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+
+        .step-number {
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            margin: 0 auto 24px;
+        }
+
+        .step:nth-child(2) .step-number { background: var(--accent); }
+        .step:nth-child(3) .step-number { background: var(--primary); }
+
+        .step h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+
+        .step p {
+            font-size: 15px;
             color: var(--text-secondary);
             line-height: 1.6;
         }
 
-        .feature-visual {
-            height: 400px;
-            background: #000000;
-            border-radius: 24px;
+        /* ─── FEATURES ────────────────────────────────── */
+        .features {
+            padding: 80px 48px 120px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .features-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 60px;
+            text-align: left;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-light);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-            position: relative;
+            font-size: 22px;
+            margin-bottom: 20px;
         }
 
-        .feature-visual video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 24px;
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--primary);
         }
 
-        /* Animated mockups for features */
-        .feature-mockup {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            padding: 32px;
-            background: linear-gradient(135deg, #2BBCC0 0%, #239da1 100%);
+        .feature-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.65;
         }
 
-        .mockup-window {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: floatUp 3s ease-in-out infinite;
-        }
-
-        @keyframes floatUp {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .mockup-line {
-            height: 12px;
-            background: #E5E5E5;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .mockup-line:nth-child(1) { width: 80%; }
-        .mockup-line:nth-child(2) { width: 60%; animation-delay: 0.2s; }
-        .mockup-line:nth-child(3) { width: 70%; animation-delay: 0.4s; }
-        .mockup-line.accent {
-            background: #2BBCC0;
-            height: 16px;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .mockup-tag {
+        .feature-badge {
             display: inline-block;
-            padding: 6px 12px;
-            background: #2BBCC0;
-            color: white;
-            border-radius: 20px;
-            font-size: 12px;
+            margin-top: 16px;
+            padding: 4px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 11px;
             font-weight: 600;
-            margin: 8px 8px 0 0;
-            animation: slideIn 1s ease-out forwards;
+            color: var(--text-tertiary);
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+        .feature-badge.premium {
+            background: rgba(43,188,192,0.08);
+            border-color: rgba(43,188,192,0.3);
+            color: var(--accent-dark);
         }
 
-        .mockup-tag:nth-child(1) { animation-delay: 0s; }
-        .mockup-tag:nth-child(2) { animation-delay: 0.2s; }
-        .mockup-tag:nth-child(3) { animation-delay: 0.4s; }
-
-        .mockup-chart {
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-            height: 150px;
-            padding: 24px;
+        /* ─── TESTIMONIALS ────────────────────────────── */
+        .testimonials {
+            padding: 120px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
         }
 
-        .mockup-bar {
-            flex: 1;
-            background: #2BBCC0;
-            border-radius: 8px 8px 0 0;
-            animation: growHeight 2s ease-out infinite;
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 60px;
         }
 
-        .mockup-bar:nth-child(1) { height: 60%; animation-delay: 0s; }
-        .mockup-bar:nth-child(2) { height: 80%; animation-delay: 0.2s; }
-        .mockup-bar:nth-child(3) { height: 100%; animation-delay: 0.4s; }
-        .mockup-bar:nth-child(4) { height: 70%; animation-delay: 0.6s; }
-
-        @keyframes growHeight {
-            0% { transform: scaleY(0); }
-            50% { transform: scaleY(1); }
-            100% { transform: scaleY(1); }
-        }
-
-        /* Summary animation - long text contracting */
-        .summary-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .summary-line {
-            height: 10px;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 5px;
-            animation: contractLine 4s ease-in-out infinite;
-        }
-
-        .summary-line:nth-child(1) { width: 100%; animation-delay: 0s; }
-        .summary-line:nth-child(2) { width: 95%; animation-delay: 0.1s; }
-        .summary-line:nth-child(3) { width: 98%; animation-delay: 0.2s; }
-        .summary-line:nth-child(4) { width: 90%; animation-delay: 0.3s; }
-        .summary-line:nth-child(5) { width: 100%; animation-delay: 0.4s; }
-        .summary-line:nth-child(6) { width: 85%; animation-delay: 0.5s; }
-        .summary-line:nth-child(7) { width: 92%; animation-delay: 0.6s; }
-        .summary-line:nth-child(8) { width: 88%; animation-delay: 0.7s; }
-
-        @keyframes contractLine {
-            0% {
-                opacity: 1;
-                transform: scaleX(1);
-                height: 10px;
-            }
-            40% {
-                opacity: 1;
-                transform: scaleX(1);
-                height: 10px;
-            }
-            60% {
-                opacity: 0.5;
-                transform: scaleX(0.3);
-                height: 8px;
-            }
-            80% {
-                opacity: 0;
-                transform: scaleX(0);
-                height: 0px;
-            }
-            100% {
-                opacity: 1;
-                transform: scaleX(1);
-                height: 10px;
-            }
-        }
-
-        .summary-result {
-            margin-top: 20px;
-            padding: 16px;
+        .testimonial-card {
             background: white;
-            border-radius: 8px;
-            animation: fadeInSummary 4s ease-in-out infinite;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 32px;
         }
 
-        @keyframes fadeInSummary {
-            0% { opacity: 0; transform: translateY(10px); }
-            40% { opacity: 0; transform: translateY(10px); }
-            60% { opacity: 1; transform: translateY(0); }
-            80% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(10px); }
+        .testimonial-stars {
+            color: #f59e0b;
+            font-size: 16px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
         }
 
-        .summary-result-line {
-            height: 8px;
-            background: #2BBCC0;
-            border-radius: 4px;
-            margin-bottom: 6px;
+        .testimonial-text {
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--text);
+            margin-bottom: 24px;
+            font-style: italic;
         }
 
-        .summary-result-line:nth-child(1) { width: 90%; }
-        .summary-result-line:nth-child(2) { width: 85%; }
-        .summary-result-line:nth-child(3) { width: 75%; }
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-        /* Pricing Section */
+        .testimonial-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .testimonial-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .testimonial-role {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        /* ─── PRICING ─────────────────────────────────── */
         .pricing {
-            padding: 160px 48px;
+            padding: 120px 48px;
             background: var(--primary);
             color: white;
             text-align: center;
         }
 
-        .pricing h2 {
-            font-family: 'Instrument Serif', serif;
-            font-size: 64px;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-            margin-bottom: 24px;
+        .pricing .section-label { color: rgba(43,188,192,0.8); }
+
+        .pricing .section-title { color: white; }
+
+        .pricing .section-subtitle { color: rgba(255,255,255,0.55); }
+
+        .pricing-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            background: rgba(255,255,255,0.08);
+            border-radius: 100px;
+            padding: 4px;
+            margin-bottom: 60px;
         }
 
-        .pricing-subtitle {
-            font-size: 20px;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 80px;
+        .toggle-btn {
+            padding: 10px 28px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.55);
+        }
+
+        .toggle-btn.active {
+            background: white;
+            color: var(--primary);
+        }
+
+        .toggle-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            background: var(--accent);
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            margin-left: 6px;
         }
 
         .pricing-cards {
-            max-width: 1000px;
+            max-width: 820px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 32px;
+            gap: 24px;
         }
 
         .pricing-card {
-            background: white;
-            color: var(--text);
-            padding: 56px 48px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 48px 40px;
             border-radius: 24px;
             text-align: left;
+            transition: transform 0.2s;
         }
 
         .pricing-card.featured {
             background: var(--accent);
-            color: white;
-            transform: scale(1.05);
+            border-color: transparent;
+            transform: scale(1.03);
         }
 
         .pricing-name {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 16px;
-            opacity: 0.7;
+            letter-spacing: 0.12em;
+            margin-bottom: 20px;
+            opacity: 0.65;
         }
 
         .pricing-price {
             font-family: 'Instrument Serif', serif;
-            font-size: 64px;
+            font-size: 56px;
             font-weight: 600;
             letter-spacing: -0.03em;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
+            line-height: 1;
         }
 
         .pricing-price span {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
+            opacity: 0.65;
+        }
+
+        .pricing-original {
+            font-size: 13px;
+            opacity: 0.5;
+            text-decoration: line-through;
+            margin-bottom: 20px;
+            min-height: 20px;
         }
 
         .pricing-description {
-            font-size: 16px;
-            margin-bottom: 40px;
-            opacity: 0.8;
+            font-size: 15px;
+            margin-bottom: 32px;
+            opacity: 0.75;
+            line-height: 1.5;
         }
 
         .pricing-features {
             list-style: none;
-            margin-bottom: 40px;
+            margin-bottom: 36px;
         }
 
         .pricing-features li {
-            padding: 12px 0;
-            font-size: 15px;
+            padding: 10px 0;
+            font-size: 14px;
             font-weight: 500;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .pricing-card.featured .pricing-features li {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        .pricing-features li::before {
+            content: '✓';
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
         }
+
+        .pricing-card.featured .pricing-features li::before { color: white; }
 
         .pricing-card .btn {
             width: 100%;
-            padding: 16px;
-            font-size: 16px;
+            padding: 15px;
+            font-size: 15px;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .pricing-card .btn-primary {
+            background: white;
+            color: var(--primary) !important;
+        }
+
+        .pricing-card .btn-primary:hover {
+            background: #f0f0f0;
         }
 
         .pricing-card.featured .btn {
             background: white;
-            color: var(--accent);
+            color: var(--accent-dark) !important;
         }
 
-        /* FAQ Section */
+        /* ─── FAQ ─────────────────────────────────────── */
         .faq {
             padding: 120px 48px;
-            background: #F9F9F9;
-        }
-
-        .faq h2 {
-            font-family: 'Instrument Serif', serif;
-            font-size: 48px;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-            text-align: center;
-            margin-bottom: 64px;
-        }
-
-        .faq-list {
-            max-width: 760px;
-            margin: 0 auto;
-        }
-
-        .faq-item {
-            padding: 32px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .faq-item:first-child {
+            background: var(--surface);
             border-top: 1px solid var(--border);
         }
 
-        .faq-item h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .faq-item p {
-            font-size: 16px;
-            color: var(--text-secondary);
-            line-height: 1.7;
-        }
-
-        /* CTA Section */
-        .cta {
-            padding: 160px 48px;
+        .faq-inner {
+            max-width: 680px;
+            margin: 0 auto;
             text-align: center;
+        }
+
+        .faq-list {
+            margin-top: 56px;
+            text-align: left;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-item:first-child { border-top: 1px solid var(--border); }
+
+        .faq-question {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 24px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .faq-question-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            line-height: 1.4;
+        }
+
+        .faq-chevron {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.3s, background 0.2s;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .faq-item.open .faq-chevron {
+            transform: rotate(180deg);
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .faq-answer {
+            display: none;
+            padding: 0 0 24px;
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.75;
+        }
+
+        .faq-item.open .faq-answer { display: block; }
+
+        /* ─── CTA FINAL ───────────────────────────────── */
+        .cta {
+            padding: 140px 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(43,188,192,0.10) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .cta h2 {
             font-family: 'Instrument Serif', serif;
-            font-size: 72px;
+            font-size: 64px;
             font-weight: 600;
             letter-spacing: -0.03em;
-            margin-bottom: 32px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            position: relative;
         }
 
         .cta p {
-            font-size: 22px;
+            font-size: 19px;
             color: var(--text-secondary);
-            margin-bottom: 48px;
+            margin-bottom: 44px;
+            position: relative;
         }
 
-        .cta .btn {
-            padding: 20px 56px;
-            font-size: 18px;
+        .cta-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
         }
 
-        /* Footer */
+        .cta-buttons .btn {
+            padding: 17px 44px;
+            font-size: 16px;
+        }
+
+        .cta-note {
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            position: relative;
+        }
+
+        /* ─── FOOTER ──────────────────────────────────── */
         footer {
-            padding: 80px 48px 48px;
-            background: #FAFAFA;
-            border-top: 1px solid var(--border);
+            padding: 72px 48px 48px;
+            background: var(--primary);
+            color: white;
         }
 
         .footer-content {
-            max-width: 1400px;
-            margin: 0 auto;
+            max-width: 1200px;
+            margin: 0 auto 56px;
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 80px;
-            margin-bottom: 48px;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 64px;
         }
 
-        .footer-brand {
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin-bottom: 16px;
-        }
-
-        .footer-tagline {
-            color: var(--text-secondary);
-            font-size: 15px;
-        }
-
-        .footer-links h4 {
+        .footer-brand-name {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
             font-weight: 600;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .footer-links ul {
-            list-style: none;
-        }
-
-        .footer-links li {
+            letter-spacing: -0.03em;
+            color: white;
             margin-bottom: 12px;
         }
 
+        .footer-tagline {
+            color: rgba(255,255,255,0.45);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 280px;
+        }
+
+        .footer-email {
+            margin-top: 20px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .footer-email a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer-links h4 {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 20px;
+        }
+
+        .footer-links ul { list-style: none; }
+
+        .footer-links li { margin-bottom: 12px; }
+
         .footer-links a {
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.65);
             text-decoration: none;
             font-size: 14px;
             transition: color 0.2s;
         }
 
-        .footer-links a:hover {
-            color: var(--primary);
-        }
+        .footer-links a:hover { color: white; }
 
         .footer-bottom {
-            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
             padding-top: 32px;
-            border-top: 1px solid var(--border);
-            color: var(--text-secondary);
-            font-size: 14px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 13px;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            /* Nav */
-            .nav-container { padding: 16px 20px; }
-            .nav-links { gap: 20px; }
-            .nav-links a { font-size: 14px; }
-            .btn { padding: 10px 24px; font-size: 14px; }
+        /* ─── RESPONSIVE ──────────────────────────────── */
+        @media (max-width: 900px) {
+            .nav-container { padding: 0 24px; }
+            .nav-links { display: none; }
 
-            /* Hero */
-            .hero { padding: 120px 20px 60px; min-height: auto; }
-            .hero h1 { font-size: 36px; margin-bottom: 20px; }
-            .hero p { font-size: 16px; margin-bottom: 32px; }
-            .hero-cta { flex-direction: column; align-items: center; }
-            .hero-cta .btn { padding: 16px 32px; font-size: 15px; width: 100%; max-width: 300px; }
+            .hero { padding: 120px 24px 80px; }
+            .hero h1 { font-size: 44px; }
+            .hero p { font-size: 17px; }
+            .hero-preview { display: none; }
 
-            /* Stats */
-            .stats-grid { grid-template-columns: 1fr; gap: 32px; }
-            .stat-number { font-size: 36px; }
+            .stats { padding: 56px 24px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 0; }
+            .stat { padding: 24px 0; border-left: none !important; border-bottom: 1px solid var(--border); }
+            .stat:last-child { border-bottom: none; }
+            .stat-value { font-size: 48px; }
 
-            /* Features */
-            .features, .pricing-section { padding: 80px 20px; }
-            .features h2 { font-size: 32px; }
-            .feature-content h3 { font-size: 28px; }
-            .feature { grid-template-columns: 1fr; gap: 32px; }
-            .feature-visual { height: 250px; }
+            .how, .features, .testimonials, .faq { padding: 80px 24px; }
+            .how .section-title, .features-inner .section-title,
+            .testimonials .section-title, .faq-inner .section-title { font-size: 38px; }
 
-            .feature:nth-child(even) .feature-content {
-                order: 1;
-            }
+            .steps-grid, .features-grid, .testimonials-grid { grid-template-columns: 1fr; gap: 16px; }
+            .steps-grid::before { display: none; }
 
-            /* Pricing */
-            .pricing-cards { grid-template-columns: 1fr; }
+            .pricing { padding: 80px 24px; }
+            .pricing-cards { grid-template-columns: 1fr; max-width: 440px; }
             .pricing-card.featured { transform: scale(1); }
 
-            /* Footer */
-            .footer-content { grid-template-columns: 1fr; gap: 40px; }
+            .cta { padding: 100px 24px; }
+            .cta h2 { font-size: 44px; }
+
+            footer { padding: 56px 24px 40px; }
+            .footer-content { grid-template-columns: 1fr 1fr; gap: 40px; }
+            .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
         }
 
         @media (max-width: 480px) {
-            .hero h1 { font-size: 28px; }
-            .hero p { font-size: 15px; }
-            .nav-links a:not(.btn) { display: none; }
-            .feature-visual { height: 200px; }
+            .hero h1 { font-size: 36px; }
+            .hero-cta .btn { width: 100%; text-align: center; }
+            .footer-content { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
+
+    <!-- ─── NAVIGATION ─── -->
     <nav>
         <div class="nav-container">
-            <a href="/" class="logo"><img src="./logo-v2-3-light.svg" alt="BREVIS"></a>
+            <a href="/" class="logo">
+                <img src="./logo-v2-3-light.svg" alt="BREVIS">
+            </a>
             <div class="nav-links">
-                <a href="#features">Características</a>
-                <a href="#pricing">Precios</a>
-                <a href="/app.html" class="btn btn-primary">Comenzar</a>
+                <a href="#como-funciona">Cómo funciona</a>
+                <a href="#caracteristicas">Características</a>
+                <a href="#precios">Precios</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Entrar</a>
+                <a href="/app.html" class="btn btn-primary">Probar gratis</a>
             </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- ─── HERO ─── -->
     <section class="hero">
+        <div class="hero-label">
+            <span>✦</span> Potenciado por IA · Claude de Anthropic
+        </div>
         <div class="hero-content">
-            <h1>Organiza tus newsletters con <span class="accent">inteligencia</span></h1>
-            <p>Deja de perder tiempo. BREVIS convierte el caos de tu inbox en conocimiento organizado y listo para usar.</p>
+            <h1>Tu inbox de newsletters,<br><em>finalmente organizado</em></h1>
+            <p>BREVIS usa inteligencia artificial para resumir, organizar y hacer aprovechables todos tus newsletters. Sin ruido. Sin tiempo perdido.</p>
             <div class="hero-cta">
                 <a href="/app.html" class="btn btn-primary">Probar gratis 15 días</a>
+                <a href="#como-funciona" class="btn-ghost btn">Ver cómo funciona</a>
             </div>
-            <span class="hero-badge">Sin tarjeta de crédito</span>
+            <p class="hero-note">Sin tarjeta de crédito · Cancela cuando quieras</p>
+        </div>
+
+        <!-- App Preview -->
+        <div class="hero-preview">
+            <div class="preview-bar">
+                <div class="preview-dot"></div>
+                <div class="preview-dot"></div>
+                <div class="preview-dot"></div>
+                <div class="preview-url">brevisapp.com/app</div>
+            </div>
+            <div class="preview-inner">
+                <!-- Sidebar -->
+                <div class="preview-sidebar">
+                    <div class="preview-sidebar-logo">BREVIS</div>
+                    <div class="preview-nav-item active">
+                        📥 Todos
+                        <span class="preview-nav-count">24</span>
+                    </div>
+                    <div class="preview-nav-item">📬 Sin leer <span class="preview-nav-count" style="background:#555">7</span></div>
+                    <div class="preview-nav-item">✓ Leídos</div>
+                    <div style="margin-top: 16px; padding: 0 4px; font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;">Etiquetas</div>
+                    <div class="preview-tag"><div class="preview-tag-dot" style="background:#2BBCC0"></div>Tecnología <span style="margin-left:auto;font-size:11px;color:#aaa">8</span></div>
+                    <div class="preview-tag"><div class="preview-tag-dot" style="background:#f59e0b"></div>Marketing <span style="margin-left:auto;font-size:11px;color:#aaa">5</span></div>
+                    <div class="preview-tag"><div class="preview-tag-dot" style="background:#8b5cf6"></div>Finanzas <span style="margin-left:auto;font-size:11px;color:#aaa">4</span></div>
+                </div>
+                <!-- Main content -->
+                <div class="preview-main">
+                    <div class="preview-header">
+                        <div class="preview-title-text">Tu lista de lectura. Curada. Resumida.</div>
+                        <button class="preview-btn-small">+ Añadir</button>
+                    </div>
+                    <!-- Newsletter card 1 -->
+                    <div class="preview-card">
+                        <div class="preview-card-header">
+                            <div class="preview-card-title">The Browser Company: Rediseñando la web tal como la conocemos</div>
+                            <div class="preview-new-badge">NUEVO</div>
+                        </div>
+                        <div class="preview-card-meta">Stratechery · hace 2 horas</div>
+                        <div class="preview-card-tags">
+                            <div class="preview-card-tag" style="background:#e0f7fa;color:#006064">Tecnología</div>
+                            <div class="preview-card-tag" style="background:#fef3c7;color:#92400e">Producto</div>
+                        </div>
+                        <div class="preview-summary-box">
+                            <div class="preview-summary-label">✦ Resumen IA</div>
+                            <div class="preview-summary-line"></div>
+                            <div class="preview-summary-line"></div>
+                            <div class="preview-summary-line"></div>
+                        </div>
+                    </div>
+                    <!-- Newsletter card 2 -->
+                    <div class="preview-card">
+                        <div class="preview-card-header">
+                            <div class="preview-card-title">Las 5 tendencias de marketing digital que dominarán 2026</div>
+                        </div>
+                        <div class="preview-card-meta">Growth.design · ayer</div>
+                        <div class="preview-card-tags">
+                            <div class="preview-card-tag" style="background:#fef3c7;color:#92400e">Marketing</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- Stats Section -->
+    <!-- ─── STATS ─── -->
     <section class="stats">
         <div class="stats-grid">
             <div class="stat">
@@ -861,96 +1351,149 @@
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section id="features" class="features">
-        <h2>Simple. Potente. Inteligente.</h2>
+    <!-- ─── HOW IT WORKS ─── -->
+    <section id="como-funciona" class="how">
+        <div class="section-label">Cómo funciona</div>
+        <h2 class="section-title">Tres pasos. Eso es todo.</h2>
+        <p class="section-subtitle">Empieza a usar BREVIS en minutos, sin configuraciones complicadas.</p>
 
-        <div class="feature">
-            <div class="feature-content">
-                <h3>Resúmenes instantáneos</h3>
-                <p>La IA lee cada newsletter y te da los puntos clave en segundos. Sin perder tiempo. Sin información irrelevante.</p>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Importa tus newsletters</h3>
+                <p>Reenvía tus emails a tu dirección BREVIS, pega una URL, sube un PDF o conecta tu RSS. Funciona con todo.</p>
             </div>
-            <div class="feature-visual">
-                <!-- Video placeholder - replace with actual video -->
-                <!-- <video autoplay loop muted playsinline>
-                    <source src="/videos/summary-demo.mp4" type="video/mp4">
-                </video> -->
-                <div class="feature-mockup">
-                    <div class="summary-container">
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                        <div class="summary-line"></div>
-                    </div>
-                    <div class="summary-result">
-                        <div class="summary-result-line"></div>
-                        <div class="summary-result-line"></div>
-                        <div class="summary-result-line"></div>
-                    </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>La IA hace el trabajo</h3>
+                <p>Claude de Anthropic analiza cada newsletter y genera un resumen con los puntos clave en segundos.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Lee solo lo que importa</h3>
+                <p>Navega tu biblioteca organizada, filtra por etiquetas, busca cualquier tema y genera briefings personalizados.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── FEATURES ─── -->
+    <section id="caracteristicas" class="features">
+        <div class="features-inner">
+            <div class="section-label">Características</div>
+            <h2 class="section-title">Todo lo que necesitas.</h2>
+            <p class="section-subtitle" style="margin-bottom: 0;">Nada que no necesites.</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Resúmenes con IA</h3>
+                    <p>Obtén los puntos clave de cada newsletter en segundos, generados por Claude de Anthropic. Sin perder el hilo.</p>
+                    <span class="feature-badge">Todos los planes</span>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🏷️</div>
+                    <h3>Organización con etiquetas</h3>
+                    <p>Clasifica y filtra tu contenido con etiquetas de colores. Encuentra lo que buscas al instante con la búsqueda avanzada.</p>
+                    <span class="feature-badge">Todos los planes</span>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📥</div>
+                    <h3>Importa desde cualquier lugar</h3>
+                    <p>Email directo, URLs, PDFs, Word, feeds RSS, Substack y Web Clipper. Si tiene texto, BREVIS lo puede procesar.</p>
+                    <span class="feature-badge">Todos los planes</span>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Reportes personalizados</h3>
+                    <p>Genera briefings automáticos por tema, analiza tendencias y crea reportes a partir de múltiples newsletters.</p>
+                    <span class="feature-badge premium">Premium</span>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📖</div>
+                    <h3>Enviar a Kindle</h3>
+                    <p>Lee tus newsletters en tu Kindle como si fueran libros. Perfecta integración para los que prefieren leer en papel electrónico.</p>
+                    <span class="feature-badge">Standard+</span>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🗞️</div>
+                    <h3>News Builder</h3>
+                    <p>Crea tus propios newsletters a partir de plantillas y reportes generados por IA. Comparte conocimiento con tu equipo.</p>
+                    <span class="feature-badge premium">Premium</span>
                 </div>
             </div>
         </div>
+    </section>
 
-        <div class="feature">
-            <div class="feature-content">
-                <h3>Todo organizado</h3>
-                <p>Etiquetas automáticas. Búsqueda instantánea. Encuentra cualquier cosa en segundos.</p>
-            </div>
-            <div class="feature-visual">
-                <!-- Video placeholder - replace with actual video -->
-                <!-- <video autoplay loop muted playsinline>
-                    <source src="/videos/organize-demo.mp4" type="video/mp4">
-                </video> -->
-                <div class="feature-mockup">
-                    <div class="mockup-window">
-                        <div style="padding: 16px;">
-                            <div class="mockup-tag">Marketing</div>
-                            <div class="mockup-tag">Tech</div>
-                            <div class="mockup-tag">Business</div>
-                        </div>
+    <!-- ─── TESTIMONIALS ─── -->
+    <section class="testimonials">
+        <div style="text-align:center">
+            <div class="section-label">Testimonios</div>
+            <h2 class="section-title">Lo que dicen nuestros usuarios</h2>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"Antes tardaba horas en leer mis newsletters del día. Ahora BREVIS me da los puntos clave de todo en 10 minutos. Es indispensable."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">MC</div>
+                    <div>
+                        <div class="testimonial-name">María C.</div>
+                        <div class="testimonial-role">Directora de Marketing</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="feature">
-            <div class="feature-content">
-                <h3>Reportes personalizados</h3>
-                <p>Genera briefings automáticos por tema. Mantente al día sin leer manualmente cada newsletter.</p>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"Los briefings automáticos son una maravilla. Cada lunes tengo un resumen de todo lo importante de la semana anterior listo para compartir con mi equipo."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: var(--accent);">JR</div>
+                    <div>
+                        <div class="testimonial-name">Javier R.</div>
+                        <div class="testimonial-role">Product Manager · Startup SaaS</div>
+                    </div>
+                </div>
             </div>
-            <div class="feature-visual">
-                <!-- Video placeholder - replace with actual video -->
-                <!-- <video autoplay loop muted playsinline>
-                    <source src="/videos/reports-demo.mp4" type="video/mp4">
-                </video> -->
-                <div class="feature-mockup">
-                    <div class="mockup-window">
-                        <div class="mockup-chart">
-                            <div class="mockup-bar"></div>
-                            <div class="mockup-bar"></div>
-                            <div class="mockup-bar"></div>
-                            <div class="mockup-bar"></div>
-                        </div>
+
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p class="testimonial-text">"Estaba suscrito a 40 newsletters y no leía ninguna. Con BREVIS por fin puedo mantenerme informado sin sentir que me ahogo en información."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: #8b5cf6;">LA</div>
+                    <div>
+                        <div class="testimonial-name">Laura A.</div>
+                        <div class="testimonial-role">Consultora Independiente</div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Pricing Section -->
-    <section id="pricing" class="pricing">
-        <h2>Elige tu plan</h2>
-        <p class="pricing-subtitle">Todos los planes incluyen 15 días de prueba gratis</p>
+    <!-- ─── PRICING ─── -->
+    <section id="precios" class="pricing">
+        <div class="section-label">Precios</div>
+        <h2 class="section-title">Elige tu plan</h2>
+        <p class="section-subtitle">15 días de prueba gratis · Sin tarjeta de crédito</p>
+
+        <div class="pricing-toggle">
+            <button class="toggle-btn active" onclick="setPricing('monthly', this)">Mensual</button>
+            <button class="toggle-btn" onclick="setPricing('annual', this)">
+                Anual <span class="toggle-badge">-27%</span>
+            </button>
+        </div>
 
         <div class="pricing-cards">
             <div class="pricing-card">
                 <div class="pricing-name">Standard</div>
-                <div class="pricing-price">$8<span>/mes</span></div>
-                <p class="pricing-description">Para profesionales que quieren aprovechar el poder de la IA</p>
+                <div class="pricing-price" id="price-standard">$8<span>/mes</span></div>
+                <div class="pricing-original" id="price-standard-original"> </div>
+                <p class="pricing-description">Para profesionales que quieren organizar su lectura con el poder de la IA.</p>
                 <ul class="pricing-features">
                     <li>Newsletters ilimitados</li>
                     <li>Resúmenes con IA</li>
@@ -959,92 +1502,187 @@
                     <li>Importar URLs y PDFs</li>
                     <li>Enviar a Kindle</li>
                 </ul>
-                <a href="/app.html" class="btn btn-primary">Comenzar</a>
+                <a href="/app.html" class="btn btn-primary">Empezar gratis</a>
             </div>
 
             <div class="pricing-card featured">
-                <div class="pricing-name">Premium</div>
-                <div class="pricing-price">$10<span>/mes</span></div>
-                <p class="pricing-description">Para equipos que necesitan análisis completos</p>
+                <div class="pricing-name">Premium ✦ Más popular</div>
+                <div class="pricing-price" id="price-premium">$10<span>/mes</span></div>
+                <div class="pricing-original" id="price-premium-original"> </div>
+                <p class="pricing-description">Para quienes quieren análisis completos y la experiencia más potente.</p>
                 <ul class="pricing-features">
-                    <li>Todo en Standard, más:</li>
+                    <li>Todo lo de Standard</li>
                     <li>Reportes personalizados</li>
                     <li>Briefings automáticos</li>
                     <li>Análisis de tendencias</li>
                     <li>Generador de newsletters</li>
                     <li>Soporte prioritario</li>
                 </ul>
-                <a href="/app.html" class="btn btn-primary">Comenzar</a>
+                <a href="/app.html" class="btn">Empezar gratis</a>
             </div>
         </div>
     </section>
 
-    <!-- FAQ Section -->
+    <!-- ─── FAQ ─── -->
     <section id="faq" class="faq">
-        <h2>Preguntas frecuentes</h2>
-        <div class="faq-list">
-            <div class="faq-item">
-                <h3>¿Qué es BREVIS?</h3>
-                <p>BREVIS es una plataforma que te ayuda a organizar, resumir y aprovechar tus newsletters usando inteligencia artificial. Centraliza todo tu contenido en un solo lugar y obtén resúmenes automáticos con IA.</p>
-            </div>
-            <div class="faq-item">
-                <h3>¿Cómo funciona la IA?</h3>
-                <p>Usamos Claude Sonnet de Anthropic para generar resúmenes concisos de tus newsletters, crear briefings personalizados y analizar tendencias en el contenido que consumes.</p>
-            </div>
-            <div class="faq-item">
-                <h3>¿Necesito tarjeta de crédito para la prueba gratis?</h3>
-                <p>No. Los 15 días de prueba gratis no requieren tarjeta de crédito. Puedes cancelar cuando quieras sin ningún compromiso.</p>
-            </div>
-            <div class="faq-item">
-                <h3>¿Qué formatos acepta BREVIS?</h3>
-                <p>Puedes importar newsletters por email directo (te asignamos una dirección única), pegar URLs de artículos, subir archivos PDF o Word, y suscribirte automáticamente a feeds RSS y publicaciones de Substack.</p>
-            </div>
-            <div class="faq-item">
-                <h3>¿Puedo cancelar en cualquier momento?</h3>
-                <p>Sí, puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta. Sin penalizaciones ni compromisos.</p>
+        <div class="faq-inner">
+            <div class="section-label">FAQ</div>
+            <h2 class="section-title">Preguntas frecuentes</h2>
+
+            <div class="faq-list">
+                <div class="faq-item open">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-text">¿Qué es BREVIS?</span>
+                        <span class="faq-chevron">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        BREVIS es una plataforma que centraliza todos tus newsletters en un solo lugar y usa inteligencia artificial para resumirlos, organizarlos y hacerlos realmente útiles. Deja de perder tiempo leyendo emails largos y empieza a consumir solo lo que importa.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-text">¿Cómo funciona la IA de BREVIS?</span>
+                        <span class="faq-chevron">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        Usamos Claude Sonnet de Anthropic, uno de los modelos de lenguaje más avanzados del mundo. Claude lee cada newsletter y genera un resumen conciso con los puntos más importantes, adaptado al estilo y longitud del contenido original.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-text">¿Necesito tarjeta de crédito para la prueba?</span>
+                        <span class="faq-chevron">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        No. Los 15 días de prueba gratis no requieren ningún método de pago. Puedes explorar todas las funciones sin compromiso y decidir si BREVIS es para ti antes de pagar.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-text">¿Qué formatos de contenido acepta BREVIS?</span>
+                        <span class="faq-chevron">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        BREVIS acepta newsletters por email (te asignamos una dirección única), importación de URLs, archivos PDF y Word, feeds RSS, publicaciones de Substack, y artículos web a través del Web Clipper. Si tiene texto, BREVIS lo puede procesar.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-text">¿Puedo cancelar en cualquier momento?</span>
+                        <span class="faq-chevron">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        Sí, completamente. Puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta, sin penalizaciones ni letras pequeñas. Tu acceso se mantiene hasta el final del período pagado.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-text">¿Cuál es la diferencia entre Standard y Premium?</span>
+                        <span class="faq-chevron">▾</span>
+                    </button>
+                    <div class="faq-answer">
+                        Standard cubre lo esencial: newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda avanzada y envío a Kindle. Premium añade funciones avanzadas de análisis: reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters (News Builder) y soporte prioritario.
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
+    <!-- ─── CTA FINAL ─── -->
     <section class="cta">
-        <h2>Empieza hoy</h2>
+        <h2>Empieza hoy.<br>Sin compromiso.</h2>
         <p>15 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
-        <a href="/app.html" class="btn btn-primary">Probar gratis</a>
+        <div class="cta-buttons">
+            <a href="/app.html" class="btn btn-primary">Probar gratis 15 días</a>
+            <a href="/app.html" class="btn-ghost btn">Ya tengo cuenta — Entrar</a>
+        </div>
+        <p class="cta-note">Únete a los profesionales que ya leen menos y saben más.</p>
     </section>
 
-    <!-- Footer -->
+    <!-- ─── FOOTER ─── -->
     <footer>
         <div class="footer-content">
             <div>
-                <div class="footer-brand">BREVIS</div>
-                <p class="footer-tagline">La forma más inteligente de organizar tus newsletters</p>
+                <div class="footer-brand-name">BREVIS</div>
+                <p class="footer-tagline">La forma más inteligente de organizar, resumir y aprovechar tus newsletters con inteligencia artificial.</p>
+                <p class="footer-email">¿Preguntas? <a href="mailto:hola@brevisapp.com">hola@brevisapp.com</a></p>
             </div>
             <div class="footer-links">
                 <h4>Producto</h4>
                 <ul>
-                    <li><a href="#features">Características</a></li>
-                    <li><a href="#pricing">Precios</a></li>
+                    <li><a href="#como-funciona">Cómo funciona</a></li>
+                    <li><a href="#caracteristicas">Características</a></li>
+                    <li><a href="#precios">Precios</a></li>
+                    <li><a href="/guide.html">Guía de uso</a></li>
                 </ul>
             </div>
             <div class="footer-links">
-                <h4>Recursos</h4>
+                <h4>Legal</h4>
                 <ul>
-                    <li><a href="#">Guía</a></li>
-                    <li><a href="#">Ayuda</a></li>
+                    <li><a href="/privacy.html">Privacidad</a></li>
+                    <li><a href="/terms.html">Términos de uso</a></li>
                 </ul>
             </div>
             <div class="footer-links">
-                <h4>Empresa</h4>
+                <h4>Cuenta</h4>
                 <ul>
-                    <li><a href="#">Sobre nosotros</a></li>
-                    <li><a href="#">Contacto</a></li>
+                    <li><a href="/app.html">Iniciar sesión</a></li>
+                    <li><a href="/app.html">Crear cuenta</a></li>
+                    <li><a href="mailto:hola@brevisapp.com">Contacto</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2026 BREVIS. Todos los derechos reservados.</p>
+            <span>© 2026 BREVIS. Todos los derechos reservados.</span>
+            <span>Hecho con IA · Potenciado por Claude de Anthropic</span>
         </div>
     </footer>
+
+    <script>
+        // ─── SERVICE WORKER ───────────────────────────
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('BREVIS SW registrado:', reg.scope))
+                    .catch(err => console.log('SW error:', err));
+            });
+        }
+
+        // ─── PRICING TOGGLE ───────────────────────────
+        function setPricing(mode, btn) {
+            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const priceStandard = document.getElementById('price-standard');
+            const pricePremium = document.getElementById('price-premium');
+            const origStandard = document.getElementById('price-standard-original');
+            const origPremium = document.getElementById('price-premium-original');
+
+            if (mode === 'annual') {
+                priceStandard.innerHTML = '$5.80<span>/mes</span>';
+                pricePremium.innerHTML = '$7.25<span>/mes</span>';
+                origStandard.textContent = 'Antes $8/mes · Facturado $69.60/año';
+                origPremium.textContent = 'Antes $10/mes · Facturado $87/año';
+            } else {
+                priceStandard.innerHTML = '$8<span>/mes</span>';
+                pricePremium.innerHTML = '$10<span>/mes</span>';
+                origStandard.innerHTML = '&nbsp;';
+                origPremium.innerHTML = '&nbsp;';
+            }
+        }
+
+        // ─── FAQ ACCORDION ─────────────────────────────
+        function toggleFaq(btn) {
+            const item = btn.closest('.faq-item');
+            const isOpen = item.classList.contains('open');
+            document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+            if (!isOpen) item.classList.add('open');
+        }
+    </script>
 </body>
 </html>

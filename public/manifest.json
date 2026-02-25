@@ -1,0 +1,67 @@
+{
+  "name": "BREVIS - Organiza tus Newsletters",
+  "short_name": "BREVIS",
+  "description": "Organiza, resume y aprovecha tus newsletters con inteligencia artificial.",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "es",
+  "scope": "/",
+  "categories": ["productivity", "news"],
+  "icons": [
+    {
+      "src": "/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "type": "image/png",
+      "label": "BREVIS - Lista de newsletters"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Añadir newsletter",
+      "short_name": "Añadir",
+      "description": "Importar un nuevo newsletter",
+      "url": "/app.html#add",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Sin leer",
+      "short_name": "Sin leer",
+      "description": "Ver newsletters sin leer",
+      "url": "/app.html#unread",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}
