@@ -950,13 +950,23 @@ function extractTweetId(url) {
     return match ? match[1] : null;
 }
 
-async function fetchSingleTweet(tweetId) {
-    // Primary: fxtwitter API
+async function fetchFullThread(tweetId) {
+    // Primary: fxtwitter — single API call, returns thread data if available
     try {
-        const res = await fetch(`https://api.fxtwitter.com/x/status/${tweetId}`);
+        const res = await fetch(`https://api.fxtwitter.com/x/status/${tweetId}`, {
+            headers: { 'User-Agent': 'BREVIS/1.0' }
+        });
         if (res.ok) {
             const data = await res.json();
-            if (data.tweet) return data.tweet;
+            if (data.tweet) {
+                const tweet = data.tweet;
+                // fxtwitter may include continuation tweets in thread.tweets
+                const continuationTweets = tweet.thread?.tweets || [];
+                const allTweets = continuationTweets.length > 0
+                    ? [tweet, ...continuationTweets]
+                    : [tweet];
+                return { tweet, thread: allTweets };
+            }
         }
     } catch (e) { /* fallback */ }
 
@@ -965,46 +975,16 @@ async function fetchSingleTweet(tweetId) {
         const res = await fetch(`https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&token=x`);
         if (res.ok) {
             const synData = await res.json();
-            return {
+            const tweet = {
                 id: tweetId,
-                text: synData.text,
+                text: synData.text || '',
                 author: { name: synData.user?.name, screen_name: synData.user?.screen_name },
-                replying_to_status: synData.in_reply_to_status_id_str || null
             };
+            return { tweet, thread: [tweet] };
         }
     } catch (e) { /* give up */ }
 
     return null;
-}
-
-async function fetchFullThread(tweetId) {
-    const initial = await fetchSingleTweet(tweetId);
-    if (!initial) return null;
-
-    const authorHandle = initial.author?.screen_name;
-    const tweets = [initial];
-    const MAX_DEPTH = 50;
-
-    // Crawl up: follow replying_to_status to find the thread root
-    let current = initial;
-    let depth = 0;
-    while (current.replying_to_status && depth < MAX_DEPTH) {
-        const parentId = typeof current.replying_to_status === 'object'
-            ? current.replying_to_status.id
-            : current.replying_to_status;
-        if (!parentId) break;
-
-        const parent = await fetchSingleTweet(parentId);
-        if (!parent) break;
-        // Stop if parent is from a different author (not part of the same thread)
-        if (parent.author?.screen_name !== authorHandle) break;
-
-        tweets.unshift(parent);
-        current = parent;
-        depth++;
-    }
-
-    return { tweet: initial, thread: tweets };
 }
 
 app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (req, res) => {
