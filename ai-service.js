@@ -149,7 +149,9 @@ export async function generateBatchBrief(newsletters, language = 'es', purpose =
     }
 
     const newsletterList = newsletters.map((n, i) =>
-        `${i + 1}. ${n.title}\n   De: ${n.sender}\n   ${n.content.substring(0, 500)}...`
+        language === 'en'
+            ? `${i + 1}. ${n.title}\n   From: ${n.sender}\n   ${n.content.substring(0, 500)}...`
+            : `${i + 1}. ${n.title}\n   De: ${n.sender}\n   ${n.content.substring(0, 500)}...`
     ).join('\n\n');
 
     const purposeText = purpose ? `\nPropósito del brief: ${purpose}\nEnfoca el contenido hacia este objetivo.\n` : '';
@@ -202,7 +204,9 @@ export async function generateBatchReport(newsletters, language = 'es', purpose 
     }
 
     const newsletterList = newsletters.map((n, i) =>
-        `## Newsletter ${i + 1}: ${n.title}\nDe: ${n.sender}\n\n${n.content.substring(0, 1000)}...`
+        language === 'en'
+            ? `## Newsletter ${i + 1}: ${n.title}\nFrom: ${n.sender}\n\n${n.content.substring(0, 1000)}...`
+            : `## Newsletter ${i + 1}: ${n.title}\nDe: ${n.sender}\n\n${n.content.substring(0, 1000)}...`
     ).join('\n\n---\n\n');
 
     const purposeText = purpose ? `\nPropósito del reporte: ${purpose}\nEnfoca el análisis y conclusiones hacia este objetivo.\n` : '';
@@ -304,15 +308,21 @@ export async function generateNewsletterFromProject(template, reports, urls, lan
 
     // Build context from reports and URLs
     const reportContent = reports.length > 0
-        ? reports.map((r, i) => `--- Reporte ${i+1}: ${r.name} ---\n${r.content}`).join('\n\n')
+        ? reports.map((r, i) => language === 'en'
+            ? `--- Report ${i+1}: ${r.name} ---\n${r.content}`
+            : `--- Reporte ${i+1}: ${r.name} ---\n${r.content}`).join('\n\n')
         : '';
 
     const urlContent = urls.length > 0
-        ? urls.map((u, i) => `--- Fuente ${i+1}: ${u.url} ---\n${u.content}`).join('\n\n')
+        ? urls.map((u, i) => language === 'en'
+            ? `--- Source ${i+1}: ${u.url} ---\n${u.content}`
+            : `--- Fuente ${i+1}: ${u.url} ---\n${u.content}`).join('\n\n')
         : '';
 
     const contextSection = (reportContent || urlContent)
-        ? `\n\nContenido de referencia para incorporar:\n${reportContent}\n${urlContent}`
+        ? language === 'en'
+            ? `\n\nReference content to incorporate:\n${reportContent}\n${urlContent}`
+            : `\n\nContenido de referencia para incorporar:\n${reportContent}\n${urlContent}`
         : '';
 
     const prompts = {
