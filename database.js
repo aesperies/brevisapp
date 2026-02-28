@@ -92,6 +92,11 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
         `);
 
+        // Add summary_language column to newsletters (migration for existing databases)
+        await pool.query(`
+            ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS summary_language VARCHAR(5);
+        `);
+
         // Email verification tokens
         await pool.query(`
             CREATE TABLE IF NOT EXISTS email_verifications (
@@ -362,7 +367,7 @@ export const dbHelpers = {
 
     updateNewsletter: async (id, updates) => {
         // Whitelist allowed fields to prevent SQL injection
-        const allowedFields = ['title', 'sender', 'content', 'summary', 'is_read', 'url'];
+        const allowedFields = ['title', 'sender', 'content', 'summary', 'summary_language', 'is_read', 'url'];
         const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
         if (fields.length === 0) return null;
 

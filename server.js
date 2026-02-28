@@ -1097,12 +1097,13 @@ app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, asyncHandler
         return res.status(404).json({ error: 'Newsletter not found' });
     }
 
-    if (newsletter.summary) {
+    const userLanguage = user.language || 'es';
+    if (newsletter.summary && newsletter.summary_language === userLanguage) {
         return res.json({ summary: newsletter.summary });
     }
 
-    const summary = await generateSummary(newsletter, user.language);
-    await dbHelpers.updateNewsletter(newsletter.id, { summary });
+    const summary = await generateSummary(newsletter, userLanguage);
+    await dbHelpers.updateNewsletter(newsletter.id, { summary, summary_language: userLanguage });
 
     console.log('✅ Summary generated for newsletter:', newsletter.id);
     res.json({ summary });
