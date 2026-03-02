@@ -92,6 +92,10 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
         `);
 
+        await pool.query(`
+            ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS summary_language VARCHAR(5);
+        `);
+
         // Email verification tokens
         await pool.query(`
             CREATE TABLE IF NOT EXISTS email_verifications (
@@ -237,7 +241,7 @@ export const dbHelpers = {
         const now = new Date();
 
         // Si tiene un trial_end_date y ya expiró, y su plan es 'pro', bajarlo a 'free'
-        if (user.trial_end_date && new Date(user.trial_end_date) < now && user.plan === 'pro') {
+        if (user.trial_end_date && new Date(user.trial_end_date) < now && (user.plan === 'pro' || user.plan === 'standard')) {
             console.log('⏰ Trial expirado para usuario:', userId);
             await pool.query(`
                 UPDATE users
@@ -362,7 +366,7 @@ export const dbHelpers = {
 
     updateNewsletter: async (id, updates) => {
         // Whitelist allowed fields to prevent SQL injection
-        const allowedFields = ['title', 'sender', 'content', 'summary', 'is_read', 'url'];
+        const allowedFields = ['title', 'sender', 'content', 'summary', 'summary_language', 'is_read', 'url'];
         const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
         if (fields.length === 0) return null;
 

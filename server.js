@@ -1097,12 +1097,12 @@ app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, asyncHandler
         return res.status(404).json({ error: 'Newsletter not found' });
     }
 
-    if (newsletter.summary) {
+    if (newsletter.summary && newsletter.summary_language === user.language) {
         return res.json({ summary: newsletter.summary });
     }
 
     const summary = await generateSummary(newsletter, user.language);
-    await dbHelpers.updateNewsletter(newsletter.id, { summary });
+    await dbHelpers.updateNewsletter(newsletter.id, { summary, summary_language: user.language });
 
     console.log('✅ Summary generated for newsletter:', newsletter.id);
     res.json({ summary });
@@ -1432,7 +1432,8 @@ app.post('/api/stripe/checkout', authMiddleware, asyncHandler(async (req, res) =
             line_items: [{ price: priceId, quantity: 1 }],
             success_url: `${baseUrl}/app.html?checkout=success`,
             cancel_url: `${baseUrl}/app.html?checkout=cancel`,
-            metadata: { user_id: user.id.toString(), plan }
+            metadata: { user_id: user.id.toString(), plan },
+            subscription_data: { trial_period_days: 14 }
         });
 
     console.log('✅ Checkout session created for:', maskEmail(user.email), plan, interval);

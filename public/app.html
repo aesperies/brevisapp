@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BREVIS">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="description" content="Organize, summarize, and get the most out of your newsletters with AI. Designed for professionals who value their time.">
@@ -1831,7 +1831,11 @@
             const checkAuth = async () => {
                 try {
                     const res = await fetch(`${API_URL}/auth/me`, { credentials: 'include' });
-                    if (res.ok) setUser((await res.json()).user);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setUser(data.user);
+                        if (data.user.language) setLanguage(data.user.language);
+                    }
                 } catch (e) {
                     console.error('Auth error:', e);
                 } finally {
@@ -2580,7 +2584,12 @@
                         const newReadState = newsletter.is_read ? 0 : 1;
                         setNewsletters(newsletters.map(n => n.id === id ? { ...n, is_read: newReadState } : n));
                         if (readingNewsletter?.id === id) {
-                            setReadingNewsletter({...readingNewsletter, is_read: newReadState});
+                            // Si marcamos como leído, cerramos el lector automáticamente
+                            if (newReadState === 1) {
+                                setReadingNewsletter(null);
+                            } else {
+                                setReadingNewsletter({...readingNewsletter, is_read: newReadState});
+                            }
                         }
                     }
                 } catch (e) { console.error('Error:', e); }
@@ -3086,7 +3095,15 @@
                                 <div className="user-menu">
                                     <span className="plan-badge">{translations.plans[user.plan]}</span>
                                     <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-                                    <button className="lang-toggle" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>
+                                    <button className="lang-toggle" onClick={async () => {
+                                        const newLang = language === 'es' ? 'en' : 'es';
+                                        setLanguage(newLang);
+                                        try {
+                                            const res = await apiFetch('/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: newLang }) });
+                                            const data = await res.json();
+                                            if (data.user) setUser(data.user);
+                                        } catch (e) { console.error('Failed to save language:', e); }
+                                    }}>
                                         {language === 'es' ? 'EN' : 'ES'}
                                     </button>
                                     <button className="user-name-button" onClick={() => setShowUserDropdown(!showUserDropdown)}>
@@ -3923,6 +3940,7 @@
                             onCancel={() => setPromptModal(null)}
                         />
                     )}
+                    <InstallPWABanner language={language} />
                 </div>
             );
         }
@@ -4096,6 +4114,128 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            );
+        }
+
+        function InstallPWABanner({ language }) {
+            const [show, setShow] = useState(() => {
+                if (typeof window === 'undefined') return false;
+                if (window.innerWidth >= 768) return false; // Desktop only
+                const dismissed = localStorage.getItem('brevis-pwa-dismissed');
+                return !dismissed;
+            });
+            const [installPrompt, setInstallPrompt] = useState(null);
+            const [isIOS, setIsIOS] = useState(false);
+
+            useEffect(() => {
+                if (!show) return;
+
+                // Detect iOS
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+                setIsIOS(isIOSDevice);
+
+                if (isIOSDevice) {
+                    // iOS: check if app is not in standalone mode
+                    if (navigator.standalone === false) {
+                        setShow(true);
+                    }
+                } else {
+                    // Android/Chrome: listen for beforeinstallprompt
+                    const handleBeforeInstallPrompt = (e) => {
+                        e.preventDefault();
+                        setInstallPrompt(e);
+                        setShow(true);
+                    };
+                    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                }
+            }, [show]);
+
+            const handleInstall = async () => {
+                if (installPrompt) {
+                    installPrompt.prompt();
+                    const { outcome } = await installPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        setShow(false);
+                        localStorage.setItem('brevis-pwa-dismissed', 'true');
+                    }
+                }
+            };
+
+            const handleDismiss = () => {
+                setShow(false);
+                localStorage.setItem('brevis-pwa-dismissed', 'true');
+            };
+
+            if (!show) return null;
+
+            const texts = {
+                es: {
+                    android: 'Añade BREVIS a tu pantalla de inicio para acceso rápido',
+                    ios: 'Toca el botón compartir ↑ y selecciona "Añadir a pantalla de inicio"',
+                    button: 'Instalar'
+                },
+                en: {
+                    android: 'Add BREVIS to your home screen for quick access',
+                    ios: 'Tap the share button ↑ and select "Add to Home Screen"',
+                    button: 'Install'
+                }
+            };
+            const t = texts[language] || texts.es;
+
+            return (
+                <div style={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    background: '#1a1a1a',
+                    color: 'white',
+                    padding: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    zIndex: 1000,
+                    boxShadow: '0 -2px 8px rgba(0,0,0,0.3)',
+                    animation: 'slideUp 0.3s ease-out'
+                }}>
+                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24" style={{flexShrink: 0}}>
+                        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                    </svg>
+                    <span style={{flex: 1, fontSize: '14px', fontWeight: '500'}}>
+                        {isIOS ? t.ios : t.android}
+                    </span>
+                    <button
+                        onClick={handleInstall}
+                        style={{
+                            background: '#2BBCC0',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
+                        }}>
+                        {t.button}
+                    </button>
+                    <button
+                        onClick={handleDismiss}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'rgba(255,255,255,0.6)',
+                            fontSize: '20px',
+                            cursor: 'pointer',
+                            padding: '0 4px',
+                            flexShrink: 0
+                        }}>
+                        ×
+                    </button>
                 </div>
             );
         }
