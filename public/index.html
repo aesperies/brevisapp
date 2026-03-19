@@ -94,8 +94,64 @@
         ]
       }
     ]
+
+        // ─── LANGUAGE TOGGLE ──────────────────────────
+        // Initialize language on page load
+        function initLanguage() {
+            const savedLang = localStorage.getItem('brevis-lang');
+            let currentLang = 'es';
+            
+            if (savedLang) {
+                currentLang = savedLang;
+            } else {
+                // Detect browser language
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang.startsWith('en')) {
+                    currentLang = 'en';
+                }
+            }
+            
+            switchLang(currentLang, true);
+        }
+
+        // Switch language function
+        function switchLang(lang, skipSave = false) {
+            // Update localStorage
+            if (!skipSave) {
+                localStorage.setItem('brevis-lang', lang);
+            }
+            
+            // Update toggle button appearance
+            document.querySelectorAll('.lang-toggle-btn').forEach(btn => {
+                btn.classList.remove('active', 'inactive');
+                if (btn.dataset.lang === lang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.add('inactive');
+                }
+            });
+            
+            // Update all elements with data-es and data-en attributes
+            document.querySelectorAll('[data-es][data-en]').forEach(el => {
+                const text = el.getAttribute(`data-${lang}`);
+                if (text) {
+                    // Check if element contains HTML (encoded as &lt; &gt; etc)
+                    if (text.includes('&lt;') || text.includes('&gt;')) {
+                        // Decode HTML entities
+                        const decoded = text.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                        el.innerHTML = decoded;
+                    } else {
+                        el.textContent = text;
+                    }
+                }
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initLanguage);
+
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -105,15 +161,15 @@
 
         :root {
             --primary: #000000;
-            --accent: #2BBCC0;
+            --accent: #26C6DA;
             --accent-light: #e8f9fa;
             --accent-dark: #1a9499;
-            --bg: #FFFFFF;
+            --bg: #F9F8F5;
             --text: #0a0a0a;
             --text-secondary: #555555;
             --text-tertiary: #888888;
             --border: #E8E8E8;
-            --surface: #F7F7F7;
+            --surface: #F0EFE9;
         }
 
         html { scroll-behavior: smooth; }
@@ -131,7 +187,7 @@
             position: fixed;
             top: 0;
             width: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(249, 248, 245, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
@@ -208,7 +264,7 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
             border: none;
             text-decoration: none;
             display: inline-block;
@@ -221,8 +277,9 @@
 
         .btn-primary:hover {
             background: #222;
-            transform: translateY(-1px);
+            transform: translateY(-1px) scale(1.03);
             box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            transition: all 0.3s ease;
         }
 
         .btn-accent {
@@ -249,7 +306,8 @@
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             background:
-                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(43,188,192,0.10) 0%, transparent 70%);
+                radial-gradient(ellipse 70% 50% at 50% 0%, rgba(38,198,218,0.13) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(38,198,218,0.06) 0%, transparent 60%);
             pointer-events: none;
         }
 
@@ -277,17 +335,20 @@
 
         .hero h1 {
             font-family: 'Instrument Serif', serif;
-            font-size: 56px;
+            font-size: 64px;
             font-weight: 600;
-            line-height: 1.06;
-            letter-spacing: -0.035em;
-            margin-bottom: 18px;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
             color: var(--primary);
         }
 
         .hero h1 em {
+            font-family: 'Fraunces', serif;
             font-style: italic;
+            font-weight: 600;
             color: var(--accent);
+            letter-spacing: -0.03em;
         }
 
         .hero p {
@@ -324,10 +385,10 @@
         .hero-preview {
             max-width: 960px;
             margin: 0 auto;
-            background: var(--primary);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.05);
+            background: #E8E7E3;
+            border-radius: 16px;
+            padding: 14px 14px 0;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06);
             position: relative;
         }
 
@@ -335,7 +396,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .preview-dot {
@@ -349,19 +410,21 @@
 
         .preview-url {
             flex: 1;
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.65);
             border-radius: 6px;
-            height: 28px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            color: rgba(255,255,255,0.35);
+            color: #666;
+            font-family: 'Instrument Sans', sans-serif;
+            letter-spacing: 0;
         }
 
         .preview-inner {
-            background: #f8f8f8;
-            border-radius: 12px;
+            background: #ffffff;
+            border-radius: 10px 10px 0 0;
             display: flex;
             overflow: hidden;
             height: 420px;
@@ -517,10 +580,12 @@
         }
 
         .preview-summary-box {
-            background: #f0fafa;
-            border: 1px solid rgba(43,188,192,0.2);
+            background: rgba(38,198,218,0.06);
+            border: 1px solid rgba(38,198,218,0.2);
             border-radius: 8px;
             padding: 10px 12px;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
 
         .preview-summary-label {
@@ -532,16 +597,37 @@
             margin-bottom: 6px;
         }
 
-        .preview-summary-line {
-            height: 8px;
-            background: rgba(43,188,192,0.2);
-            border-radius: 4px;
-            margin-bottom: 5px;
+        .preview-summary-text {
+            font-size: 11px;
+            color: #444;
+            line-height: 1.55;
         }
 
-        .preview-summary-line:nth-child(2) { width: 90%; }
-        .preview-summary-line:nth-child(3) { width: 75%; }
-        .preview-summary-line:nth-child(4) { width: 85%; width: 50%; }
+        /* ─── SCROLL ANIMATIONS ──────────────────────── */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(32px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-preview {
+            animation: slideUpFade 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+        }
+
+        .hero-content {
+            animation: slideUpFade 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+        }
+
+        /* scroll-reveal for elements outside the hero */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
         /* ─── STATS ───────────────────────────────────── */
         .stats {
@@ -1234,6 +1320,113 @@
             .hero h1 { font-size: 30px; }
             .hero-cta .btn { width: 100%; text-align: center; }
             .footer-content { grid-template-columns: 1fr; }
+
+        /* Language Toggle */
+        .lang-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+        }
+
+        .lang-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            padding: 4px 6px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .lang-toggle-btn span {
+            display: inline-block;
+        }
+
+        .lang-toggle-btn.inactive {
+            opacity: 0.5;
+        }
+
+        .lang-toggle-btn.active {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .lang-toggle-separator {
+            opacity: 0.3;
+        }
+
+        @media (max-width: 768px) {
+            .lang-toggle {
+                margin-right: 12px;
+                gap: 4px;
+            }
+        }
+
+
+        /* PWA Install Button */
+        .pwa-install-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text);
+            transition: all 0.2s ease;
+            margin-right: 12px;
+            text-decoration: none;
+        }
+
+        .pwa-install-btn:hover {
+            opacity: 0.7;
+        }
+
+        .pwa-tooltip {
+            position: absolute;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2C3544;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            white-space: nowrap;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+
+        .pwa-install-btn.active .pwa-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .pwa-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-bottom-color: #2C3544;
+        }
+
+        @media (max-width: 768px) {
+            .pwa-install-btn {
+                margin-right: 8px;
+            }
+        }
         }
     </style>
 </head>
@@ -1246,13 +1439,22 @@
                 <img src="./logo-v2-3-light.svg" alt="BREVIS">
             </a>
             <div class="nav-links">
-                <a href="#como-funciona">Cómo funciona</a>
-                <a href="#caracteristicas">Características</a>
-                <a href="#precios">Precios</a>
+                <a href="#como-funciona" data-es="Cómo funciona" data-en="How it works">Cómo funciona</a>
+                <a href="#caracteristicas" data-es="Características" data-en="Features">Características</a>
+                <a href="#precios" data-es="Precios" data-en="Pricing">Precios</a>
             </div>
             <div class="nav-right">
-                <a href="/app.html" class="btn-ghost">Entrar</a>
-                <a href="/app.html" class="btn btn-primary">Probar gratis</a>
+                <div class="lang-toggle">
+                    <button class="lang-toggle-btn active" data-lang="es" onclick="switchLang('es')"><span>ES</span></button>
+                    <span class="lang-toggle-separator">|</span>
+                    <button class="lang-toggle-btn inactive" data-lang="en" onclick="switchLang('en')"><span>EN</span></button>
+                </div>
+                <button class="pwa-install-btn" id="pwaInstallBtn" style="display:none;">
+                    📱 <span data-es="App" data-en="App">App</span>
+                    <div class="pwa-tooltip" id="pwaTooltip"></div>
+                </button>
+                <a href="/app.html" class="btn-ghost" data-es="Entrar" data-en="Log in">Entrar</a>
+                <a href="/app.html" class="btn btn-primary" data-es="Probar gratis" data-en="Try for free">Probar gratis</a>
             </div>
         </div>
     </nav>
@@ -1260,16 +1462,16 @@
     <!-- ─── HERO ─── -->
     <section class="hero">
         <div class="hero-label">
-            <span>✦</span> Potenciado por IA · Claude de Anthropic
+            <span>✦</span> <span data-es="Potenciado por IA · Claude de Anthropic" data-en="Powered by AI · Claude by Anthropic">Potenciado por IA · Claude de Anthropic</span>
         </div>
         <div class="hero-content">
-            <h1>Tu inbox de newsletters,<br><em>finalmente organizado</em></h1>
-            <p>BREVIS usa inteligencia artificial para resumir, organizar y hacer aprovechables todos tus newsletters. Sin ruido. Sin tiempo perdido.</p>
+            <h1 data-es="Tu inbox de newsletters,&lt;br&gt;&lt;em&gt;finalmente organizado&lt;/em&gt;" data-en="Your newsletter inbox,&lt;br&gt;&lt;em&gt;finally organized&lt;/em&gt;">Tu inbox de newsletters,<br><em>finalmente organizado</em></h1>
+            <p data-es="BREVIS usa inteligencia artificial para resumir, organizar y hacer aprovechables todos tus newsletters. Sin ruido. Sin tiempo perdido." data-en="BREVIS uses artificial intelligence to summarize, organize, and make your newsletters actionable. No noise. No wasted time.">BREVIS usa inteligencia artificial para resumir, organizar y hacer aprovechables todos tus newsletters. Sin ruido. Sin tiempo perdido.</p>
             <div class="hero-cta">
-                <a href="/app.html" class="btn btn-primary">Probar gratis 15 días</a>
-                <a href="#como-funciona" class="btn-ghost btn">Ver cómo funciona</a>
+                <a href="/app.html" class="btn btn-primary" data-es="Probar gratis 15 días" data-en="Try free for 15 days">Probar gratis 15 días</a>
+                <a href="#como-funciona" class="btn-ghost btn" data-es="Ver cómo funciona" data-en="See how it works">Ver cómo funciona</a>
             </div>
-            <p class="hero-note">Sin tarjeta de crédito · Cancela cuando quieras</p>
+            <p class="hero-note" data-es="Sin tarjeta de crédito · Cancela cuando quieras" data-en="No credit card · Cancel anytime">Sin tarjeta de crédito · Cancela cuando quieras</p>
         </div>
 
         <!-- App Preview -->
@@ -1314,9 +1516,7 @@
                         </div>
                         <div class="preview-summary-box">
                             <div class="preview-summary-label">✦ Resumen IA</div>
-                            <div class="preview-summary-line"></div>
-                            <div class="preview-summary-line"></div>
-                            <div class="preview-summary-line"></div>
+                            <div class="preview-summary-text">The Browser Company está rediseñando la web con Arc. Sin ruido. Sin tiempo perdido, apostando por una interfaz que se adapta al usuario y elimina la fricción digital.</div>
                         </div>
                     </div>
                     <!-- Newsletter card 2 -->
@@ -1354,25 +1554,25 @@
 
     <!-- ─── HOW IT WORKS ─── -->
     <section id="como-funciona" class="how">
-        <div class="section-label">Cómo funciona</div>
-        <h2 class="section-title">Tres pasos. Eso es todo.</h2>
-        <p class="section-subtitle">Empieza a usar BREVIS en minutos, sin configuraciones complicadas.</p>
+        <div class="section-label" data-es="Cómo funciona" data-en="How it works">Cómo funciona</div>
+        <h2 class="section-title" data-es="Tres pasos. Eso es todo." data-en="Three steps. That's it.">Tres pasos. Eso es todo.</h2>
+        <p class="section-subtitle" data-es="Empieza a usar BREVIS en minutos, sin configuraciones complicadas." data-en="Get started with BREVIS in minutes, no complex setup.">Empieza a usar BREVIS en minutos, sin configuraciones complicadas.</p>
 
         <div class="steps-grid">
-            <div class="step">
+            <div class="step reveal">
                 <div class="step-number">1</div>
-                <h3>Importa tus newsletters</h3>
-                <p>Reenvía tus emails a tu dirección BREVIS, pega una URL, sube un PDF o conecta tu RSS. Funciona con todo.</p>
+                <h3 data-es="Importa tus newsletters" data-en="Import your newsletters">Importa tus newsletters</h3>
+                <p data-es="Reenvía tus emails a tu dirección BREVIS, pega una URL, sube un PDF o conecta tu RSS. Funciona con todo." data-en="Forward your emails to your BREVIS address, paste a URL, upload a PDF, or connect your RSS. Works with everything.">Reenvía tus emails a tu dirección BREVIS, pega una URL, sube un PDF o conecta tu RSS. Funciona con todo.</p>
             </div>
-            <div class="step">
+            <div class="step reveal">
                 <div class="step-number">2</div>
-                <h3>La IA hace el trabajo</h3>
-                <p>Claude de Anthropic analiza cada newsletter y genera un resumen con los puntos clave en segundos.</p>
+                <h3 data-es="La IA hace el trabajo" data-en="AI does the work">La IA hace el trabajo</h3>
+                <p data-es="Claude de Anthropic analiza cada newsletter y genera un resumen con los puntos clave en segundos." data-en="Claude from Anthropic analyzes each newsletter and generates a summary with key points in seconds.">Claude de Anthropic analiza cada newsletter y genera un resumen con los puntos clave en segundos.</p>
             </div>
-            <div class="step">
+            <div class="step reveal">
                 <div class="step-number">3</div>
-                <h3>Lee solo lo que importa</h3>
-                <p>Navega tu biblioteca organizada, filtra por etiquetas, busca cualquier tema y genera briefings personalizados.</p>
+                <h3 data-es="Lee solo lo que importa" data-en="Read only what matters">Lee solo lo que importa</h3>
+                <p data-es="Navega tu biblioteca organizada, filtra por etiquetas, busca cualquier tema y genera briefings personalizados." data-en="Browse your organized library, filter by tags, search any topic, and generate custom briefings.">Navega tu biblioteca organizada, filtra por etiquetas, busca cualquier tema y genera briefings personalizados.</p>
             </div>
         </div>
     </section>
@@ -1380,49 +1580,49 @@
     <!-- ─── FEATURES ─── -->
     <section id="caracteristicas" class="features">
         <div class="features-inner">
-            <div class="section-label">Características</div>
-            <h2 class="section-title">Todo lo que necesitas.</h2>
-            <p class="section-subtitle" style="margin-bottom: 0;">Nada que no necesites.</p>
+            <div class="section-label" data-es="Características" data-en="Features">Características</div>
+            <h2 class="section-title" data-es="Todo lo que necesitas." data-en="Everything you need.">Todo lo que necesitas.</h2>
+            <p class="section-subtitle" style="margin-bottom: 0;" data-es="Nada que no necesites." data-en="Nothing you don't.">Nada que no necesites.</p>
 
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">⚡</div>
-                    <h3>Resúmenes con IA</h3>
+                    <h3 data-es="Resúmenes con IA" data-en="AI Summaries">Resúmenes con IA</h3>
                     <p>Obtén los puntos clave de cada newsletter en segundos, generados por Claude de Anthropic. Sin perder el hilo.</p>
                     <span class="feature-badge">Todos los planes</span>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🏷️</div>
-                    <h3>Organización con etiquetas</h3>
+                    <h3 data-es="Organización con etiquetas" data-en="Tag Organization">Organización con etiquetas</h3>
                     <p>Clasifica y filtra tu contenido con etiquetas de colores. Encuentra lo que buscas al instante con la búsqueda avanzada.</p>
                     <span class="feature-badge">Todos los planes</span>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">📥</div>
-                    <h3>Importa desde cualquier lugar</h3>
+                    <h3 data-es="Importa desde cualquier lugar" data-en="Import from anywhere">Importa desde cualquier lugar</h3>
                     <p>Email directo, URLs, PDFs, Word, feeds RSS, Substack y Web Clipper. Si tiene texto, BREVIS lo puede procesar.</p>
                     <span class="feature-badge">Todos los planes</span>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
-                    <h3>Reportes personalizados</h3>
+                    <h3 data-es="Reportes personalizados" data-en="Custom reports">Reportes personalizados</h3>
                     <p>Genera briefings automáticos por tema, analiza tendencias y crea reportes a partir de múltiples newsletters.</p>
                     <span class="feature-badge premium">Premium</span>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">📖</div>
-                    <h3>Enviar a Kindle</h3>
+                    <h3 data-es="Enviar a Kindle" data-en="Send to Kindle">Enviar a Kindle</h3>
                     <p>Lee tus newsletters en tu Kindle como si fueran libros. Perfecta integración para los que prefieren leer en papel electrónico.</p>
                     <span class="feature-badge">Standard+</span>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon">🗞️</div>
-                    <h3>News Builder</h3>
+                    <h3 data-es="News Builder" data-en="Newsletter Creator">News Builder</h3>
                     <p>Crea tus propios newsletters a partir de plantillas y reportes generados por IA. Comparte conocimiento con tu equipo.</p>
                     <span class="feature-badge premium">Premium</span>
                 </div>
@@ -1433,14 +1633,14 @@
     <!-- ─── TESTIMONIALS ─── -->
     <section class="testimonials">
         <div style="text-align:center">
-            <div class="section-label">Testimonios</div>
-            <h2 class="section-title">Lo que dicen nuestros usuarios</h2>
+            <div class="section-label" data-es="Testimonios" data-en="Testimonials">Testimonios</div>
+            <h2 class="section-title" data-es="Lo que dicen nuestros usuarios" data-en="What our users say">Lo que dicen nuestros usuarios</h2>
         </div>
 
         <div class="testimonials-grid">
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"Antes tardaba horas en leer mis newsletters del día. Ahora BREVIS me da los puntos clave de todo en 10 minutos. Es indispensable."</p>
+                <p class="testimonial-text" data-es="Antes tardaba horas en leer mis newsletters del día. Ahora BREVIS me da los puntos clave de todo en 10 minutos. Es indispensable." data-en="I used to spend hours reading my daily newsletters. Now BREVIS gives me the key points of everything in 10 minutes. It's essential.">"Antes tardaba horas en leer mis newsletters del día. Ahora BREVIS me da los puntos clave de todo en 10 minutos. Es indispensable."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar">MC</div>
                     <div>
@@ -1452,7 +1652,7 @@
 
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"Los briefings automáticos son una maravilla. Cada lunes tengo un resumen de todo lo importante de la semana anterior listo para compartir con mi equipo."</p>
+                <p class="testimonial-text" data-es="Los briefings automáticos son una maravilla. Cada lunes tengo un resumen de todo lo importante de la semana anterior listo para compartir con mi equipo." data-en="Automatic briefings are amazing. Every Monday I have a summary of everything important from the previous week ready to share with my team.">"Los briefings automáticos son una maravilla. Cada lunes tengo un resumen de todo lo importante de la semana anterior listo para compartir con mi equipo."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: var(--accent);">JR</div>
                     <div>
@@ -1464,7 +1664,7 @@
 
             <div class="testimonial-card">
                 <div class="testimonial-stars">★★★★★</div>
-                <p class="testimonial-text">"Estaba suscrito a 40 newsletters y no leía ninguna. Con BREVIS por fin puedo mantenerme informado sin sentir que me ahogo en información."</p>
+                <p class="testimonial-text" data-es="Estaba suscrito a 40 newsletters y no leía ninguna. Con BREVIS por fin puedo mantenerme informado sin sentir que me ahogo en información." data-en="I was subscribed to 40 newsletters and wasn't reading any. With BREVIS I can finally stay informed without drowning in information.">"Estaba suscrito a 40 newsletters y no leía ninguna. Con BREVIS por fin puedo mantenerme informado sin sentir que me ahogo en información."</p>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: #8b5cf6;">LA</div>
                     <div>
@@ -1478,46 +1678,46 @@
 
     <!-- ─── PRICING ─── -->
     <section id="precios" class="pricing">
-        <div class="section-label">Precios</div>
-        <h2 class="section-title">Elige tu plan</h2>
-        <p class="section-subtitle">15 días de prueba gratis · Sin tarjeta de crédito</p>
+        <div class="section-label" data-es="Precios" data-en="Pricing">Precios</div>
+        <h2 class="section-title" data-es="Elige tu plan" data-en="Choose your plan">Elige tu plan</h2>
+        <p class="section-subtitle" data-es="15 días de prueba gratis · Sin tarjeta de crédito" data-en="15 days free trial · No credit card">15 días de prueba gratis · Sin tarjeta de crédito</p>
 
         <div class="pricing-toggle">
-            <button class="toggle-btn active" onclick="setPricing('monthly', this)">Mensual</button>
-            <button class="toggle-btn" onclick="setPricing('annual', this)">
-                Anual <span class="toggle-badge">-27%</span>
+            <button class="toggle-btn active" onclick="setPricing('monthly', this)" data-es="Mensual" data-en="Monthly">Mensual</button>
+            <button class="toggle-btn" onclick="setPricing('annual', this)" data-es="Anual" data-en="Annual">
+                <span data-es="Anual" data-en="Annual">Anual</span> <span class="toggle-badge" data-es="-27%" data-en="-27%">-27%</span>
             </button>
         </div>
 
         <div class="pricing-cards">
             <div class="pricing-card">
-                <div class="pricing-name">Standard</div>
+                <div class="pricing-name" data-es="Standard" data-en="Standard">Standard</div>
                 <div class="pricing-price" id="price-standard">$8<span>/mes</span></div>
                 <div class="pricing-original" id="price-standard-original"> </div>
-                <p class="pricing-description">Para profesionales que quieren organizar su lectura con el poder de la IA.</p>
+                <p class="pricing-description" data-es="Para profesionales que quieren organizar su lectura con el poder de la IA." data-en="For professionals who want to organize their reading with the power of AI.">Para profesionales que quieren organizar su lectura con el poder de la IA.</p>
                 <ul class="pricing-features">
-                    <li>Newsletters ilimitados</li>
-                    <li>Resúmenes con IA</li>
-                    <li>Organización con etiquetas</li>
-                    <li>Búsqueda avanzada</li>
-                    <li>Importar URLs y PDFs</li>
-                    <li>Enviar a Kindle</li>
+                    <li data-es="Newsletters ilimitados" data-en="Unlimited newsletters">Newsletters ilimitados</li>
+                    <li data-es="Resúmenes con IA" data-en="AI summaries">Resúmenes con IA</li>
+                    <li data-es="Organización con etiquetas" data-en="Tag organization">Organización con etiquetas</li>
+                    <li data-es="Búsqueda avanzada" data-en="Advanced search">Búsqueda avanzada</li>
+                    <li data-es="Importar URLs y PDFs" data-en="Import URLs and PDFs">Importar URLs y PDFs</li>
+                    <li data-es="Enviar a Kindle" data-en="Send to Kindle">Enviar a Kindle</li>
                 </ul>
-                <a href="/app.html" class="btn btn-primary">Empezar gratis</a>
+                <a href="/app.html" class="btn btn-primary" data-es="Empezar gratis" data-en="Start free">Empezar gratis</a>
             </div>
 
             <div class="pricing-card featured">
-                <div class="pricing-name">Premium ✦ Más popular</div>
+                <div class="pricing-name" data-es="Premium ✦ Más popular" data-en="Premium ✦ Most popular">Premium ✦ Más popular</div>
                 <div class="pricing-price" id="price-premium">$10<span>/mes</span></div>
                 <div class="pricing-original" id="price-premium-original"> </div>
-                <p class="pricing-description">Para quienes quieren análisis completos y la experiencia más potente.</p>
+                <p class="pricing-description" data-es="Para quienes quieren análisis completos y la experiencia más potente." data-en="For those who want complete analysis and the most powerful experience.">Para quienes quieren análisis completos y la experiencia más potente.</p>
                 <ul class="pricing-features">
-                    <li>Todo lo de Standard</li>
-                    <li>Reportes personalizados</li>
-                    <li>Briefings automáticos</li>
-                    <li>Análisis de tendencias</li>
-                    <li>Generador de newsletters</li>
-                    <li>Soporte prioritario</li>
+                    <li data-es="Todo lo de Standard" data-en="Everything in Standard">Todo lo de Standard</li>
+                    <li data-es="Reportes personalizados" data-en="Custom reports">Reportes personalizados</li>
+                    <li data-es="Briefings automáticos" data-en="Auto briefings">Briefings automáticos</li>
+                    <li data-es="Análisis de tendencias" data-en="Trend analysis">Análisis de tendencias</li>
+                    <li data-es="Generador de newsletters" data-en="Newsletter creator">Generador de newsletters</li>
+                    <li data-es="Soporte prioritario" data-en="Priority support">Soporte prioritario</li>
                 </ul>
                 <a href="/app.html" class="btn">Empezar gratis</a>
             </div>
@@ -1527,67 +1727,67 @@
     <!-- ─── FAQ ─── -->
     <section id="faq" class="faq">
         <div class="faq-inner">
-            <div class="section-label">FAQ</div>
-            <h2 class="section-title">Preguntas frecuentes</h2>
+            <div class="section-label" data-es="FAQ" data-en="FAQ">FAQ</div>
+            <h2 class="section-title" data-es="Preguntas frecuentes" data-en="Frequently asked questions">Preguntas frecuentes</h2>
 
             <div class="faq-list">
                 <div class="faq-item open">
                     <button class="faq-question" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">¿Qué es BREVIS?</span>
+                        <span class="faq-question-text" data-es="¿Qué es BREVIS?" data-en="What is BREVIS?">¿Qué es BREVIS?</span>
                         <span class="faq-chevron">▾</span>
                     </button>
                     <div class="faq-answer">
-                        BREVIS es una plataforma que centraliza todos tus newsletters en un solo lugar y usa inteligencia artificial para resumirlos, organizarlos y hacerlos realmente útiles. Deja de perder tiempo leyendo emails largos y empieza a consumir solo lo que importa.
+                        <span data-es="BREVIS es una plataforma que centraliza todos tus newsletters en un solo lugar y usa inteligencia artificial para resumirlos, organizarlos y hacerlos realmente útiles. Deja de perder tiempo leyendo emails largos y empieza a consumir solo lo que importa." data-en="BREVIS is a platform that centralizes all your newsletters in one place and uses artificial intelligence to summarize, organize, and make them truly useful. Stop wasting time reading long emails and start consuming only what matters.">BREVIS es una plataforma que centraliza todos tus newsletters en un solo lugar y usa inteligencia artificial para resumirlos, organizarlos y hacerlos realmente útiles. Deja de perder tiempo leyendo emails largos y empieza a consumir solo lo que importa.</span>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">¿Cómo funciona la IA de BREVIS?</span>
+                        <span class="faq-question-text" data-es="¿Cómo funciona la IA de BREVIS?" data-en="How does BREVIS AI work?">¿Cómo funciona la IA de BREVIS?</span>
                         <span class="faq-chevron">▾</span>
                     </button>
                     <div class="faq-answer">
-                        Usamos Claude Sonnet de Anthropic, uno de los modelos de lenguaje más avanzados del mundo. Claude lee cada newsletter y genera un resumen conciso con los puntos más importantes, adaptado al estilo y longitud del contenido original.
+                        <span data-es="Usamos Claude Sonnet de Anthropic, uno de los modelos de lenguaje más avanzados del mundo. Claude lee cada newsletter y genera un resumen conciso con los puntos más importantes, adaptado al estilo y longitud del contenido original." data-en="We use Claude Sonnet from Anthropic, one of the world's most advanced language models. Claude reads each newsletter and generates a concise summary with the most important points, adapted to the style and length of the original content.">Usamos Claude Sonnet de Anthropic, uno de los modelos de lenguaje más avanzados del mundo. Claude lee cada newsletter y genera un resumen conciso con los puntos más importantes, adaptado al estilo y longitud del contenido original.</span>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">¿Necesito tarjeta de crédito para la prueba?</span>
+                        <span class="faq-question-text" data-es="¿Necesito tarjeta de crédito para la prueba?" data-en="Do I need a credit card for the trial?">¿Necesito tarjeta de crédito para la prueba?</span>
                         <span class="faq-chevron">▾</span>
                     </button>
                     <div class="faq-answer">
-                        No. Los 15 días de prueba gratis no requieren ningún método de pago. Puedes explorar todas las funciones sin compromiso y decidir si BREVIS es para ti antes de pagar.
+                        <span data-es="No. Los 15 días de prueba gratis no requieren ningún método de pago. Puedes explorar todas las funciones sin compromiso y decidir si BREVIS es para ti antes de pagar." data-en="No. The 15-day free trial requires no payment method. You can explore all features without commitment and decide if BREVIS is for you before paying.">No. Los 15 días de prueba gratis no requieren ningún método de pago. Puedes explorar todas las funciones sin compromiso y decidir si BREVIS es para ti antes de pagar.</span>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">¿Qué formatos de contenido acepta BREVIS?</span>
+                        <span class="faq-question-text" data-es="¿Qué formatos de contenido acepta BREVIS?" data-en="What content formats does BREVIS accept?">¿Qué formatos de contenido acepta BREVIS?</span>
                         <span class="faq-chevron">▾</span>
                     </button>
                     <div class="faq-answer">
-                        BREVIS acepta newsletters por email (te asignamos una dirección única), importación de URLs, archivos PDF y Word, feeds RSS, publicaciones de Substack, y artículos web a través del Web Clipper. Si tiene texto, BREVIS lo puede procesar.
+                        <span data-es="BREVIS acepta newsletters por email (te asignamos una dirección única), importación de URLs, archivos PDF y Word, feeds RSS, publicaciones de Substack, y artículos web a través del Web Clipper. Si tiene texto, BREVIS lo puede procesar." data-en="BREVIS accepts newsletters by email (we give you a unique address), URL imports, PDF and Word files, RSS feeds, Substack posts, and web articles via Web Clipper. If it has text, BREVIS can process it.">BREVIS acepta newsletters por email (te asignamos una dirección única), importación de URLs, archivos PDF y Word, feeds RSS, publicaciones de Substack, y artículos web a través del Web Clipper. Si tiene texto, BREVIS lo puede procesar.</span>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">¿Puedo cancelar en cualquier momento?</span>
+                        <span class="faq-question-text" data-es="¿Puedo cancelar en cualquier momento?" data-en="Can I cancel anytime?">¿Puedo cancelar en cualquier momento?</span>
                         <span class="faq-chevron">▾</span>
                     </button>
                     <div class="faq-answer">
-                        Sí, completamente. Puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta, sin penalizaciones ni letras pequeñas. Tu acceso se mantiene hasta el final del período pagado.
+                        <span data-es="Sí, completamente. Puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta, sin penalizaciones ni letras pequeñas. Tu acceso se mantiene hasta el final del período pagado." data-en="Yes, absolutely. You can cancel your subscription anytime from your account settings, with no penalties or fine print. Your access continues through the end of your paid period.">Sí, completamente. Puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta, sin penalizaciones ni letras pequeñas. Tu acceso se mantiene hasta el final del período pagado.</span>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question" onclick="toggleFaq(this)">
-                        <span class="faq-question-text">¿Cuál es la diferencia entre Standard y Premium?</span>
+                        <span class="faq-question-text" data-es="¿Cuál es la diferencia entre Standard y Premium?" data-en="What's the difference between Standard and Premium?">¿Cuál es la diferencia entre Standard y Premium?</span>
                         <span class="faq-chevron">▾</span>
                     </button>
                     <div class="faq-answer">
-                        Standard cubre lo esencial: newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda avanzada y envío a Kindle. Premium añade funciones avanzadas de análisis: reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters (News Builder) y soporte prioritario.
+                        <span data-es="Standard cubre lo esencial: newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda avanzada y envío a Kindle. Premium añade funciones avanzadas de análisis: reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters (News Builder) y soporte prioritario." data-en="Standard covers the essentials: unlimited newsletters, AI summaries, tags, advanced search, and Kindle delivery. Premium adds advanced analytics: custom reports, auto briefings, trend analysis, newsletter creator (News Builder), and priority support.">Standard cubre lo esencial: newsletters ilimitados, resúmenes con IA, etiquetas, búsqueda avanzada y envío a Kindle. Premium añade funciones avanzadas de análisis: reportes personalizados, briefings automáticos, análisis de tendencias, generador de newsletters (News Builder) y soporte prioritario.</span>
                     </div>
                 </div>
             </div>
@@ -1596,13 +1796,13 @@
 
     <!-- ─── CTA FINAL ─── -->
     <section class="cta">
-        <h2>Empieza hoy.<br>Sin compromiso.</h2>
-        <p>15 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
+        <h2 data-es="Empieza hoy.&lt;br&gt;Sin compromiso." data-en="Start today.&lt;br&gt;No commitment.">Empieza hoy.<br>Sin compromiso.</h2>
+        <p data-es="15 días gratis. Sin tarjeta de crédito. Cancela cuando quieras." data-en="15 days free. No credit card. Cancel anytime.">15 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
         <div class="cta-buttons">
-            <a href="/app.html" class="btn btn-primary">Probar gratis 15 días</a>
-            <a href="/app.html" class="btn-ghost btn">Ya tengo cuenta — Entrar</a>
+            <a href="/app.html" class="btn btn-primary" data-es="Probar gratis 15 días" data-en="Try free for 15 days">Probar gratis 15 días</a>
+            <a href="/app.html" class="btn-ghost btn" data-es="Ya tengo cuenta — Entrar" data-en="I have an account — Log in">Ya tengo cuenta — Entrar</a>
         </div>
-        <p class="cta-note">Únete a los profesionales que ya leen menos y saben más.</p>
+        <p class="cta-note" data-es="Únete a los profesionales que ya leen menos y saben más." data-en="Join professionals who read less and know more.">Únete a los profesionales que ya leen menos y saben más.</p>
     </section>
 
     <!-- ─── FOOTER ─── -->
@@ -1616,31 +1816,31 @@
             <div class="footer-links">
                 <h4>Producto</h4>
                 <ul>
-                    <li><a href="#como-funciona">Cómo funciona</a></li>
-                    <li><a href="#caracteristicas">Características</a></li>
-                    <li><a href="#precios">Precios</a></li>
-                    <li><a href="/guide.html">Guía de uso</a></li>
+                    <li><a href="#como-funciona" data-es="Cómo funciona" data-en="How it works">Cómo funciona</a></li>
+                    <li><a href="#caracteristicas" data-es="Características" data-en="Features">Características</a></li>
+                    <li><a href="#precios" data-es="Precios" data-en="Pricing">Precios</a></li>
+                    <li><a href="/guide.html" data-es="Guía de uso" data-en="Usage guide">Guía de uso</a></li>
                 </ul>
             </div>
             <div class="footer-links">
                 <h4>Legal</h4>
                 <ul>
-                    <li><a href="/privacy.html">Privacidad</a></li>
-                    <li><a href="/terms.html">Términos de uso</a></li>
+                    <li><a href="/privacy.html" data-es="Privacidad" data-en="Privacy">Privacidad</a></li>
+                    <li><a href="/terms.html" data-es="Términos de uso" data-en="Terms of use">Términos de uso</a></li>
                 </ul>
             </div>
             <div class="footer-links">
                 <h4>Cuenta</h4>
                 <ul>
-                    <li><a href="/app.html">Iniciar sesión</a></li>
-                    <li><a href="/app.html">Crear cuenta</a></li>
-                    <li><a href="mailto:hola@brevisapp.com">Contacto</a></li>
+                    <li><a href="/app.html" data-es="Iniciar sesión" data-en="Log in">Iniciar sesión</a></li>
+                    <li><a href="/app.html" data-es="Crear cuenta" data-en="Create account">Crear cuenta</a></li>
+                    <li><a href="mailto:hola@brevisapp.com" data-es="Contacto" data-en="Contact">Contacto</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <span>© 2026 BREVIS. Todos los derechos reservados.</span>
-            <span>Hecho con IA · Potenciado por Claude de Anthropic</span>
+            <span data-es="© 2026 BREVIS. Todos los derechos reservados." data-en="© 2026 BREVIS. All rights reserved.">© 2026 BREVIS. Todos los derechos reservados.</span>
+            <span data-es="Hecho con IA · Potenciado por Claude de Anthropic" data-en="Made with AI · Powered by Claude by Anthropic">Hecho con IA · Potenciado por Claude de Anthropic</span>
         </div>
     </footer>
 
@@ -1684,6 +1884,155 @@
             document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
             if (!isOpen) item.classList.add('open');
         }
+
+        // ─── LANGUAGE TOGGLE ──────────────────────────
+        // Initialize language on page load
+        function initLanguage() {
+            const savedLang = localStorage.getItem('brevis-lang');
+            let currentLang = 'es';
+            
+            if (savedLang) {
+                currentLang = savedLang;
+            } else {
+                // Detect browser language
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang.startsWith('en')) {
+                    currentLang = 'en';
+                }
+            }
+            
+            switchLang(currentLang, true);
+        }
+
+        // Switch language function
+        function switchLang(lang, skipSave = false) {
+            // Update localStorage
+            if (!skipSave) {
+                localStorage.setItem('brevis-lang', lang);
+            }
+            
+            // Update toggle button appearance
+            document.querySelectorAll('.lang-toggle-btn').forEach(btn => {
+                btn.classList.remove('active', 'inactive');
+                if (btn.dataset.lang === lang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.add('inactive');
+                }
+            });
+            
+            // Update all elements with data-es and data-en attributes
+            document.querySelectorAll('[data-es][data-en]').forEach(el => {
+                const text = el.getAttribute(`data-${lang}`);
+                if (text) {
+                    // Check if element contains HTML (encoded as &lt; &gt; etc)
+                    if (text.includes('&lt;') || text.includes('&gt;')) {
+                        // Decode HTML entities
+                        const decoded = text.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                        el.innerHTML = decoded;
+                    } else {
+                        el.textContent = text;
+                    }
+                }
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initLanguage);
+
+
+        // ─── PWA INSTALL HELPER ───────────────────────
+        (function() {
+            const installBtn = document.getElementById('pwaInstallBtn');
+            const tooltip = document.getElementById('pwaTooltip');
+            let installPrompt = null;
+
+            // Detect if mobile
+            function isMobile() {
+                return window.innerWidth < 768;
+            }
+
+            // Detect iOS
+            function isIOS() {
+                return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            }
+
+            // Show/hide install button based on platform
+            function updateInstallButton() {
+                if (!isMobile()) {
+                    installBtn.style.display = 'none';
+                    return;
+                }
+
+                const currentLang = localStorage.getItem('brevis-lang') || 'es';
+                
+                if (isIOS()) {
+                    // iOS - show instruction tooltip
+                    const iosText = currentLang === 'es' 
+                        ? 'Toca compartir ↑ y selecciona "Añadir a pantalla de inicio"'
+                        : 'Tap share ↑ and select "Add to Home Screen"';
+                    tooltip.textContent = iosText;
+                    installBtn.style.display = 'inline-flex';
+                    installBtn.onclick = (e) => {
+                        e.preventDefault();
+                        installBtn.classList.toggle('active');
+                    };
+                } else {
+                    // Android/Chrome - wait for beforeinstallprompt
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        installPrompt = e;
+                        const androidText = currentLang === 'es' 
+                            ? 'Toca para instalar'
+                            : 'Tap to install';
+                        tooltip.textContent = androidText;
+                        installBtn.style.display = 'inline-flex';
+                        installBtn.onclick = async (event) => {
+                            event.preventDefault();
+                            if (installPrompt) {
+                                installPrompt.prompt();
+                                const { outcome } = await installPrompt.userChoice;
+                                if (outcome === 'accepted') {
+                                    installBtn.style.display = 'none';
+                                }
+                            }
+                        };
+                    });
+                }
+            }
+
+            // Initialize on page load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateInstallButton);
+            } else {
+                updateInstallButton();
+            }
+
+            // Update on orientation change
+            window.addEventListener('orientationchange', updateInstallButton);
+            window.addEventListener('resize', updateInstallButton);
+        })();
+
+        // ─── SCROLL REVEAL ────────────────────────────
+        (function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, i) => {
+                    if (entry.isIntersecting) {
+                        // Stagger delay for sibling elements
+                        const siblings = Array.from(entry.target.parentElement.querySelectorAll('.reveal'));
+                        const idx = siblings.indexOf(entry.target);
+                        entry.target.style.transitionDelay = (idx * 80) + 'ms';
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15 });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+            });
+        })();
+
     </script>
 </body>
 </html>
