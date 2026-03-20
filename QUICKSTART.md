@@ -35,26 +35,26 @@ http://localhost:3000
 - Click "Registrarse"
 - Fill in details
 - You get:
-  - Free plan (10 newsletters/month)
-  - Unique email code: `brief-xxxxx@brevisapp.com`
+  - Free plan (unlimited newsletters)
+  - Unique email code: `brief-xxxxx@newsletters.brevisapp.com`
 
 ---
 
 ## ✨ What You Get
 
 ### Free Users
-- 10 newsletters/month
+- Unlimited newsletters
 - Email forwarding
 - PDF export
 - Search & filters
 
-### Pro ($9.99/month)
-- 31 newsletters/month
+### Standard ($8/month)
+- Unlimited newsletters
 - ✅ **AI Summaries**
 - ✅ **Batch Brief**
 - Tags & organization
 
-### Premium ($19.99/month)
+### Premium ($10/month)
 - Unlimited newsletters
 - ✅ **AI Summaries**
 - ✅ **Batch Brief**
@@ -102,8 +102,6 @@ For production, integrate Stripe (see README.md)
 **"ANTHROPIC_API_KEY not configured"**
 → Add your API key to `.env` file
 
-**"Newsletter limit reached"**
-→ Click "Upgrade" to get more newsletters
 
 **Port 3000 in use**
 ```bash

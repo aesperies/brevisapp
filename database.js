@@ -36,8 +36,6 @@ export async function setupDatabase() {
                 name VARCHAR(255) NOT NULL,
                 email_code VARCHAR(50) UNIQUE NOT NULL,
                 plan VARCHAR(20) DEFAULT 'free',
-                newsletters_count INTEGER DEFAULT 0,
-                newsletters_limit INTEGER DEFAULT 10,
                 stripe_customer_id VARCHAR(255),
                 stripe_subscription_id VARCHAR(255),
                 kindle_email VARCHAR(255),
@@ -90,6 +88,12 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMP;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
+        `);
+
+        // Remove unused newsletter limit columns (newsletters are unlimited for all plans)
+        await pool.query(`
+            ALTER TABLE users DROP COLUMN IF EXISTS newsletters_count;
+            ALTER TABLE users DROP COLUMN IF EXISTS newsletters_limit;
         `);
 
         await pool.query(`
@@ -168,8 +172,8 @@ export async function createInitialUser() {
                 return;
             }
 
-            if (password.length < 12) {
-                console.error('❌ ADMIN_PASSWORD must be at least 12 characters.');
+            if (password.length < 8) {
+                console.error('❌ ADMIN_PASSWORD must be at least 8 characters.');
                 return;
             }
 
@@ -177,9 +181,9 @@ export async function createInitialUser() {
             const emailCode = generateEmailCode();
 
             await pool.query(`
-                INSERT INTO users (email, password_hash, name, email_code, plan, newsletters_count, newsletters_limit, language, is_active)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            `, [email, passwordHash, 'Admin', emailCode, 'premium', 0, -1, 'es', 1]);
+                INSERT INTO users (email, password_hash, name, email_code, plan, language, is_active)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, [email, passwordHash, 'Admin', emailCode, 'premium', 'es', 1]);
 
             console.log('\n✅ Initial admin user created with provided credentials.\n');
         }
@@ -190,7 +194,7 @@ export async function createInitialUser() {
 }
 
 // Safe user columns (excludes password_hash)
-const USER_COLUMNS = 'id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date, email_verified';
+const USER_COLUMNS = 'id, email, name, email_code, plan, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date, email_verified';
 
 // Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {
@@ -264,9 +268,9 @@ export const dbHelpers = {
         if (trialEndDate) trialEndDate.setDate(trialEndDate.getDate() + 15);
 
         const result = await pool.query(`
-            INSERT INTO users (email, password_hash, name, email_code, plan, trial_end_date, newsletters_count, newsletters_limit, language, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, 0, 10, 'es', 1)
-            RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
+            INSERT INTO users (email, password_hash, name, email_code, plan, trial_end_date, language, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, 'es', 1)
+            RETURNING ${USER_COLUMNS}
         `, [email, passwordHash, name, emailCode, plan, trialEndDate]);
 
         return result.rows[0];
@@ -274,7 +278,7 @@ export const dbHelpers = {
 
     updateUser: async (id, updates) => {
         // Whitelist allowed fields to prevent SQL injection
-        const allowedFields = ['name', 'email', 'password_hash', 'kindle_email', 'language', 'plan', 'stripe_customer_id', 'stripe_subscription_id', 'newsletters_count', 'newsletters_limit'];
+        const allowedFields = ['name', 'email', 'password_hash', 'kindle_email', 'language', 'plan', 'stripe_customer_id', 'stripe_subscription_id', 'email_verified'];
         const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
         if (fields.length === 0) return null;
 
@@ -282,7 +286,7 @@ export const dbHelpers = {
         const values = [id, ...fields.map(f => updates[f])];
 
         const result = await pool.query(
-            `UPDATE users SET ${setClause} WHERE id = $1 RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date`,
+            `UPDATE users SET ${setClause} WHERE id = $1 RETURNING ${USER_COLUMNS}`,
             values
         );
         return result.rows[0] || null;
@@ -290,7 +294,7 @@ export const dbHelpers = {
 
     upgradePlan: async (userId, plan) => {
         const result = await pool.query(`
-            UPDATE users SET plan = $1 WHERE id = $2 RETURNING id, email, name, email_code, plan, newsletters_count, newsletters_limit, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date
+            UPDATE users SET plan = $1 WHERE id = $2 RETURNING ${USER_COLUMNS}
         `, [plan, userId]);
         return result.rows[0] || null;
     },

@@ -1935,6 +1935,7 @@
         function Auth({ onLogin, language, setLanguage }) {
             const [isLogin, setIsLogin] = useState(true);
             const [formData, setFormData] = useState({ email: '', password: '', name: '' });
+            const [selectedPlan, setSelectedPlan] = useState('free');
             const [forgotMode, setForgotMode] = useState(false);
             const [forgotEmail, setForgotEmail] = useState('');
             const [forgotStatus, setForgotStatus] = useState('idle');
@@ -1983,7 +1984,27 @@
                         credentials: 'include',
                         body: JSON.stringify(payload)
                     });
-                    if (res.ok) onLogin();
+                    if (res.ok) {
+                        if (!isLogin && (selectedPlan === 'standard' || selectedPlan === 'premium')) {
+                            // Redirect to Stripe checkout after registration
+                            try {
+                                const checkoutRes = await fetch(`${API_URL}/stripe/checkout`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({ plan: selectedPlan, interval: 'month' })
+                                });
+                                const checkoutData = await checkoutRes.json();
+                                if (checkoutData.url) {
+                                    window.location.href = checkoutData.url;
+                                    return;
+                                }
+                            } catch (err) {
+                                console.error('Checkout redirect error:', err);
+                            }
+                        }
+                        onLogin();
+                    }
                     else { const d = await res.json(); showToast(d.error || 'Error', 'error'); }
                 } catch (e) {
                     showToast('Error de conexión', 'error');
@@ -2015,8 +2036,48 @@
                                 <input type="password" className="form-input" value={formData.password}
                                     onChange={(e) => setFormData({...formData, password: e.target.value})} required />
                             </div>
+                            {!isLogin && (
+                                <div className="form-group" style={{marginBottom: '20px'}}>
+                                    <label className="form-label" style={{marginBottom: '10px', display: 'block'}}>
+                                        {language === 'es' ? 'Elige tu plan' : 'Choose your plan'}
+                                    </label>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                        {[
+                                            { id: 'free', label: language === 'es' ? 'Gratis' : 'Free', desc: language === 'es' ? 'Sin IA · Para siempre gratis' : 'No AI · Free forever', price: '' },
+                                            { id: 'standard', label: 'Standard', desc: language === 'es' ? 'Resúmenes IA · 14 días gratis' : 'AI Summaries · 14-day trial', price: '$8/mo' },
+                                            { id: 'premium', label: 'Premium', desc: language === 'es' ? 'IA completa + Reports · 14 días gratis' : 'Full AI + Reports · 14-day trial', price: '$10/mo' }
+                                        ].map(plan => (
+                                            <div key={plan.id}
+                                                onClick={() => setSelectedPlan(plan.id)}
+                                                style={{
+                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                    padding: '10px 14px', borderRadius: '8px', cursor: 'pointer',
+                                                    border: selectedPlan === plan.id ? '2px solid var(--accent)' : '1px solid var(--border)',
+                                                    background: selectedPlan === plan.id ? 'var(--surface)' : 'transparent',
+                                                    transition: 'all 0.15s'
+                                                }}>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                                    <div style={{
+                                                        width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
+                                                        border: selectedPlan === plan.id ? '5px solid var(--accent)' : '2px solid var(--border)',
+                                                    }} />
+                                                    <div>
+                                                        <div style={{fontWeight: '600', fontSize: '14px'}}>{plan.label}</div>
+                                                        <div style={{fontSize: '12px', color: 'var(--text-muted)'}}>{plan.desc}</div>
+                                                    </div>
+                                                </div>
+                                                {plan.price && <div style={{fontWeight: '700', fontSize: '14px', color: 'var(--accent)'}}>{plan.price}</div>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <button type="submit" className="btn btn-primary btn-full">
-                                {isLogin ? translations.auth.login : translations.auth.register}
+                                {isLogin ? translations.auth.login : (
+                                    selectedPlan === 'free'
+                                        ? (language === 'es' ? 'Crear cuenta gratis' : 'Create free account')
+                                        : (language === 'es' ? `Empezar prueba de 14 días →` : `Start 14-day trial →`)
+                                )}
                             </button>
                         </form>
                         {isLogin && (

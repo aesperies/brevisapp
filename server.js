@@ -71,11 +71,20 @@ const log = {
 let emailEnabled = false;
 const EMAIL_FROM = process.env.SMTP_FROM || process.env.SMTP_USER || 'info@brevisapp.com';
 
+// SMTP transporter created once at startup and reused for all emails
+let smtpTransporter = null;
+
 if (process.env.SENDGRID_API_KEY) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     emailEnabled = true;
     console.log('✅ Email configured via SendGrid API (verification, password reset, Kindle)');
 } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    smtpTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
+    });
     emailEnabled = true;
     console.log('✅ Email configured via SMTP (verification, password reset, Kindle)');
 } else {
@@ -96,13 +105,7 @@ async function sendEmail({ to, subject, html, text }) {
             text: text || undefined
         });
     } else {
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: false,
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
-        });
-        await transporter.sendMail({ from: EMAIL_FROM, to, subject, html, text });
+        await smtpTransporter.sendMail({ from: EMAIL_FROM, to, subject, html, text });
     }
 }
 
@@ -150,7 +153,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:", "https:"],
@@ -291,7 +294,7 @@ const webhookLimiter = rateLimit({
 // Verify access code (keeps the code server-side only)
 app.post('/api/auth/verify-access-code', authLimiter, async (req, res) => {
     const { code } = req.body;
-    if (code === process.env.ACCESS_CODE || code === 'trybrevis14') {
+    if (process.env.ACCESS_CODE && code === process.env.ACCESS_CODE) {
         res.json({ valid: true });
     } else {
         res.status(401).json({ valid: false, error: 'Incorrect code' });
@@ -318,7 +321,7 @@ app.post('/api/auth/register', registerLimiter, [
         return res.status(400).json({ error: 'User already exists' });
     }
 
-    const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
+    const plan = (process.env.ACCESS_CODE && accessCode === process.env.ACCESS_CODE) ? 'premium' : 'pro';
     const user = await dbHelpers.createUser(email, password, name, plan);
     const token = generateToken(user);
 
@@ -553,13 +556,23 @@ app.get('/api/auth/me', authMiddleware, asyncHandler(async (req, res) => {
             plan: user.plan,
             language: user.language,
             kindle_email: user.kindle_email,
+            trial_end_date: user.trial_end_date,
             email_verified: !!user.email_verified
         }
     });
 }));
 
 // Update user profile
-app.patch('/api/auth/profile', authMiddleware, asyncHandler(async (req, res) => {
+app.patch('/api/auth/profile', authMiddleware, [
+    body('name').optional().trim().isLength({ min: 1, max: 255 }).withMessage('Name must be 1–255 characters'),
+    body('kindle_email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Kindle email must be a valid email address'),
+    body('language').optional().isIn(['es', 'en']).withMessage('Language must be es or en'),
+    body('password').optional({ checkFalsy: true }).isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     const { name, kindle_email, language, password } = req.body;
     const db = dbHelpers.getDb();
 
@@ -697,7 +710,7 @@ app.get('/api/auth/google/callback', asyncHandler(async (req, res) => {
         if (!user) {
             const randomPass = crypto.randomBytes(32).toString('hex');
             const accessCode = req.cookies.brevis_access_code || '';
-            const plan = accessCode === 'trybrevis14' ? 'premium' : 'pro';
+            const plan = (process.env.ACCESS_CODE && accessCode === process.env.ACCESS_CODE) ? 'premium' : 'pro';
             user = await dbHelpers.createUser(profile.email, randomPass, profile.name || profile.email.split('@')[0], plan);
             res.clearCookie('brevis_access_code');
             console.log('✅ New user created via Google:', maskEmail(profile.email), '| plan:', plan);
@@ -913,10 +926,18 @@ async function fetchGenericContent(url) {
             return null;
         }
 
-        const response = await fetch(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
-            redirect: 'manual'
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        let response;
+        try {
+            response = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
+                redirect: 'manual',
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
         const html = await response.text();
 
         // Extraer metadata con regex (sin cheerio para simplicidad)
@@ -1398,17 +1419,34 @@ const STRIPE_PRICES = {
     premium_year: process.env.STRIPE_PRICE_PREMIUM_ANNUAL
 };
 
+// Log Stripe config status at startup
+if (process.env.STRIPE_SECRET_KEY) {
+    const missingPrices = Object.entries(STRIPE_PRICES)
+        .filter(([, v]) => !v)
+        .map(([k]) => k);
+    if (missingPrices.length > 0) {
+        console.warn('⚠️  [Stripe] Missing price IDs for:', missingPrices.join(', '));
+        console.warn('   Set STRIPE_PRICE_PRO_MONTHLY, STRIPE_PRICE_PRO_ANNUAL, STRIPE_PRICE_PREMIUM_MONTHLY, STRIPE_PRICE_PREMIUM_ANNUAL in env vars.');
+    } else {
+        console.log('✅ [Stripe] All price IDs configured.');
+    }
+}
+
 app.post('/api/stripe/checkout', authMiddleware, asyncHandler(async (req, res) => {
     if (!stripe) {
-            return res.status(500).json({ error: 'Stripe not configured' });
-        }
+        return res.status(500).json({ error: 'Stripe not configured. Add STRIPE_SECRET_KEY to your environment variables.' });
+    }
 
-        const { plan, interval } = req.body; // plan: 'standard'|'premium' (or 'pro' for legacy), interval: 'month'|'year'
-        const priceId = STRIPE_PRICES[`${plan}_${interval}`];
+    const { plan, interval } = req.body; // plan: 'standard'|'premium' (or 'pro' for legacy), interval: 'month'|'year'
+    const priceId = STRIPE_PRICES[`${plan}_${interval}`];
 
-        if (!priceId) {
-            return res.status(400).json({ error: 'Invalid plan or interval' });
-        }
+    if (!priceId) {
+        const envVar = plan === 'premium'
+            ? (interval === 'year' ? 'STRIPE_PRICE_PREMIUM_ANNUAL' : 'STRIPE_PRICE_PREMIUM_MONTHLY')
+            : (interval === 'year' ? 'STRIPE_PRICE_PRO_ANNUAL' : 'STRIPE_PRICE_PRO_MONTHLY');
+        console.error(`❌ [Stripe] Missing price ID for ${plan}/${interval}. Set ${envVar} in env vars.`);
+        return res.status(500).json({ error: `Payment not configured for this plan. Please contact support.` });
+    }
 
         const user = await dbHelpers.findUserById(req.user.id);
 
@@ -1719,6 +1757,12 @@ app.post('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => 
     }
     if (!url.startsWith('http')) url = 'https://' + url;
 
+    // SSRF protection: validate the URL before fetching
+    const urlValidation = await validateUrlForFetch(url);
+    if (!urlValidation.safe) {
+        return res.status(400).json({ error: `Invalid feed URL: ${urlValidation.reason}` });
+    }
+
     // Validate it's a working RSS feed
     let feedName;
     try {
@@ -1755,6 +1799,13 @@ app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file')
     let added = 0;
     for (const url of urls) {
         try {
+            // SSRF protection: skip URLs that resolve to private IPs
+            const urlValidation = await validateUrlForFetch(url);
+            if (!urlValidation.safe) {
+                console.warn('⚠️  OPML import: blocked URL:', url, urlValidation.reason);
+                continue;
+            }
+
             const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
             if (existing.rows.length > 0) continue;
 
@@ -1774,8 +1825,10 @@ app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file')
 }));
 
 app.delete('/api/subscriptions/:id', authMiddleware, asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
     const db = dbHelpers.getDb();
-    await db.query('DELETE FROM subscriptions WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    await db.query('DELETE FROM subscriptions WHERE id = $1 AND user_id = $2', [id, req.user.id]);
     res.json({ success: true });
 }));
 
