@@ -24,7 +24,14 @@ import mammoth from 'mammoth';
 import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers, getDb } from './database.js';
-import { generateToken, verifyToken, authMiddleware } from './auth.js';
+import { generateToken, verifyToken, makeAuthMiddleware } from './auth.js';
+
+// DB-backed authMiddleware: validates JWT signature AND token_version (revoked on password change)
+const authMiddleware = makeAuthMiddleware(async (userId) => {
+    const db = getDb();
+    const result = await db.query('SELECT token_version FROM users WHERE id = $1', [userId]);
+    return result.rows[0]?.token_version ?? 0;
+});
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
@@ -278,6 +285,15 @@ const importLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,
     message: { error: 'Too many import requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Rate limiter for subscription management (add/delete/import)
+const subscriptionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // 30 subscription changes per 15 min per IP
+    message: { error: 'Too many subscription requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -1309,10 +1325,18 @@ app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, a
                         console.error('URL blocked in news builder:', url, validation.reason);
                         continue;
                     }
-                    const response = await fetch(url, {
-                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
-                        redirect: 'manual'
-                    });
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+                    let response;
+                    try {
+                        response = await fetch(url, {
+                            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
+                            redirect: 'manual',
+                            signal: controller.signal
+                        });
+                    } finally {
+                        clearTimeout(timeoutId);
+                    }
                     if (response.ok) {
                         const html = await response.text();
                         const textContent = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -1612,14 +1636,14 @@ app.get('/api/config/email-domain', (req, res) => {
 
 // ============= EMAIL WEBHOOK =============
 
-app.post('/api/webhook/email/:secret?', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
-    // Verify webhook secret via path param, query param, header, or basic auth
+app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
+    // Verify webhook secret via x-webhook-secret header ONLY (URL/query params leak into server logs)
         const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error('❌ Email webhook: EMAIL_WEBHOOK_SECRET not configured — rejecting request');
             return res.status(503).json({ error: 'Webhook not configured' });
         }
-        const providedSecret = req.params.secret || req.query.secret || req.headers['x-webhook-secret'];
+        const providedSecret = req.headers['x-webhook-secret'];
         if (providedSecret !== webhookSecret) {
             console.error('❌ Email webhook: invalid or missing secret');
             return res.status(401).json({ error: 'Unauthorized' });
@@ -1746,7 +1770,7 @@ app.get('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => {
     res.json(result.rows);
 }));
 
-app.post('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => {
+app.post('/api/subscriptions', subscriptionLimiter, authMiddleware, asyncHandler(async (req, res) => {
     let { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
 
@@ -1785,7 +1809,7 @@ app.post('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => 
     res.json(result.rows[0]);
 }));
 
-app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
+app.post('/api/subscriptions/import-opml', subscriptionLimiter, authMiddleware, upload.single('file'), asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const opmlContent = req.file.buffer.toString('utf-8');
@@ -1824,7 +1848,7 @@ app.post('/api/subscriptions/import-opml', authMiddleware, upload.single('file')
     res.json({ added, total: urls.length });
 }));
 
-app.delete('/api/subscriptions/:id', authMiddleware, asyncHandler(async (req, res) => {
+app.delete('/api/subscriptions/:id', subscriptionLimiter, authMiddleware, asyncHandler(async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
     const db = dbHelpers.getDb();
@@ -1833,23 +1857,44 @@ app.delete('/api/subscriptions/:id', authMiddleware, asyncHandler(async (req, re
 }));
 
 // RSS fetch cron - runs every 30 minutes
+let rssCronRunning = false;
 async function fetchAllRSSFeeds() {
+    if (rssCronRunning) {
+        console.log('⏭️  RSS cron skipped — previous run still in progress');
+        return;
+    }
+    rssCronRunning = true;
     try {
         const db = dbHelpers.getDb();
         const subs = await db.query('SELECT s.*, u.id as uid FROM subscriptions s JOIN users u ON s.user_id = u.id');
 
         for (const sub of subs.rows) {
             try {
-                const feed = await rssParser.parseURL(sub.url);
+                // Per-feed timeout: abort if the feed takes more than 20 seconds
+                const feedPromise = rssParser.parseURL(sub.url);
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('RSS feed timeout')), 20000)
+                );
+                const feed = await Promise.race([feedPromise, timeoutPromise]);
                 const sender = feed.title || sub.name || 'RSS Feed';
 
                 for (const item of (feed.items || []).slice(0, 10)) {
-                    // Check if already exists (by title and user)
-                    const existing = await db.query(
-                        'SELECT id FROM newsletters WHERE user_id = $1 AND title = $2 AND sender = $3',
-                        [sub.user_id, item.title || 'Untitled', sender]
-                    );
-                    if (existing.rows.length > 0) continue;
+                    // Deduplicate by URL (item.link) — title-based dedup was fragile and caused missed updates
+                    const itemUrl = item.link || '';
+                    if (itemUrl) {
+                        const existing = await db.query(
+                            'SELECT id FROM newsletters WHERE user_id = $1 AND url = $2',
+                            [sub.user_id, itemUrl]
+                        );
+                        if (existing.rows.length > 0) continue;
+                    } else {
+                        // Fallback: title+sender dedup for items with no URL
+                        const existing = await db.query(
+                            'SELECT id FROM newsletters WHERE user_id = $1 AND title = $2 AND sender = $3',
+                            [sub.user_id, item.title || 'Untitled', sender]
+                        );
+                        if (existing.rows.length > 0) continue;
+                    }
 
                     await db.query(
                         'INSERT INTO newsletters (user_id, title, sender, content, url, is_read) VALUES ($1, $2, $3, $4, $5, 0)',
@@ -1865,6 +1910,8 @@ async function fetchAllRSSFeeds() {
         console.log('✅ RSS feeds fetched at', new Date().toISOString());
     } catch (e) {
         console.error('❌ RSS cron error:', e);
+    } finally {
+        rssCronRunning = false;
     }
 }
 

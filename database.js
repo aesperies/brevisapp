@@ -10,8 +10,9 @@ const pool = new Pool({
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
-    // Railway uses self-signed certs; set DATABASE_SSL_VERIFY=true if you have proper CA certs
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: process.env.DATABASE_SSL_VERIFY === 'true' } : false
+    // SSL verification is enabled by default in production. Set DATABASE_SSL_VERIFY=false only if
+    // your host uses a self-signed cert that cannot be verified (e.g. some Railway private networking setups).
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: process.env.DATABASE_SSL_VERIFY !== 'false' } : false
 });
 
 pool.on('error', (err) => {
@@ -88,6 +89,7 @@ export async function setupDatabase() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS kindle_email VARCHAR(255);
             ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMP;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 0;
         `);
 
         // Remove unused newsletter limit columns (newsletters are unlimited for all plans)
@@ -509,7 +511,11 @@ export const dbHelpers = {
 
     updatePasswordHash: async (userId, newPassword) => {
         const hash = await bcrypt.hash(newPassword, 10);
-        await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, userId]);
+        // Increment token_version to invalidate all existing JWTs for this user
+        await pool.query(
+            `UPDATE users SET password_hash = $1, token_version = COALESCE(token_version, 0) + 1 WHERE id = $2`,
+            [hash, userId]
+        );
     },
 
     // Waitlist
