@@ -2218,10 +2218,20 @@
 
             // Sidebar order state
             const [sidebarOrder, setSidebarOrder] = useState(() => {
+                const defaultOrder = ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'graph', 'create'];
                 try {
                     const saved = localStorage.getItem('brevis_sidebar_order');
-                    return saved ? JSON.parse(saved) : ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'graph', 'create'];
-                } catch { return ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'graph', 'create']; }
+                    if (!saved) return defaultOrder;
+                    const parsed = JSON.parse(saved);
+                    // Migrate: add 'graph' before 'create' if missing (for existing users)
+                    if (!parsed.includes('graph')) {
+                        const createIdx = parsed.indexOf('create');
+                        if (createIdx !== -1) parsed.splice(createIdx, 0, 'graph');
+                        else parsed.push('graph');
+                        localStorage.setItem('brevis_sidebar_order', JSON.stringify(parsed));
+                    }
+                    return parsed;
+                } catch { return defaultOrder; }
             });
             const [editingSidebarOrder, setEditingSidebarOrder] = useState(false);
             const [draggedSection, setDraggedSection] = useState(null);
