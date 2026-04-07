@@ -1,6 +1,7 @@
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import { setupGraphTables } from './graph-database.js';
 
 const { Pool } = pg;
 
@@ -147,6 +148,9 @@ export async function setupDatabase() {
             CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
         `);
 
+        // Knowledge Graph tables
+        await setupGraphTables(pool);
+
         console.log('✅ Database initialized (PostgreSQL)');
         return pool;
     } catch (error) {
@@ -196,7 +200,7 @@ export async function createInitialUser() {
 }
 
 // Safe user columns (excludes password_hash)
-const USER_COLUMNS = 'id, email, name, email_code, plan, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date, email_verified';
+const USER_COLUMNS = 'id, email, name, email_code, plan, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date, email_verified, token_version';
 
 // Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {

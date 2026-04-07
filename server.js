@@ -33,6 +33,8 @@ const authMiddleware = makeAuthMiddleware(async (userId) => {
     return result.rows[0]?.token_version ?? 0;
 });
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
+import { createGraphRouter } from './graph-routes.js';
+import { extractAndStoreGraph } from './graph-extractor.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
 
@@ -307,6 +309,9 @@ const webhookLimiter = rateLimit({
     legacyHeaders: false
 });
 
+// Knowledge Graph routes
+app.use('/api/graph', authMiddleware, createGraphRouter());
+
 // Verify access code (keeps the code server-side only)
 app.post('/api/auth/verify-access-code', authLimiter, async (req, res) => {
     const { code } = req.body;
@@ -527,7 +532,7 @@ app.post('/api/auth/forgot-password', authLimiter, [
         });
         console.log('✅ Password reset email sent to:', maskEmail(email));
     } else {
-        console.log('⚠️ SMTP not configured. Reset token:', token);
+        console.log('⚠️ SMTP not configured. Password reset email could not be sent for user:', maskEmail(email));
     }
 
     res.json({ success: true });
@@ -767,7 +772,16 @@ app.get('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) =>
     res.json(newsletter);
 }));
 
-app.post('/api/newsletters', authMiddleware, asyncHandler(async (req, res) => {
+app.post('/api/newsletters', authMiddleware, [
+    body('title').notEmpty().isLength({ max: 500 }).withMessage('Title is required (max 500 chars)'),
+    body('source').optional().isLength({ max: 255 }).withMessage('Source max 255 chars'),
+    body('content').notEmpty().isLength({ max: 500000 }).withMessage('Content is required (max 500k chars)'),
+    body('url').optional({ checkFalsy: true }).isURL().withMessage('Must be a valid URL')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     const { title, source, content, url } = req.body;
     const newsletter = await dbHelpers.createNewsletter(
         req.user.id,
@@ -777,6 +791,11 @@ app.post('/api/newsletters', authMiddleware, asyncHandler(async (req, res) => {
         url
     );
     console.log('✅ Newsletter created:', title);
+    // Knowledge Graph: extract entities in background
+    setImmediate(() => {
+        extractAndStoreGraph(newsletter.id, req.user.id, { language: req.user.language || 'en' })
+            .catch(err => console.error('📊 [Graph] Extraction failed:', err.message));
+    });
     res.json(newsletter);
 }));
 
@@ -800,6 +819,11 @@ app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), a
         req.user.id, title, 'PDF Upload', content, ''
     );
     console.log('✅ PDF newsletter created:', title);
+    // Knowledge Graph: extract entities in background
+    setImmediate(() => {
+        extractAndStoreGraph(newsletter.id, req.user.id, { language: req.user.language || 'en' })
+            .catch(err => console.error('📊 [Graph] Extraction failed:', err.message));
+    });
     res.json(newsletter);
 }));
 
@@ -954,6 +978,8 @@ async function fetchGenericContent(url) {
         } finally {
             clearTimeout(timeoutId);
         }
+        // Reject redirects to prevent SSRF bypass via redirect to internal IP
+        if (response.status >= 300 && response.status < 400) return null;
         const html = await response.text();
 
         // Extraer metadata con regex (sin cheerio para simplicidad)
@@ -1076,6 +1102,11 @@ app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (r
             );
 
             console.log(`✅ Imported tweet (${thread.length} tweet${thread.length > 1 ? 's' : ''} in thread):`, title);
+            // Knowledge Graph: extract entities in background
+            setImmediate(() => {
+                extractAndStoreGraph(newsletter.id, req.user.id, { language: req.user.language || 'en' })
+                    .catch(err => console.error('📊 [Graph] Extraction failed:', err.message));
+            });
             res.json(newsletter);
         } else {
             // Scraping genérico para cualquier URL
@@ -1093,6 +1124,11 @@ app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (r
             );
 
             console.log(`✅ Imported generic URL:`, genericContent.title);
+            // Knowledge Graph: extract entities in background
+            setImmediate(() => {
+                extractAndStoreGraph(newsletter.id, req.user.id, { language: req.user.language || 'en' })
+                    .catch(err => console.error('📊 [Graph] Extraction failed:', err.message));
+            });
             res.json(newsletter);
         }
 }));
@@ -1337,6 +1373,8 @@ app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, a
                     } finally {
                         clearTimeout(timeoutId);
                     }
+                    // Skip redirects to prevent SSRF bypass via redirect to internal IP
+                    if (response.status >= 300 && response.status < 400) continue;
                     if (response.ok) {
                         const html = await response.text();
                         const textContent = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -1371,7 +1409,14 @@ app.get('/api/tags', authMiddleware, asyncHandler(async (req, res) => {
     res.json(tags);
 }));
 
-app.post('/api/tags', authMiddleware, asyncHandler(async (req, res) => {
+app.post('/api/tags', authMiddleware, [
+    body('name').notEmpty().isLength({ max: 100 }).withMessage('Tag name is required (max 100 chars)'),
+    body('color').optional().matches(/^#[0-9a-fA-F]{6}$/).withMessage('Color must be a hex value like #FF0000')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     const { name, color } = req.body;
     const tag = await dbHelpers.createTag(req.user.id, name, color);
     console.log('✅ Tag created:', name);
@@ -1693,8 +1738,8 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async
             content = '';
         }
 
-        console.log('📬 To:', toEmail);
-        console.log('📤 From:', fromEmail);
+        console.log('📬 To:', maskEmail(toEmail));
+        console.log('📤 From:', maskEmail(fromEmail));
         console.log('📋 Subject:', subject);
         console.log('📝 Content length:', content.length);
 
@@ -1729,6 +1774,11 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async
         );
 
     console.log('✅ Newsletter added via email for:', maskEmail(user.email), '- content length:', newsletter.content?.length || 0);
+    // Knowledge Graph: extract entities in background
+    setImmediate(() => {
+        extractAndStoreGraph(newsletter.id, user.id, { language: user.language || 'en' })
+            .catch(err => console.error('📊 [Graph] Extraction failed:', err.message));
+    });
     res.json({ success: true });
 }));
 
@@ -1984,8 +2034,8 @@ app.listen(PORT, '0.0.0.0', () => {
 ║                                                        ║
 ║   Plans (unlimited newsletters):                       ║
 ║   • Free: No AI features (hidden from web)            ║
-║   • Standard: Summaries + Briefs ($8/mo, 15d trial)  ║
-║   • Premium: + Reports ($10/mo, 15d trial)            ║
+║   • Standard: Summaries + Briefs ($12/mo, 15d trial) ║
+║   • Premium: + Reports ($29/mo, 15d trial)            ║
 ╚════════════════════════════════════════════════════════╝
     `);
 }); 

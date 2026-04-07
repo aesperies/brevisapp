@@ -32,6 +32,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
     <style>
         :root {
             --bg-primary: #FFFFFF;
@@ -1065,6 +1066,13 @@
         .btn:active { transform: scale(0.97); }
         .landing-section-animate { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
         .landing-section-animate.visible { opacity: 1; transform: translateY(0); }
+        /* Knowledge Graph */
+        .kg-modal { height: 85vh; }
+        .kg-modal .vis-network { border: none !important; }
+        .kg-modal .vis-network canvas { outline: none; }
+        @media (max-width: 768px) {
+            .kg-modal { max-width: 100vw !important; width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; margin: 0 !important; }
+        }
         /* Reader View */
         .reader-overlay {
             position: fixed; inset: 0; background: var(--bg-primary); z-index: 1000;
@@ -2203,6 +2211,7 @@
             const [promptModal, setPromptModal] = useState(null);
             const [showBulkTagMenu, setShowBulkTagMenu] = useState(false);
             const [showNewsBuilder, setShowNewsBuilder] = useState(false);
+            const [showKnowledgeGraph, setShowKnowledgeGraph] = useState(false);
 
             // Projects state for News Builder
             const [projects, setProjects] = useState([]);
@@ -2211,8 +2220,8 @@
             const [sidebarOrder, setSidebarOrder] = useState(() => {
                 try {
                     const saved = localStorage.getItem('brevis_sidebar_order');
-                    return saved ? JSON.parse(saved) : ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'create'];
-                } catch { return ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'create']; }
+                    return saved ? JSON.parse(saved) : ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'graph', 'create'];
+                } catch { return ['logo', 'bookmarklet', 'main', 'tags', 'subscriptions', 'reports', 'graph', 'create']; }
             });
             const [editingSidebarOrder, setEditingSidebarOrder] = useState(false);
             const [draggedSection, setDraggedSection] = useState(null);
@@ -3105,6 +3114,23 @@
                                         ))}
                                     </div>
                                 ) : null,
+                                graph: () => (user.plan === 'standard' || user.plan === 'premium') ? (
+                                    <div key="graph" className="sidebar-section"
+                                        draggable={editingSidebarOrder}
+                                        onDragStart={e => handleDragStart(e, 'graph')}
+                                        onDragOver={e => handleDragOver(e, 'graph')}
+                                        onDragEnd={handleDragEnd}
+                                        style={{cursor: editingSidebarOrder ? 'grab' : 'default', opacity: draggedSection === 'graph' ? 0.5 : 1, position: 'relative'}}>
+                                        {editingSidebarOrder && <span style={{position: 'absolute', left: 4, top: 8, color: 'var(--text-secondary)'}}><LucideIcon name="grip-vertical" size={14} /></span>}
+                                        <div className="sidebar-title">{language === 'es' ? 'Inteligencia' : 'Intelligence'}</div>
+                                        <button className="sidebar-item" onClick={() => setShowKnowledgeGraph(true)}>
+                                            <span className="sidebar-item-icon">
+                                                <LucideIcon name="network" size={16} />
+                                            </span>
+                                            <span className="sidebar-item-label">{language === 'es' ? 'Knowledge Graph' : 'Knowledge Graph'}</span>
+                                        </button>
+                                    </div>
+                                ) : null,
                                 create: () => (
                                     <div key="create" className="sidebar-section"
                                         draggable={editingSidebarOrder}
@@ -3643,6 +3669,16 @@
                             createProject={createProject}
                             updateProject={updateProject}
                             deleteProject={deleteProject}
+                        />
+                    )}
+
+                    {showKnowledgeGraph && (
+                        <KnowledgeGraph
+                            onClose={() => setShowKnowledgeGraph(false)}
+                            language={language}
+                            API_URL={API_URL}
+                            user={user}
+                            showToast={showToast}
                         />
                     )}
 
@@ -4472,6 +4508,487 @@
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function KnowledgeGraph({ onClose, language, API_URL, user, showToast }) {
+            const { useState, useEffect, useRef, useCallback } = React;
+            const containerRef = useRef(null);
+            const networkRef = useRef(null);
+
+            const [graphData, setGraphData] = useState(null);
+            const [stats, setStats] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [nodeDetail, setNodeDetail] = useState(null);
+            const [communities, setCommunities] = useState([]);
+            const [nlQuery, setNlQuery] = useState('');
+            const [nlResult, setNlResult] = useState('');
+            const [querying, setQuerying] = useState(false);
+            const [backfilling, setBackfilling] = useState(false);
+            const [backfillResult, setBackfillResult] = useState(null);
+
+            // Filters
+            const [filterTypes, setFilterTypes] = useState([]);
+            const [filterSearch, setFilterSearch] = useState('');
+            const [filterMinMentions, setFilterMinMentions] = useState(1);
+            const [showFilters, setShowFilters] = useState(false);
+
+            const t = language === 'es' ? {
+                title: 'Knowledge Graph',
+                loading: 'Cargando grafo...',
+                noData: 'Sin datos aún. Tu grafo se construye automáticamente a medida que lees newsletters.',
+                entities: 'Entidades',
+                relationships: 'Relaciones',
+                communities: 'Comunidades',
+                filters: 'Filtros',
+                search: 'Buscar entidades...',
+                minMentions: 'Menciones mínimas',
+                entityTypes: 'Tipos de entidad',
+                close: 'Cerrar',
+                detail: 'Detalle',
+                mentions: 'menciones',
+                firstSeen: 'Primera vez',
+                lastSeen: 'Última vez',
+                connections: 'Conexiones',
+                newsletters: 'Newsletters',
+                backfill: 'Analizar newsletters existentes',
+                backfilling: 'Analizando...',
+                backfillDone: 'Análisis completo',
+                askGraph: 'Pregúntale a tu grafo...',
+                askPlaceholder: '¿Quién ha invertido en empresas de gaming?',
+                ask: 'Preguntar',
+                premium: 'Premium',
+                stats: 'Estadísticas',
+                refreshCommunities: 'Recalcular comunidades',
+                allTypes: 'Todos los tipos',
+                processed: 'procesados',
+                extracted: 'extraídos',
+                errors: 'errores',
+                mergeNodes: 'Fusionar',
+                deleteNode: 'Eliminar',
+                viewInGraph: 'Ver en grafo',
+            } : {
+                title: 'Knowledge Graph',
+                loading: 'Loading graph...',
+                noData: 'No data yet. Your graph builds automatically as you read newsletters.',
+                entities: 'Entities',
+                relationships: 'Relationships',
+                communities: 'Communities',
+                filters: 'Filters',
+                search: 'Search entities...',
+                minMentions: 'Min mentions',
+                entityTypes: 'Entity types',
+                close: 'Close',
+                detail: 'Detail',
+                mentions: 'mentions',
+                firstSeen: 'First seen',
+                lastSeen: 'Last seen',
+                connections: 'Connections',
+                newsletters: 'Newsletters',
+                backfill: 'Analyze existing newsletters',
+                backfilling: 'Analyzing...',
+                backfillDone: 'Analysis complete',
+                askGraph: 'Ask your graph...',
+                askPlaceholder: 'Who has invested in gaming companies?',
+                ask: 'Ask',
+                premium: 'Premium',
+                stats: 'Statistics',
+                refreshCommunities: 'Refresh communities',
+                allTypes: 'All types',
+                processed: 'processed',
+                extracted: 'extracted',
+                errors: 'errors',
+                mergeNodes: 'Merge',
+                deleteNode: 'Delete',
+                viewInGraph: 'View in graph',
+            };
+
+            const NODE_COLORS = {
+                person: '#00b894', company: '#74b9ff', fund: '#a29bfe', deal: '#fdcb6e',
+                technology: '#e17055', regulation: '#d63031', topic: '#636e72', event: '#e84393',
+                location: '#00cec9', token: '#f39c12', protocol: '#6c5ce7', dao: '#fd79a8',
+                chain: '#00b894', organization: '#0984e3', product: '#e17055'
+            };
+
+            const NODE_SHAPES = {
+                person: 'dot', company: 'diamond', fund: 'triangle', deal: 'star',
+                technology: 'square', regulation: 'triangleDown', topic: 'hexagon',
+                event: 'dot', location: 'dot', token: 'diamond', protocol: 'square',
+                dao: 'triangle', chain: 'hexagon', organization: 'diamond', product: 'square'
+            };
+
+            const gFetch = useCallback(async (path, options = {}) => {
+                const res = await fetch(`${API_URL}/graph${path}`, {
+                    credentials: 'include', ...options,
+                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || `Request failed (${res.status})`);
+                }
+                return res.json();
+            }, [API_URL]);
+
+            const fetchGraph = useCallback(async () => {
+                try {
+                    const params = new URLSearchParams();
+                    if (filterTypes.length) params.set('types', filterTypes.join(','));
+                    if (filterSearch) params.set('search', filterSearch);
+                    if (filterMinMentions > 1) params.set('minMentions', filterMinMentions);
+                    const data = await gFetch(`/data?${params}`);
+                    setGraphData(data);
+                } catch (err) {
+                    console.error('Graph fetch error:', err);
+                }
+            }, [gFetch, filterTypes, filterSearch, filterMinMentions]);
+
+            const fetchStats = useCallback(async () => {
+                try {
+                    const data = await gFetch('/stats');
+                    setStats(data);
+                } catch (err) {
+                    console.error('Stats fetch error:', err);
+                }
+            }, [gFetch]);
+
+            // Initial load
+            useEffect(() => {
+                Promise.all([fetchGraph(), fetchStats()])
+                    .finally(() => setLoading(false));
+            }, []);
+
+            // Re-fetch graph on filter change
+            useEffect(() => {
+                if (!loading) fetchGraph();
+            }, [filterTypes, filterSearch, filterMinMentions]);
+
+            // Initialize vis.js network when graph data arrives
+            useEffect(() => {
+                if (!graphData || !containerRef.current) return;
+                if (!graphData.nodes?.length) return;
+
+                const nodes = new vis.DataSet(graphData.nodes.map(n => ({
+                    id: n.id,
+                    label: n.label || n.name,
+                    color: { background: NODE_COLORS[n.node_type] || '#636e72', border: 'transparent',
+                             highlight: { background: NODE_COLORS[n.node_type] || '#636e72', border: '#2BBCC0' } },
+                    shape: NODE_SHAPES[n.node_type] || 'dot',
+                    size: Math.min(10 + (n.mention_count || 1) * 3, 40),
+                    font: { color: 'var(--text-primary)', size: 12, face: 'Instrument Sans' },
+                    title: `${n.name} (${n.node_type}) — ${n.mention_count || 1} ${t.mentions}`,
+                    borderWidth: 0,
+                    borderWidthSelected: 2,
+                    nodeType: n.node_type,
+                    mentionCount: n.mention_count || 1,
+                })));
+
+                const edges = new vis.DataSet((graphData.edges || []).map(e => ({
+                    id: e.id,
+                    from: e.source_id || e.from,
+                    to: e.target_id || e.to,
+                    label: e.relationship || '',
+                    color: { color: 'rgba(150,150,150,0.4)', highlight: '#2BBCC0' },
+                    font: { size: 9, color: 'var(--text-muted)', strokeWidth: 0 },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                    smooth: { type: 'continuous' },
+                    dashes: e.is_inferred ? [5, 5] : false,
+                    width: Math.min(1 + (e.weight || 1) * 0.5, 4),
+                })));
+
+                const options = {
+                    physics: {
+                        solver: 'forceAtlas2Based',
+                        forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 120, springConstant: 0.04, damping: 0.4 },
+                        stabilization: { iterations: 150, fit: true },
+                        maxVelocity: 30,
+                    },
+                    interaction: {
+                        hover: true, tooltipDelay: 200, zoomView: true, dragView: true,
+                        navigationButtons: false, keyboard: { enabled: true },
+                    },
+                    layout: { improvedLayout: graphData.nodes.length < 200 },
+                };
+
+                if (networkRef.current) networkRef.current.destroy();
+                const network = new vis.Network(containerRef.current, { nodes, edges }, options);
+                networkRef.current = network;
+
+                network.on('click', async (params) => {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0];
+                        setSelectedNode(nodeId);
+                        try {
+                            const detail = await gFetch(`/nodes/${nodeId}`);
+                            setNodeDetail(detail);
+                        } catch (err) {
+                            showToast(err.message, 'error');
+                        }
+                    } else {
+                        setSelectedNode(null);
+                        setNodeDetail(null);
+                    }
+                });
+
+                network.once('stabilizationIterationsDone', () => {
+                    network.setOptions({ physics: { enabled: false } });
+                });
+
+                return () => { if (networkRef.current) networkRef.current.destroy(); };
+            }, [graphData]);
+
+            const handleBackfill = async () => {
+                setBackfilling(true);
+                setBackfillResult(null);
+                try {
+                    const result = await gFetch('/extract-batch', { method: 'POST', body: JSON.stringify({ limit: 50 }) });
+                    setBackfillResult(result);
+                    showToast(`${t.backfillDone}: ${result.extracted} ${t.extracted}`, 'success');
+                    fetchGraph();
+                    fetchStats();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                } finally {
+                    setBackfilling(false);
+                }
+            };
+
+            const handleNlQuery = async () => {
+                if (!nlQuery.trim()) return;
+                setQuerying(true);
+                setNlResult('');
+                try {
+                    const result = await gFetch('/query', { method: 'POST', body: JSON.stringify({ question: nlQuery }) });
+                    setNlResult(result.answer || result);
+                } catch (err) {
+                    showToast(err.message, 'error');
+                } finally {
+                    setQuerying(false);
+                }
+            };
+
+            const handleDeleteNode = async (nodeId) => {
+                try {
+                    await gFetch(`/nodes/${nodeId}`, { method: 'DELETE' });
+                    setSelectedNode(null);
+                    setNodeDetail(null);
+                    fetchGraph();
+                    fetchStats();
+                    showToast(language === 'es' ? 'Entidad eliminada' : 'Entity deleted', 'success');
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            };
+
+            const focusNode = (nodeId) => {
+                if (networkRef.current) {
+                    networkRef.current.focus(nodeId, { scale: 1.5, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+                    networkRef.current.selectNodes([nodeId]);
+                }
+            };
+
+            const entityTypes = stats?.typeDistribution?.map(td => td.node_type) || [];
+
+            const toggleTypeFilter = (type) => {
+                setFilterTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal kg-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '95vw', width: 1200, maxHeight: '92vh', display: 'flex', flexDirection: 'column'}}>
+                        {/* Header */}
+                        <div className="modal-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                                <LucideIcon name="network" size={20} />
+                                <h2 style={{margin: 0, fontSize: 18}}>{t.title}</h2>
+                                {stats && (
+                                    <div style={{display: 'flex', gap: 12, marginLeft: 16, fontSize: 12, color: 'var(--text-secondary)'}}>
+                                        <span>{stats.total_nodes || 0} {t.entities}</span>
+                                        <span>{stats.total_edges || 0} {t.relationships}</span>
+                                        <span>{stats.total_communities || 0} {t.communities}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                                <button className="btn btn-small" onClick={() => setShowFilters(!showFilters)}>
+                                    <LucideIcon name="sliders-horizontal" size={14} />
+                                    <span style={{marginLeft: 4}}>{t.filters}</span>
+                                </button>
+                                <button className="btn btn-small" onClick={handleBackfill} disabled={backfilling}>
+                                    <LucideIcon name="refresh-cw" size={14} />
+                                    <span style={{marginLeft: 4}}>{backfilling ? t.backfilling : t.backfill}</span>
+                                </button>
+                                <button className="modal-close" onClick={onClose}><LucideIcon name="x" size={20} /></button>
+                            </div>
+                        </div>
+
+                        {/* Filters bar */}
+                        {showFilters && (
+                            <div style={{padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flexShrink: 0}}>
+                                <input type="text" className="form-input" placeholder={t.search} value={filterSearch}
+                                    onChange={e => setFilterSearch(e.target.value)}
+                                    style={{width: 200, padding: '6px 10px', fontSize: 13}} />
+                                <div style={{display: 'flex', gap: 4, flexWrap: 'wrap'}}>
+                                    {entityTypes.map(type => (
+                                        <button key={type} className={`btn btn-small ${filterTypes.includes(type) ? 'btn-primary' : ''}`}
+                                            onClick={() => toggleTypeFilter(type)}
+                                            style={{fontSize: 11, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4}}>
+                                            <span style={{width: 8, height: 8, borderRadius: '50%', background: NODE_COLORS[type] || '#636e72', display: 'inline-block'}} />
+                                            {type}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)'}}>
+                                    <span>{t.minMentions}:</span>
+                                    <input type="range" min="1" max="20" value={filterMinMentions}
+                                        onChange={e => setFilterMinMentions(parseInt(e.target.value))}
+                                        style={{width: 80}} />
+                                    <span style={{minWidth: 16, fontWeight: 600}}>{filterMinMentions}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Main content */}
+                        <div style={{flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0}}>
+                            {/* Graph canvas */}
+                            <div style={{flex: 1, position: 'relative', background: 'var(--bg-primary)'}}>
+                                {loading ? (
+                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)'}}>
+                                        <LucideIcon name="loader" size={24} /> <span style={{marginLeft: 8}}>{t.loading}</span>
+                                    </div>
+                                ) : (!graphData?.nodes?.length) ? (
+                                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)', padding: 40, textAlign: 'center'}}>
+                                        <LucideIcon name="network" size={48} />
+                                        <p style={{marginTop: 16, fontSize: 14, maxWidth: 400}}>{t.noData}</p>
+                                        <button className="btn btn-primary" onClick={handleBackfill} disabled={backfilling} style={{marginTop: 16}}>
+                                            <LucideIcon name="refresh-cw" size={14} />
+                                            <span style={{marginLeft: 6}}>{backfilling ? t.backfilling : t.backfill}</span>
+                                        </button>
+                                        {backfillResult && (
+                                            <div style={{marginTop: 12, fontSize: 12, color: 'var(--text-muted)'}}>
+                                                {backfillResult.processed} {t.processed}, {backfillResult.extracted} {t.extracted}, {backfillResult.errors} {t.errors}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div ref={containerRef} style={{width: '100%', height: '100%'}} />
+                                )}
+
+                                {/* Legend overlay */}
+                                {graphData?.nodes?.length > 0 && (
+                                    <div style={{position: 'absolute', bottom: 12, left: 12, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 11, display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 400, boxShadow: '0 2px 8px var(--shadow)'}}>
+                                        {entityTypes.map(type => (
+                                            <span key={type} style={{display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', opacity: filterTypes.length && !filterTypes.includes(type) ? 0.4 : 1}}
+                                                onClick={() => toggleTypeFilter(type)}>
+                                                <span style={{width: 8, height: 8, borderRadius: '50%', background: NODE_COLORS[type] || '#636e72'}} />
+                                                {type}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Detail panel (right side) */}
+                            {nodeDetail && (
+                                <div style={{width: 320, borderLeft: '1px solid var(--border)', overflowY: 'auto', padding: 16, flexShrink: 0, background: 'var(--bg-secondary)'}}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12}}>
+                                        <div>
+                                            <h3 style={{margin: 0, fontSize: 16, wordBreak: 'break-word'}}>{nodeDetail.node?.name}</h3>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 4}}>
+                                                <span style={{width: 10, height: 10, borderRadius: '50%', background: NODE_COLORS[nodeDetail.node?.node_type] || '#636e72'}} />
+                                                <span style={{fontSize: 12, color: 'var(--text-secondary)', textTransform: 'capitalize'}}>{nodeDetail.node?.node_type}</span>
+                                            </div>
+                                        </div>
+                                        <button className="btn btn-small" onClick={() => { setSelectedNode(null); setNodeDetail(null); }} style={{padding: '4px 6px'}}>
+                                            <LucideIcon name="x" size={14} />
+                                        </button>
+                                    </div>
+
+                                    <div style={{fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16}}>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                            <span>{t.mentions}</span>
+                                            <span style={{fontWeight: 600}}>{nodeDetail.node?.mention_count || 1}</span>
+                                        </div>
+                                        {nodeDetail.node?.first_seen && (
+                                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                                <span>{t.firstSeen}</span>
+                                                <span>{new Date(nodeDetail.node.first_seen).toLocaleDateString()}</span>
+                                            </div>
+                                        )}
+                                        {nodeDetail.node?.last_seen && (
+                                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                                <span>{t.lastSeen}</span>
+                                                <span>{new Date(nodeDetail.node.last_seen).toLocaleDateString()}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Connections */}
+                                    {nodeDetail.connections?.length > 0 && (
+                                        <div style={{marginBottom: 16}}>
+                                            <h4 style={{fontSize: 13, marginBottom: 8, color: 'var(--text-primary)'}}>{t.connections} ({nodeDetail.connections.length})</h4>
+                                            <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+                                                {nodeDetail.connections.slice(0, 15).map((conn, i) => (
+                                                    <div key={i} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', background: 'var(--bg-card)', borderRadius: 6, fontSize: 12, cursor: 'pointer'}}
+                                                        onClick={() => focusNode(conn.id)}>
+                                                        <span style={{width: 8, height: 8, borderRadius: '50%', background: NODE_COLORS[conn.node_type] || '#636e72'}} />
+                                                        <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{conn.name}</span>
+                                                        <span style={{color: 'var(--text-muted)', fontSize: 10, flexShrink: 0}}>{conn.relationship}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Newsletters mentioning this entity */}
+                                    {nodeDetail.newsletters?.length > 0 && (
+                                        <div style={{marginBottom: 16}}>
+                                            <h4 style={{fontSize: 13, marginBottom: 8, color: 'var(--text-primary)'}}>{t.newsletters} ({nodeDetail.newsletters.length})</h4>
+                                            <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+                                                {nodeDetail.newsletters.slice(0, 10).map((nl, i) => (
+                                                    <div key={i} style={{padding: '6px 8px', background: 'var(--bg-card)', borderRadius: 6, fontSize: 12}}>
+                                                        <div style={{fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{nl.title || 'Untitled'}</div>
+                                                        {nl.excerpt && <div style={{color: 'var(--text-muted)', marginTop: 2, fontSize: 11, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>{nl.excerpt}</div>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Actions */}
+                                    <div style={{display: 'flex', gap: 6, marginTop: 8}}>
+                                        <button className="btn btn-small" style={{flex: 1, color: '#d63031', borderColor: '#d63031'}}
+                                            onClick={() => { if (confirm(language === 'es' ? '¿Eliminar esta entidad?' : 'Delete this entity?')) handleDeleteNode(nodeDetail.node.id); }}>
+                                            <LucideIcon name="trash-2" size={12} />
+                                            <span style={{marginLeft: 4}}>{t.deleteNode}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Natural language query bar (Premium only) */}
+                        {user.plan === 'premium' && (
+                            <div style={{padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)', flexShrink: 0}}>
+                                <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+                                    <LucideIcon name="sparkles" size={16} style={{color: '#2BBCC0', flexShrink: 0}} />
+                                    <input type="text" className="form-input" placeholder={t.askPlaceholder} value={nlQuery}
+                                        onChange={e => setNlQuery(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleNlQuery()}
+                                        style={{flex: 1, padding: '6px 10px', fontSize: 13}} />
+                                    <button className="btn btn-primary btn-small" onClick={handleNlQuery} disabled={querying || !nlQuery.trim()}>
+                                        {querying ? '...' : t.ask}
+                                    </button>
+                                </div>
+                                {nlResult && (
+                                    <div style={{marginTop: 8, padding: '10px 12px', background: 'var(--bg-card)', borderRadius: 8, fontSize: 13, lineHeight: 1.5, color: 'var(--text-body)', maxHeight: 120, overflowY: 'auto'}}>
+                                        {nlResult}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             );

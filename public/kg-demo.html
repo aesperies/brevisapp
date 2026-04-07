@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BREVIS - Knowledge Graph Demo</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9F9F9;
+            --bg-card: #FFFFFF;
+            --bg-hover: #F5F5F5;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-muted: #767676;
+            --text-body: #333333;
+            --border: #E5E5E5;
+            --border-light: #F0F0F0;
+            --accent: #2BBCC0;
+            --accent-bg: rgba(43,188,192,0.08);
+            --shadow: rgba(0,0,0,0.06);
+            --shadow-md: rgba(0,0,0,0.08);
+        }
+        [data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1E1E1E;
+            --bg-card: #2A2A2A;
+            --bg-hover: #333333;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B3B3B3;
+            --text-muted: #949494;
+            --text-body: #E0E0E0;
+            --border: #383838;
+            --border-light: #2A2A2A;
+            --accent: #2BBCC0;
+            --accent-bg: rgba(43,188,192,0.12);
+            --shadow: rgba(0,0,0,0.4);
+            --shadow-md: rgba(0,0,0,0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+            cursor: pointer; border: 1px solid var(--border); background: var(--bg-card);
+            color: var(--text-primary); transition: all 0.15s ease; font-family: inherit;
+        }
+        .btn:hover { background: var(--bg-hover); }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: #2BBCC0; color: #fff; border-color: #2BBCC0; }
+        .btn-primary:hover { background: #25a5a9; }
+        .btn-small { padding: 4px 10px; font-size: 12px; }
+        .form-input {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 13px; background: var(--bg-card); color: var(--text-primary);
+            font-family: inherit; outline: none;
+        }
+        .form-input:focus { border-color: #2BBCC0; }
+        .demo-banner {
+            background: linear-gradient(135deg, #2BBCC0 0%, #25a5a9 100%);
+            color: #fff; padding: 10px 20px; text-align: center; font-size: 13px;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+        }
+        .demo-banner strong { font-weight: 600; }
+        .theme-toggle {
+            position: fixed; top: 56px; right: 16px; z-index: 100;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 50%;
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 16px; box-shadow: 0 2px 8px var(--shadow);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        <strong>BREVIS</strong> Knowledge Graph — Interactive Demo (Mock Data)
+    </div>
+    <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? '' : 'dark')">🌓</button>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Lucide icon helper
+        function LucideIcon({ name, size = 16, style = {} }) {
+            const ref = React.useRef(null);
+            React.useEffect(() => {
+                if (ref.current) {
+                    ref.current.innerHTML = '';
+                    const icon = lucide.icons[name];
+                    if (icon) {
+                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        svg.setAttribute('width', size);
+                        svg.setAttribute('height', size);
+                        svg.setAttribute('viewBox', '0 0 24 24');
+                        svg.setAttribute('fill', 'none');
+                        svg.setAttribute('stroke', 'currentColor');
+                        svg.setAttribute('stroke-width', '2');
+                        svg.setAttribute('stroke-linecap', 'round');
+                        svg.setAttribute('stroke-linejoin', 'round');
+                        svg.innerHTML = icon[0];
+                        ref.current.appendChild(svg);
+                    }
+                }
+            }, [name, size]);
+            return <span ref={ref} style={{display: 'inline-flex', alignItems: 'center', ...style}} />;
+        }
+
+        // ============ MOCK DATA ============
+        const MOCK_NODES = [
+            // People
+            { id: 1, name: 'Jens Hilgers', node_type: 'person', mention_count: 14, canonical_name: 'jens hilgers' },
+            { id: 2, name: 'Moritz Baier-Lentz', node_type: 'person', mention_count: 9, canonical_name: 'moritz baier-lentz' },
+            { id: 3, name: 'Tim Sweeney', node_type: 'person', mention_count: 7, canonical_name: 'tim sweeney' },
+            { id: 4, name: 'Vitalik Buterin', node_type: 'person', mention_count: 11, canonical_name: 'vitalik buterin' },
+            { id: 5, name: 'Satya Nadella', node_type: 'person', mention_count: 6, canonical_name: 'satya nadella' },
+            { id: 6, name: 'Bobby Kotick', node_type: 'person', mention_count: 5, canonical_name: 'bobby kotick' },
+            { id: 7, name: 'Phil Spencer', node_type: 'person', mention_count: 8, canonical_name: 'phil spencer' },
+            // Companies
+            { id: 10, name: 'BITKRAFT Ventures', node_type: 'company', mention_count: 18, canonical_name: 'bitkraft ventures' },
+            { id: 11, name: 'Epic Games', node_type: 'company', mention_count: 12, canonical_name: 'epic games' },
+            { id: 12, name: 'Microsoft', node_type: 'company', mention_count: 10, canonical_name: 'microsoft' },
+            { id: 13, name: 'Activision Blizzard', node_type: 'company', mention_count: 7, canonical_name: 'activision blizzard' },
+            { id: 14, name: 'Immutable', node_type: 'company', mention_count: 9, canonical_name: 'immutable' },
+            { id: 15, name: 'Sky Mavis', node_type: 'company', mention_count: 6, canonical_name: 'sky mavis' },
+            { id: 16, name: 'Animoca Brands', node_type: 'company', mention_count: 8, canonical_name: 'animoca brands' },
+            { id: 17, name: 'Riot Games', node_type: 'company', mention_count: 5, canonical_name: 'riot games' },
+            // Funds
+            { id: 20, name: 'BITKRAFT Token Fund', node_type: 'fund', mention_count: 6, canonical_name: 'bitkraft token fund' },
+            { id: 21, name: 'a16z Crypto', node_type: 'fund', mention_count: 9, canonical_name: 'a16z crypto' },
+            { id: 22, name: 'Paradigm', node_type: 'fund', mention_count: 7, canonical_name: 'paradigm' },
+            // Technologies
+            { id: 30, name: 'Unreal Engine 5', node_type: 'technology', mention_count: 11, canonical_name: 'unreal engine 5' },
+            { id: 31, name: 'Unity', node_type: 'technology', mention_count: 8, canonical_name: 'unity' },
+            { id: 32, name: 'zkSync', node_type: 'technology', mention_count: 5, canonical_name: 'zksync' },
+            // Tokens
+            { id: 40, name: 'IMX', node_type: 'token', mention_count: 7, canonical_name: 'imx' },
+            { id: 41, name: 'RON', node_type: 'token', mention_count: 5, canonical_name: 'ron' },
+            { id: 42, name: 'ETH', node_type: 'token', mention_count: 13, canonical_name: 'eth' },
+            // Deals
+            { id: 50, name: 'Immutable $200M Series C', node_type: 'deal', mention_count: 4, canonical_name: 'immutable series c' },
+            { id: 51, name: 'MSFT-ATVI Acquisition', node_type: 'deal', mention_count: 6, canonical_name: 'msft atvi acquisition' },
+            // Regulations
+            { id: 60, name: 'MiCA Regulation', node_type: 'regulation', mention_count: 5, canonical_name: 'mica regulation' },
+            { id: 61, name: 'SEC Token Framework', node_type: 'regulation', mention_count: 4, canonical_name: 'sec token framework' },
+            // Topics
+            { id: 70, name: 'Web3 Gaming', node_type: 'topic', mention_count: 15, canonical_name: 'web3 gaming' },
+            { id: 71, name: 'AI in Game Dev', node_type: 'topic', mention_count: 10, canonical_name: 'ai game dev' },
+            { id: 72, name: 'Synthetic Reality', node_type: 'topic', mention_count: 7, canonical_name: 'synthetic reality' },
+        ];
+
+        const MOCK_EDGES = [
+            // BITKRAFT relationships
+            { id: 1, source_id: 1, target_id: 10, relationship: 'founded', weight: 3 },
+            { id: 2, source_id: 2, target_id: 10, relationship: 'partner at', weight: 2 },
+            { id: 3, source_id: 10, target_id: 14, relationship: 'invested in', weight: 2 },
+            { id: 4, source_id: 10, target_id: 15, relationship: 'invested in', weight: 1 },
+            { id: 5, source_id: 10, target_id: 16, relationship: 'invested in', weight: 1 },
+            { id: 6, source_id: 10, target_id: 70, relationship: 'focuses on', weight: 3 },
+            { id: 7, source_id: 20, target_id: 10, relationship: 'managed by', weight: 2 },
+            // Epic/Unreal
+            { id: 10, source_id: 3, target_id: 11, relationship: 'CEO of', weight: 3 },
+            { id: 11, source_id: 11, target_id: 30, relationship: 'develops', weight: 3 },
+            { id: 12, source_id: 30, target_id: 71, relationship: 'enables', weight: 2 },
+            { id: 13, source_id: 30, target_id: 72, relationship: 'powers', weight: 2 },
+            // Microsoft/Activision
+            { id: 20, source_id: 5, target_id: 12, relationship: 'CEO of', weight: 3 },
+            { id: 21, source_id: 7, target_id: 12, relationship: 'gaming lead at', weight: 2 },
+            { id: 22, source_id: 6, target_id: 13, relationship: 'ex-CEO of', weight: 2 },
+            { id: 23, source_id: 12, target_id: 13, relationship: 'acquired', weight: 3 },
+            { id: 24, source_id: 12, target_id: 51, relationship: 'buyer in', weight: 2 },
+            { id: 25, source_id: 13, target_id: 51, relationship: 'target in', weight: 2 },
+            // Crypto/Web3
+            { id: 30, source_id: 4, target_id: 42, relationship: 'co-created', weight: 3 },
+            { id: 31, source_id: 14, target_id: 40, relationship: 'issues', weight: 2 },
+            { id: 32, source_id: 15, target_id: 41, relationship: 'issues', weight: 2 },
+            { id: 33, source_id: 14, target_id: 50, relationship: 'raised', weight: 2 },
+            { id: 34, source_id: 21, target_id: 50, relationship: 'led round', weight: 2 },
+            { id: 35, source_id: 14, target_id: 70, relationship: 'builds for', weight: 2 },
+            { id: 36, source_id: 15, target_id: 70, relationship: 'builds for', weight: 2 },
+            { id: 37, source_id: 16, target_id: 70, relationship: 'builds for', weight: 2 },
+            { id: 38, source_id: 32, target_id: 42, relationship: 'L2 on', weight: 1, is_inferred: true },
+            // Regulation
+            { id: 40, source_id: 60, target_id: 40, relationship: 'may affect', weight: 1, is_inferred: true },
+            { id: 41, source_id: 61, target_id: 42, relationship: 'governs', weight: 1, is_inferred: true },
+            // Fund connections
+            { id: 50, source_id: 22, target_id: 14, relationship: 'invested in', weight: 2 },
+            { id: 51, source_id: 21, target_id: 16, relationship: 'invested in', weight: 1 },
+            // Tech
+            { id: 60, source_id: 31, target_id: 71, relationship: 'enables', weight: 2 },
+            { id: 61, source_id: 17, target_id: 31, relationship: 'uses', weight: 1 },
+        ];
+
+        const MOCK_STATS = {
+            total_nodes: MOCK_NODES.length,
+            total_edges: MOCK_EDGES.length,
+            total_communities: 4,
+            typeDistribution: [
+                { node_type: 'person', count: 7 },
+                { node_type: 'company', count: 8 },
+                { node_type: 'fund', count: 3 },
+                { node_type: 'technology', count: 3 },
+                { node_type: 'token', count: 3 },
+                { node_type: 'deal', count: 2 },
+                { node_type: 'regulation', count: 2 },
+                { node_type: 'topic', count: 3 },
+            ]
+        };
+
+        const MOCK_NEWSLETTERS = {
+            1: [
+                { title: 'BITKRAFT Weekly: Web3 Gaming Surge', excerpt: 'Jens Hilgers discusses BITKRAFT\'s latest gaming portfolio moves and the rise of on-chain gaming...' },
+                { title: 'GamesBeat: VC Funding Roundup Q1 2026', excerpt: 'BITKRAFT Ventures leads $45M round in emerging esports infrastructure...' },
+            ],
+            10: [
+                { title: 'BITKRAFT Weekly: Web3 Gaming Surge', excerpt: 'Portfolio update and thesis evolution for gaming x crypto convergence...' },
+                { title: 'The Generalist: Deep Dive on Gaming VCs', excerpt: 'BITKRAFT Ventures stands out with its pure gaming focus...' },
+                { title: 'Decrypt: Gaming Tokens Outlook', excerpt: 'Fund allocations shifting toward infrastructure tokens...' },
+            ],
+            4: [
+                { title: 'Bankless: Ethereum Roadmap 2026', excerpt: 'Vitalik Buterin outlines the next phase of Ethereum scaling...' },
+                { title: 'The Defiant: L2 Wars Heat Up', excerpt: 'zkSync and other L2s compete for gaming workloads...' },
+            ],
+            14: [
+                { title: 'Decrypt: Immutable Raises $200M', excerpt: 'Immutable closes massive Series C to scale Web3 gaming infrastructure...' },
+                { title: 'BITKRAFT Weekly: Portfolio Spotlight', excerpt: 'Immutable integration driving significant on-chain gaming adoption...' },
+            ],
+        };
+
+        const MOCK_CONNECTIONS = {
+            1: [
+                { id: 10, name: 'BITKRAFT Ventures', node_type: 'company', relationship: 'founded' },
+                { id: 70, name: 'Web3 Gaming', node_type: 'topic', relationship: 'focuses on' },
+            ],
+            10: [
+                { id: 1, name: 'Jens Hilgers', node_type: 'person', relationship: 'founded by' },
+                { id: 2, name: 'Moritz Baier-Lentz', node_type: 'person', relationship: 'partner' },
+                { id: 14, name: 'Immutable', node_type: 'company', relationship: 'invested in' },
+                { id: 15, name: 'Sky Mavis', node_type: 'company', relationship: 'invested in' },
+                { id: 16, name: 'Animoca Brands', node_type: 'company', relationship: 'invested in' },
+                { id: 70, name: 'Web3 Gaming', node_type: 'topic', relationship: 'focuses on' },
+                { id: 20, name: 'BITKRAFT Token Fund', node_type: 'fund', relationship: 'manages' },
+            ],
+            4: [
+                { id: 42, name: 'ETH', node_type: 'token', relationship: 'co-created' },
+            ],
+            14: [
+                { id: 40, name: 'IMX', node_type: 'token', relationship: 'issues' },
+                { id: 50, name: 'Immutable $200M Series C', node_type: 'deal', relationship: 'raised' },
+                { id: 70, name: 'Web3 Gaming', node_type: 'topic', relationship: 'builds for' },
+                { id: 10, name: 'BITKRAFT Ventures', node_type: 'company', relationship: 'backed by' },
+                { id: 22, name: 'Paradigm', node_type: 'fund', relationship: 'backed by' },
+            ],
+        };
+
+        // ============ COMPONENT ============
+        function KnowledgeGraphDemo() {
+            const { useState, useEffect, useRef, useCallback } = React;
+            const containerRef = useRef(null);
+            const networkRef = useRef(null);
+            const [language, setLanguage] = useState('en');
+
+            const [graphData, setGraphData] = useState(null);
+            const [stats, setStats] = useState(MOCK_STATS);
+            const [loading, setLoading] = useState(true);
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [nodeDetail, setNodeDetail] = useState(null);
+            const [nlQuery, setNlQuery] = useState('');
+            const [nlResult, setNlResult] = useState('');
+            const [querying, setQuerying] = useState(false);
+
+            const [filterTypes, setFilterTypes] = useState([]);
+            const [filterSearch, setFilterSearch] = useState('');
+            const [filterMinMentions, setFilterMinMentions] = useState(1);
+            const [showFilters, setShowFilters] = useState(false);
+
+            const t = language === 'es' ? {
+                title: 'Knowledge Graph',
+                loading: 'Cargando grafo...',
+                noData: 'Sin datos aún.',
+                entities: 'Entidades',
+                relationships: 'Relaciones',
+                communities: 'Comunidades',
+                filters: 'Filtros',
+                search: 'Buscar entidades...',
+                minMentions: 'Menciones mínimas',
+                close: 'Cerrar',
+                mentions: 'menciones',
+                firstSeen: 'Primera vez',
+                lastSeen: 'Última vez',
+                connections: 'Conexiones',
+                newsletters: 'Newsletters',
+                backfill: 'Analizar newsletters existentes',
+                askPlaceholder: '¿Quién ha invertido en empresas de gaming?',
+                ask: 'Preguntar',
+                deleteNode: 'Eliminar',
+            } : {
+                title: 'Knowledge Graph',
+                loading: 'Loading graph...',
+                noData: 'No data yet.',
+                entities: 'Entities',
+                relationships: 'Relationships',
+                communities: 'Communities',
+                filters: 'Filters',
+                search: 'Search entities...',
+                minMentions: 'Min mentions',
+                close: 'Close',
+                mentions: 'mentions',
+                firstSeen: 'First seen',
+                lastSeen: 'Last seen',
+                connections: 'Connections',
+                newsletters: 'Newsletters',
+                backfill: 'Analyze existing newsletters',
+                askPlaceholder: 'Who has invested in gaming companies?',
+                ask: 'Ask',
+                deleteNode: 'Delete',
+            };
+
+            const NODE_COLORS = {
+                person: '#00b894', company: '#74b9ff', fund: '#a29bfe', deal: '#fdcb6e',
+                technology: '#e17055', regulation: '#d63031', topic: '#636e72', event: '#e84393',
+                location: '#00cec9', token: '#f39c12', protocol: '#6c5ce7', dao: '#fd79a8',
+                chain: '#00b894', organization: '#0984e3', product: '#e17055'
+            };
+            const NODE_SHAPES = {
+                person: 'dot', company: 'diamond', fund: 'triangle', deal: 'star',
+                technology: 'square', regulation: 'triangleDown', topic: 'hexagon',
+                token: 'diamond', protocol: 'square', dao: 'triangle',
+            };
+
+            // Filter mock data
+            const getFilteredData = useCallback(() => {
+                let nodes = [...MOCK_NODES];
+                if (filterTypes.length) nodes = nodes.filter(n => filterTypes.includes(n.node_type));
+                if (filterSearch) nodes = nodes.filter(n => n.name.toLowerCase().includes(filterSearch.toLowerCase()));
+                if (filterMinMentions > 1) nodes = nodes.filter(n => n.mention_count >= filterMinMentions);
+                const nodeIds = new Set(nodes.map(n => n.id));
+                const edges = MOCK_EDGES.filter(e => nodeIds.has(e.source_id) && nodeIds.has(e.target_id));
+                return { nodes, edges };
+            }, [filterTypes, filterSearch, filterMinMentions]);
+
+            useEffect(() => {
+                setTimeout(() => {
+                    setGraphData(getFilteredData());
+                    setLoading(false);
+                }, 800);
+            }, []);
+
+            useEffect(() => {
+                if (!loading) setGraphData(getFilteredData());
+            }, [filterTypes, filterSearch, filterMinMentions]);
+
+            // vis.js network
+            useEffect(() => {
+                if (!graphData || !containerRef.current || !graphData.nodes.length) return;
+
+                const nodes = new vis.DataSet(graphData.nodes.map(n => ({
+                    id: n.id,
+                    label: n.name,
+                    color: { background: NODE_COLORS[n.node_type] || '#636e72', border: 'transparent',
+                             highlight: { background: NODE_COLORS[n.node_type] || '#636e72', border: '#2BBCC0' } },
+                    shape: NODE_SHAPES[n.node_type] || 'dot',
+                    size: Math.min(10 + n.mention_count * 3, 40),
+                    font: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#000', size: 12, face: 'Instrument Sans' },
+                    title: `${n.name} (${n.node_type}) — ${n.mention_count} ${t.mentions}`,
+                    borderWidth: 0, borderWidthSelected: 2,
+                })));
+
+                const edges = new vis.DataSet(graphData.edges.map(e => ({
+                    id: e.id, from: e.source_id, to: e.target_id,
+                    label: e.relationship || '',
+                    color: { color: 'rgba(150,150,150,0.4)', highlight: '#2BBCC0' },
+                    font: { size: 9, color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#767676', strokeWidth: 0 },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                    smooth: { type: 'continuous' },
+                    dashes: e.is_inferred ? [5, 5] : false,
+                    width: Math.min(1 + (e.weight || 1) * 0.5, 4),
+                })));
+
+                const options = {
+                    physics: {
+                        solver: 'forceAtlas2Based',
+                        forceAtlas2Based: { gravitationalConstant: -50, centralGravity: 0.005, springLength: 140, springConstant: 0.04, damping: 0.4 },
+                        stabilization: { iterations: 200, fit: true },
+                        maxVelocity: 30,
+                    },
+                    interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true, keyboard: { enabled: true } },
+                    layout: { improvedLayout: true },
+                };
+
+                if (networkRef.current) networkRef.current.destroy();
+                const network = new vis.Network(containerRef.current, { nodes, edges }, options);
+                networkRef.current = network;
+
+                network.on('click', (params) => {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0];
+                        const node = MOCK_NODES.find(n => n.id === nodeId);
+                        setSelectedNode(nodeId);
+                        setNodeDetail({
+                            node: { ...node, first_seen: '2026-01-15T10:00:00Z', last_seen: '2026-04-05T14:30:00Z' },
+                            connections: MOCK_CONNECTIONS[nodeId] || [],
+                            newsletters: MOCK_NEWSLETTERS[nodeId] || [],
+                        });
+                    } else {
+                        setSelectedNode(null);
+                        setNodeDetail(null);
+                    }
+                });
+
+                network.once('stabilizationIterationsDone', () => {
+                    network.setOptions({ physics: { enabled: false } });
+                });
+
+                return () => { if (networkRef.current) networkRef.current.destroy(); };
+            }, [graphData]);
+
+            const focusNode = (nodeId) => {
+                if (networkRef.current) {
+                    networkRef.current.focus(nodeId, { scale: 1.5, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+                    networkRef.current.selectNodes([nodeId]);
+                    // Also load detail
+                    const node = MOCK_NODES.find(n => n.id === nodeId);
+                    if (node) {
+                        setSelectedNode(nodeId);
+                        setNodeDetail({
+                            node: { ...node, first_seen: '2026-01-15T10:00:00Z', last_seen: '2026-04-05T14:30:00Z' },
+                            connections: MOCK_CONNECTIONS[nodeId] || [],
+                            newsletters: MOCK_NEWSLETTERS[nodeId] || [],
+                        });
+                    }
+                }
+            };
+
+            const handleNlQuery = () => {
+                if (!nlQuery.trim()) return;
+                setQuerying(true);
+                setNlResult('');
+                setTimeout(() => {
+                    if (nlQuery.toLowerCase().includes('gaming') || nlQuery.toLowerCase().includes('invest')) {
+                        setNlResult('Based on your knowledge graph, BITKRAFT Ventures has invested in Immutable, Sky Mavis, and Animoca Brands — all Web3 gaming companies. a16z Crypto also invested in Animoca Brands, while Paradigm backed Immutable\'s $200M Series C alongside a16z Crypto. The Web3 Gaming topic connects 6 entities in your graph, making it the densest cluster.');
+                    } else if (nlQuery.toLowerCase().includes('ethereum') || nlQuery.toLowerCase().includes('eth')) {
+                        setNlResult('Vitalik Buterin co-created ETH, which is governed by the SEC Token Framework. zkSync operates as an L2 on Ethereum. The MiCA Regulation may affect the IMX token issued by Immutable. Your graph shows 3 tokens (ETH, IMX, RON) with 25 total mentions.');
+                    } else {
+                        setNlResult('Your knowledge graph contains 31 entities across 8 types, with 34 relationships. The densest clusters are around BITKRAFT Ventures (7 connections), Web3 Gaming (6 connections), and the Microsoft-Activision deal (4 connections). Try asking about specific companies, people, or topics for deeper insights.');
+                    }
+                    setQuerying(false);
+                }, 1500);
+            };
+
+            const entityTypes = MOCK_STATS.typeDistribution.map(td => td.node_type);
+            const toggleTypeFilter = (type) => {
+                setFilterTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+            };
+
+            return (
+                <div style={{width: '100vw', height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)'}}>
+                    {/* Header */}
+                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg-secondary)'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                            <LucideIcon name="network" size={20} />
+                            <h2 style={{margin: 0, fontSize: 18, fontWeight: 600}}>{t.title}</h2>
+                            <div style={{display: 'flex', gap: 12, marginLeft: 16, fontSize: 12, color: 'var(--text-secondary)'}}>
+                                <span>{stats.total_nodes} {t.entities}</span>
+                                <span>{stats.total_edges} {t.relationships}</span>
+                                <span>{stats.total_communities} {t.communities}</span>
+                            </div>
+                        </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                            <button className="btn btn-small" onClick={() => setShowFilters(!showFilters)} style={{background: showFilters ? 'var(--accent-bg)' : undefined}}>
+                                <LucideIcon name="sliders-horizontal" size={14} />
+                                <span style={{marginLeft: 4}}>{t.filters}</span>
+                            </button>
+                            <button className="btn btn-small" onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}>
+                                {language === 'en' ? 'ES' : 'EN'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Filters bar */}
+                    {showFilters && (
+                        <div style={{padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flexShrink: 0}}>
+                            <input type="text" className="form-input" placeholder={t.search} value={filterSearch}
+                                onChange={e => setFilterSearch(e.target.value)}
+                                style={{width: 200, padding: '6px 10px', fontSize: 13}} />
+                            <div style={{display: 'flex', gap: 4, flexWrap: 'wrap'}}>
+                                {entityTypes.map(type => (
+                                    <button key={type} className={`btn btn-small ${filterTypes.includes(type) ? 'btn-primary' : ''}`}
+                                        onClick={() => toggleTypeFilter(type)}
+                                        style={{fontSize: 11, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4}}>
+                                        <span style={{width: 8, height: 8, borderRadius: '50%', background: NODE_COLORS[type] || '#636e72', display: 'inline-block'}} />
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)'}}>
+                                <span>{t.minMentions}:</span>
+                                <input type="range" min="1" max="20" value={filterMinMentions}
+                                    onChange={e => setFilterMinMentions(parseInt(e.target.value))} style={{width: 80}} />
+                                <span style={{minWidth: 16, fontWeight: 600}}>{filterMinMentions}</span>
+                            </div>
+                            {(filterTypes.length > 0 || filterSearch || filterMinMentions > 1) && (
+                                <button className="btn btn-small" onClick={() => { setFilterTypes([]); setFilterSearch(''); setFilterMinMentions(1); }}
+                                    style={{color: '#d63031', borderColor: '#d63031'}}>
+                                    Clear filters
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Main content */}
+                    <div style={{flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0}}>
+                        {/* Graph canvas */}
+                        <div style={{flex: 1, position: 'relative', background: 'var(--bg-primary)'}}>
+                            {loading ? (
+                                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)'}}>
+                                    <LucideIcon name="loader" size={24} /> <span style={{marginLeft: 8}}>{t.loading}</span>
+                                </div>
+                            ) : (
+                                <div ref={containerRef} style={{width: '100%', height: '100%'}} />
+                            )}
+
+                            {/* Legend */}
+                            {!loading && (
+                                <div style={{position: 'absolute', bottom: 12, left: 12, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 11, display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 450, boxShadow: '0 2px 8px var(--shadow)'}}>
+                                    {entityTypes.map(type => (
+                                        <span key={type} style={{display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', opacity: filterTypes.length && !filterTypes.includes(type) ? 0.4 : 1}}
+                                            onClick={() => toggleTypeFilter(type)}>
+                                            <span style={{width: 8, height: 8, borderRadius: '50%', background: NODE_COLORS[type] || '#636e72'}} />
+                                            {type}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Hint */}
+                            {!loading && !selectedNode && (
+                                <div style={{position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: 'var(--text-muted)', boxShadow: '0 2px 8px var(--shadow)', pointerEvents: 'none'}}>
+                                    {language === 'es' ? 'Haz clic en un nodo para ver detalles' : 'Click a node to see details'}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Detail panel */}
+                        {nodeDetail && (
+                            <div style={{width: 320, borderLeft: '1px solid var(--border)', overflowY: 'auto', padding: 16, flexShrink: 0, background: 'var(--bg-secondary)'}}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12}}>
+                                    <div>
+                                        <h3 style={{margin: 0, fontSize: 16, wordBreak: 'break-word'}}>{nodeDetail.node?.name}</h3>
+                                        <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 4}}>
+                                            <span style={{width: 10, height: 10, borderRadius: '50%', background: NODE_COLORS[nodeDetail.node?.node_type] || '#636e72'}} />
+                                            <span style={{fontSize: 12, color: 'var(--text-secondary)', textTransform: 'capitalize'}}>{nodeDetail.node?.node_type}</span>
+                                        </div>
+                                    </div>
+                                    <button className="btn btn-small" onClick={() => { setSelectedNode(null); setNodeDetail(null); }} style={{padding: '4px 6px'}}>
+                                        <LucideIcon name="x" size={14} />
+                                    </button>
+                                </div>
+
+                                <div style={{fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16}}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                        <span>{t.mentions}</span>
+                                        <span style={{fontWeight: 600}}>{nodeDetail.node?.mention_count}</span>
+                                    </div>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                        <span>{t.firstSeen}</span>
+                                        <span>{new Date(nodeDetail.node.first_seen).toLocaleDateString()}</span>
+                                    </div>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                        <span>{t.lastSeen}</span>
+                                        <span>{new Date(nodeDetail.node.last_seen).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+
+                                {nodeDetail.connections?.length > 0 && (
+                                    <div style={{marginBottom: 16}}>
+                                        <h4 style={{fontSize: 13, marginBottom: 8}}>{t.connections} ({nodeDetail.connections.length})</h4>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+                                            {nodeDetail.connections.map((conn, i) => (
+                                                <div key={i} style={{display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', background: 'var(--bg-card)', borderRadius: 6, fontSize: 12, cursor: 'pointer'}}
+                                                    onClick={() => focusNode(conn.id)}>
+                                                    <span style={{width: 8, height: 8, borderRadius: '50%', background: NODE_COLORS[conn.node_type] || '#636e72'}} />
+                                                    <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{conn.name}</span>
+                                                    <span style={{color: 'var(--text-muted)', fontSize: 10, flexShrink: 0}}>{conn.relationship}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {nodeDetail.newsletters?.length > 0 && (
+                                    <div style={{marginBottom: 16}}>
+                                        <h4 style={{fontSize: 13, marginBottom: 8}}>{t.newsletters} ({nodeDetail.newsletters.length})</h4>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+                                            {nodeDetail.newsletters.map((nl, i) => (
+                                                <div key={i} style={{padding: '6px 8px', background: 'var(--bg-card)', borderRadius: 6, fontSize: 12}}>
+                                                    <div style={{fontWeight: 500}}>{nl.title}</div>
+                                                    <div style={{color: 'var(--text-muted)', marginTop: 2, fontSize: 11}}>{nl.excerpt}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{display: 'flex', gap: 6, marginTop: 8}}>
+                                    <button className="btn btn-small" style={{flex: 1, color: '#d63031', borderColor: '#d63031', opacity: 0.6}} disabled>
+                                        <LucideIcon name="trash-2" size={12} />
+                                        <span style={{marginLeft: 4}}>{t.deleteNode}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* NL Query bar */}
+                    <div style={{padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)', flexShrink: 0}}>
+                        <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+                            <LucideIcon name="sparkles" size={16} style={{color: '#2BBCC0', flexShrink: 0}} />
+                            <input type="text" className="form-input" placeholder={t.askPlaceholder} value={nlQuery}
+                                onChange={e => setNlQuery(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleNlQuery()}
+                                style={{flex: 1, padding: '6px 10px', fontSize: 13}} />
+                            <button className="btn btn-primary btn-small" onClick={handleNlQuery} disabled={querying || !nlQuery.trim()}>
+                                {querying ? '...' : t.ask}
+                            </button>
+                        </div>
+                        {nlResult && (
+                            <div style={{marginTop: 8, padding: '10px 12px', background: 'var(--bg-card)', borderRadius: 8, fontSize: 13, lineHeight: 1.5, color: 'var(--text-body)', maxHeight: 120, overflowY: 'auto'}}>
+                                {nlResult}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<KnowledgeGraphDemo />, document.getElementById('root'));
+    </script>
+</body>
+</html>
