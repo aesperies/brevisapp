@@ -2754,9 +2754,9 @@
                         method: 'POST'
                     });
                     const data = await res.json();
-                    setNewsletters(newsletters.map(n => n.id === id ? { ...n, summary: data.summary } : n));
+                    setNewsletters(newsletters.map(n => n.id === id ? { ...n, summary: data.summary, summary_language: language } : n));
                     if (readingNewsletter?.id === id) {
-                        setReadingNewsletter({...readingNewsletter, summary: data.summary});
+                        setReadingNewsletter({...readingNewsletter, summary: data.summary, summary_language: language});
                     }
                 } catch (e) {
                     if (e.status === 403) {
@@ -2770,6 +2770,13 @@
                     setGeneratingSummary(prev => ({...prev, [id]: false}));
                 }
             };
+
+            // Auto-regenerate summary for the currently-open newsletter when language changes
+            useEffect(() => {
+                if (readingNewsletter?.summary && readingNewsletter.summary_language !== language) {
+                    generateSummary(readingNewsletter.id);
+                }
+            }, [language]);
 
             const generateBrief = async () => {
                 if (selectedNewsletters.length === 0) return;
@@ -3425,7 +3432,7 @@
                                                 {newsletter.sender} — {new Date(newsletter.date_added).toLocaleDateString()}
                                             </div>
                                             <div className="newsletter-content">{stripHtml(newsletter.content)}</div>
-                                            {newsletter.summary && (
+                                            {newsletter.summary && newsletter.summary_language === language && (
                                                 <div className="summary-box" style={{marginTop: '8px'}}>
                                                     <div className="summary-header" onClick={() => toggleSummaryCollapse(newsletter.id)}>
                                                         <span className="summary-label">{translations.newsletter.summary}</span>
@@ -3440,10 +3447,10 @@
                                             )}
                                         </div>
                                         <div className="newsletter-card-actions">
-                                            {!newsletter.summary && (user.plan === 'pro' || user.plan === 'standard' || user.plan === 'premium') && (
+                                            {(!newsletter.summary || newsletter.summary_language !== language) && (user.plan === 'pro' || user.plan === 'standard' || user.plan === 'premium') && (
                                                 <button className="btn btn-small" onClick={() => generateSummary(newsletter.id)}
                                                     disabled={generatingSummary[newsletter.id]}>
-                                                    {generatingSummary[newsletter.id] ? <><span className="loading-spinner"></span> {language === 'es' ? 'Generando...' : 'Generating...'}</> : translations.newsletter.summary}
+                                                    {generatingSummary[newsletter.id] ? <><span className="loading-spinner"></span> {language === 'es' ? 'Generando...' : 'Generating...'}</> : (newsletter.summary && newsletter.summary_language !== language ? (language === 'es' ? 'Traducir' : 'Translate') : translations.newsletter.summary)}
                                                 </button>
                                             )}
                                             <div style={{position: 'relative'}} onClick={(e) => e.stopPropagation()}>
@@ -4087,10 +4094,10 @@
                     <div className="reader-header">
                         <div className="reader-header-title">{cleanTitle(newsletter.title)}</div>
                         <div className="reader-header-actions">
-                            {!newsletter.summary && (user.plan === 'pro' || user.plan === 'premium') && (
+                            {(!newsletter.summary || newsletter.summary_language !== language) && (user.plan === 'pro' || user.plan === 'standard' || user.plan === 'premium') && (
                                 <button className="btn btn-small" onClick={onGenerateSummary} disabled={generatingSummary}>
                                     {generatingSummary ? <span className="loading-spinner"></span> : <LucideIcon name="sparkles" size={14} />}
-                                    {' '}{generatingSummary ? (language === 'es' ? 'Generando...' : 'Generating...') : translations.newsletter.summary}
+                                    {' '}{generatingSummary ? (language === 'es' ? 'Generando...' : 'Generating...') : (newsletter.summary && newsletter.summary_language !== language ? (language === 'es' ? 'Traducir' : 'Translate') : translations.newsletter.summary)}
                                 </button>
                             )}
                             <button className="btn btn-small" onClick={onToggleRead}>
@@ -4112,7 +4119,7 @@
                             <h1>{cleanTitle(newsletter.title)}</h1>
                             <div><strong>{newsletter.sender}</strong> — {new Date(newsletter.date_added).toLocaleDateString()}</div>
                         </div>
-                        {newsletter.summary && (
+                        {newsletter.summary && newsletter.summary_language === language && (
                             <div className="reader-summary">
                                 <div className="summary-header" onClick={() => toggleSummaryCollapse('reader-' + newsletter.id)}>
                                     <span className="summary-label">{translations.newsletter.summary}</span>
