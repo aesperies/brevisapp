@@ -244,13 +244,24 @@ export async function getGraphData(userId, filters = {}) {
     const {
         nodeTypes, communityId, search, dateFrom, dateTo,
         relationships, minMentions, includeInferred = true,
-        limit = 500
+        limit = 500, tagIds
     } = filters;
 
     // Build node query with optional filters
     let nodeQuery = `SELECT * FROM graph_nodes WHERE user_id = $1`;
     const nodeParams = [userId];
     let paramIdx = 2;
+
+    // Filter by tag: only include entities found in newsletters with these tags
+    if (tagIds && tagIds.length) {
+        nodeQuery += ` AND id IN (
+            SELECT DISTINCT ne.node_id FROM newsletter_entities ne
+            JOIN newsletter_tags nt ON nt.newsletter_id = ne.newsletter_id
+            WHERE nt.tag_id = ANY($${paramIdx})
+        )`;
+        nodeParams.push(tagIds);
+        paramIdx++;
+    }
 
     if (nodeTypes && nodeTypes.length) {
         nodeQuery += ` AND node_type = ANY($${paramIdx})`;
@@ -371,40 +382,50 @@ export async function getEntityDetail(userId, nodeId) {
 /**
  * Get graph statistics for a user.
  */
-export async function getGraphStats(userId) {
+export async function getGraphStats(userId, tagIds = null) {
     const db = getDb();
+
+    // When filtering by tags, scope all stats to entities from tagged newsletters
+    const tagFilter = tagIds && tagIds.length
+        ? ` AND id IN (SELECT DISTINCT ne.node_id FROM newsletter_entities ne JOIN newsletter_tags nt ON nt.newsletter_id = ne.newsletter_id WHERE nt.tag_id = ANY($2))`
+        : '';
+    const tagEdgeFilter = tagIds && tagIds.length
+        ? ` AND source_id IN (SELECT DISTINCT ne.node_id FROM newsletter_entities ne JOIN newsletter_tags nt ON nt.newsletter_id = ne.newsletter_id WHERE nt.tag_id = ANY($2))
+           AND target_id IN (SELECT DISTINCT ne.node_id FROM newsletter_entities ne JOIN newsletter_tags nt ON nt.newsletter_id = ne.newsletter_id WHERE nt.tag_id = ANY($2))`
+        : '';
+    const statsParams = tagIds && tagIds.length ? [userId, tagIds] : [userId];
 
     const stats = await db.query(
         `SELECT
-            (SELECT COUNT(*) FROM graph_nodes WHERE user_id = $1) as total_nodes,
-            (SELECT COUNT(*) FROM graph_edges WHERE user_id = $1) as total_edges,
-            (SELECT COUNT(DISTINCT community_id) FROM graph_nodes WHERE user_id = $1 AND community_id IS NOT NULL) as total_communities,
-            (SELECT COUNT(DISTINCT newsletter_id) FROM newsletter_entities ne JOIN newsletters n ON n.id = ne.newsletter_id WHERE n.user_id = $1) as newsletters_with_entities`,
-        [userId]
+            (SELECT COUNT(*) FROM graph_nodes WHERE user_id = $1${tagFilter}) as total_nodes,
+            (SELECT COUNT(*) FROM graph_edges WHERE user_id = $1${tagEdgeFilter}) as total_edges,
+            (SELECT COUNT(DISTINCT community_id) FROM graph_nodes WHERE user_id = $1 AND community_id IS NOT NULL${tagFilter}) as total_communities,
+            (SELECT COUNT(DISTINCT newsletter_id) FROM newsletter_entities ne JOIN newsletters n ON n.id = ne.newsletter_id WHERE n.user_id = $1${tagIds && tagIds.length ? ` AND ne.newsletter_id IN (SELECT newsletter_id FROM newsletter_tags WHERE tag_id = ANY($2))` : ''}) as newsletters_with_entities`,
+        statsParams
     );
 
     // Top entities by mention count
     const topEntities = await db.query(
         `SELECT name, node_type, mention_count, centrality
-         FROM graph_nodes WHERE user_id = $1
+         FROM graph_nodes WHERE user_id = $1${tagFilter}
          ORDER BY mention_count DESC LIMIT 10`,
-        [userId]
+        statsParams
     );
 
     // Entity type distribution
     const typeDistribution = await db.query(
         `SELECT node_type, COUNT(*) as count
-         FROM graph_nodes WHERE user_id = $1
+         FROM graph_nodes WHERE user_id = $1${tagFilter}
          GROUP BY node_type ORDER BY count DESC`,
-        [userId]
+        statsParams
     );
 
     // Top relationships
     const topRelationships = await db.query(
         `SELECT relationship, COUNT(*) as count
-         FROM graph_edges WHERE user_id = $1
+         FROM graph_edges WHERE user_id = $1${tagEdgeFilter}
          GROUP BY relationship ORDER BY count DESC LIMIT 10`,
-        [userId]
+        statsParams
     );
 
     return {

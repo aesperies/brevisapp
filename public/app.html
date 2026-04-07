@@ -3696,6 +3696,7 @@
                             API_URL={API_URL}
                             user={user}
                             showToast={showToast}
+                            tags={tags}
                         />
                     )}
 
@@ -4530,7 +4531,7 @@
             );
         }
 
-        function KnowledgeGraph({ onClose, language, API_URL, user, showToast }) {
+        function KnowledgeGraph({ onClose, language, API_URL, user, showToast, tags: availableTags = [] }) {
             const { useState, useEffect, useRef, useCallback } = React;
             const containerRef = useRef(null);
             const networkRef = useRef(null);
@@ -4551,6 +4552,7 @@
             const [filterTypes, setFilterTypes] = useState([]);
             const [filterSearch, setFilterSearch] = useState('');
             const [filterMinMentions, setFilterMinMentions] = useState(1);
+            const [filterTagIds, setFilterTagIds] = useState([]);
             const [showFilters, setShowFilters] = useState(false);
 
             const t = language === 'es' ? {
@@ -4587,6 +4589,8 @@
                 mergeNodes: 'Fusionar',
                 deleteNode: 'Eliminar',
                 viewInGraph: 'Ver en grafo',
+                allTags: 'Todas las etiquetas',
+                filterByTag: 'Filtrar por etiqueta',
             } : {
                 title: 'Knowledge Graph',
                 loading: 'Loading graph...',
@@ -4621,6 +4625,8 @@
                 mergeNodes: 'Merge',
                 deleteNode: 'Delete',
                 viewInGraph: 'View in graph',
+                allTags: 'All tags',
+                filterByTag: 'Filter by tag',
             };
 
             const NODE_COLORS = {
@@ -4655,21 +4661,24 @@
                     if (filterTypes.length) params.set('types', filterTypes.join(','));
                     if (filterSearch) params.set('search', filterSearch);
                     if (filterMinMentions > 1) params.set('minMentions', filterMinMentions);
+                    if (filterTagIds.length) params.set('tags', filterTagIds.join(','));
                     const data = await gFetch(`/data?${params}`);
                     setGraphData(data);
                 } catch (err) {
                     console.error('Graph fetch error:', err);
                 }
-            }, [gFetch, filterTypes, filterSearch, filterMinMentions]);
+            }, [gFetch, filterTypes, filterSearch, filterMinMentions, filterTagIds]);
 
             const fetchStats = useCallback(async () => {
                 try {
-                    const data = await gFetch('/stats');
+                    const params = new URLSearchParams();
+                    if (filterTagIds.length) params.set('tags', filterTagIds.join(','));
+                    const data = await gFetch(`/stats?${params}`);
                     setStats(data);
                 } catch (err) {
                     console.error('Stats fetch error:', err);
                 }
-            }, [gFetch]);
+            }, [gFetch, filterTagIds]);
 
             // Initial load
             useEffect(() => {
@@ -4677,10 +4686,13 @@
                     .finally(() => setLoading(false));
             }, []);
 
-            // Re-fetch graph on filter change
+            // Re-fetch graph + stats on filter change
             useEffect(() => {
-                if (!loading) fetchGraph();
-            }, [filterTypes, filterSearch, filterMinMentions]);
+                if (!loading) {
+                    fetchGraph();
+                    fetchStats();
+                }
+            }, [filterTypes, filterSearch, filterMinMentions, filterTagIds]);
 
             // Initialize vis.js network when graph data arrives
             useEffect(() => {
@@ -4820,6 +4832,18 @@
                             <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
                                 <LucideIcon name="network" size={20} />
                                 <h2 style={{margin: 0, fontSize: 18}}>{t.title}</h2>
+                                {filterTagIds.length > 0 && (
+                                    <div style={{display: 'flex', gap: 4, marginLeft: 4}}>
+                                        {filterTagIds.map(tid => {
+                                            const tag = availableTags.find(t => t.id === tid);
+                                            return tag ? (
+                                                <span key={tid} style={{fontSize: 11, padding: '2px 8px', borderRadius: 12, background: tag.color + '22', color: tag.color, border: `1px solid ${tag.color}44`, fontWeight: 500}}>
+                                                    {tag.name}
+                                                </span>
+                                            ) : null;
+                                        })}
+                                    </div>
+                                )}
                                 {stats && (
                                     <div style={{display: 'flex', gap: 12, marginLeft: 16, fontSize: 12, color: 'var(--text-secondary)'}}>
                                         <span>{stats.total_nodes || 0} {t.entities}</span>
@@ -4844,6 +4868,28 @@
                         {/* Filters bar */}
                         {showFilters && (
                             <div style={{padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flexShrink: 0}}>
+                                {/* Tag filter */}
+                                {availableTags.length > 0 && (
+                                    <div style={{display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center'}}>
+                                        <span style={{fontSize: 11, color: 'var(--text-secondary)', marginRight: 2}}><LucideIcon name="tag" size={12} /></span>
+                                        <button className={`btn btn-small ${filterTagIds.length === 0 ? 'btn-primary' : ''}`}
+                                            onClick={() => setFilterTagIds([])}
+                                            style={{fontSize: 11, padding: '3px 8px'}}>
+                                            {t.allTags}
+                                        </button>
+                                        {availableTags.map(tag => (
+                                            <button key={tag.id} className={`btn btn-small ${filterTagIds.includes(tag.id) ? 'btn-primary' : ''}`}
+                                                onClick={() => setFilterTagIds(prev =>
+                                                    prev.includes(tag.id) ? prev.filter(id => id !== tag.id) : [...prev, tag.id]
+                                                )}
+                                                style={{fontSize: 11, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4}}>
+                                                <span style={{width: 8, height: 8, borderRadius: '50%', background: tag.color || '#636e72', display: 'inline-block'}} />
+                                                {tag.name}
+                                            </button>
+                                        ))}
+                                        <span style={{width: 1, height: 16, background: 'var(--border)', margin: '0 4px'}} />
+                                    </div>
+                                )}
                                 <input type="text" className="form-input" placeholder={t.search} value={filterSearch}
                                     onChange={e => setFilterSearch(e.target.value)}
                                     style={{width: 200, padding: '6px 10px', fontSize: 13}} />

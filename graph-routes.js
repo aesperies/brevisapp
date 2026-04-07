@@ -112,7 +112,8 @@ export function createGraphRouter() {
     // --- Graph Stats ---
     router.get('/stats', graphReadLimiter, async (req, res) => {
         try {
-            const stats = await getGraphStats(req.user.id);
+            const tagIds = req.query.tags ? req.query.tags.split(',').map(Number).filter(n => !isNaN(n)) : null;
+            const stats = await getGraphStats(req.user.id, tagIds);
             res.json(stats);
         } catch (error) {
             console.error('📊 [Graph API] Stats error:', error.message);
@@ -132,7 +133,8 @@ export function createGraphRouter() {
                 relationships: req.query.relationships ? req.query.relationships.split(',') : null,
                 minMentions: req.query.minMentions ? parseInt(req.query.minMentions) : null,
                 includeInferred: req.query.includeInferred !== 'false',
-                limit: Math.min(parseInt(req.query.limit) || 500, 1000)
+                limit: Math.min(parseInt(req.query.limit) || 500, 1000),
+                tagIds: req.query.tags ? req.query.tags.split(',').map(Number).filter(n => !isNaN(n)) : null
             };
 
             const data = await getGraphData(req.user.id, filters);
