@@ -26,7 +26,7 @@ export function verifyToken(token) {
  * Pass a getTokenVersion(userId) async function that returns the current token_version for the user.
  * This ensures that after a password reset, all previously issued JWTs are immediately invalidated.
  */
-export function makeAuthMiddleware(getTokenVersion) {
+export function makeAuthMiddleware(getUserData) {
     return async function authMiddleware(req, res, next) {
         const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
 
@@ -40,17 +40,24 @@ export function makeAuthMiddleware(getTokenVersion) {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
-        // Validate token_version to catch password-reset token invalidation
+        // Validate token_version and enrich req.user with live DB fields (plan, language, etc.)
         try {
-            const currentVersion = await getTokenVersion(decoded.id);
+            const userData = await getUserData(decoded.id);
+            const currentVersion = typeof userData === 'object' ? (userData.token_version ?? 0) : (userData ?? 0);
             if ((decoded.tv ?? 0) !== currentVersion) {
                 return res.status(401).json({ error: 'Session expired. Please log in again.' });
             }
+            // Merge live DB fields into req.user so plan/language are always current
+            if (typeof userData === 'object') {
+                req.user = { ...decoded, ...userData };
+            } else {
+                req.user = decoded;
+            }
         } catch {
             // If DB check fails, allow the request through (fail-open to avoid total outage)
+            req.user = decoded;
         }
 
-        req.user = decoded;
         next();
     };
 }

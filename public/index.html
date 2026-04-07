@@ -135,11 +135,9 @@
             document.querySelectorAll('[data-es][data-en]').forEach(el => {
                 const text = el.getAttribute(`data-${lang}`);
                 if (text) {
-                    // Check if element contains HTML (encoded as &lt; &gt; etc)
-                    if (text.includes('&lt;') || text.includes('&gt;')) {
-                        // Decode HTML entities
-                        const decoded = text.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-                        el.innerHTML = decoded;
+                    // getAttribute returns decoded text, so check for actual HTML tags
+                    if (text.includes('<')) {
+                        el.innerHTML = text;
                     } else {
                         el.textContent = text;
                     }
@@ -1925,11 +1923,9 @@
             document.querySelectorAll('[data-es][data-en]').forEach(el => {
                 const text = el.getAttribute(`data-${lang}`);
                 if (text) {
-                    // Check if element contains HTML (encoded as &lt; &gt; etc)
-                    if (text.includes('&lt;') || text.includes('&gt;')) {
-                        // Decode HTML entities
-                        const decoded = text.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-                        el.innerHTML = decoded;
+                    // getAttribute returns decoded text, so check for actual HTML tags
+                    if (text.includes('<')) {
+                        el.innerHTML = text;
                     } else {
                         el.textContent = text;
                     }
