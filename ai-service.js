@@ -498,13 +498,29 @@ Respond ONLY with valid JSON, no additional text, in this exact format:
             messages: [{ role: 'user', content: prompts[language] || prompts.en }]
         }, 120000);
 
-        // Parse JSON response
+        // Parse JSON response — strip markdown code fences if present
         let parsed;
         try {
-            parsed = JSON.parse(response);
+            let jsonStr = response.trim();
+            // Remove ```json ... ``` or ``` ... ``` wrappers
+            if (jsonStr.startsWith('```')) {
+                jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+            }
+            parsed = JSON.parse(jsonStr);
         } catch (e) {
-            console.error('Failed to parse knowledge base compilation response as JSON');
-            throw new Error('Invalid JSON response from knowledge base compilation');
+            // Last resort: try to find JSON object in the response
+            const match = response.match(/\{[\s\S]*"articles"[\s\S]*\}/);
+            if (match) {
+                try {
+                    parsed = JSON.parse(match[0]);
+                } catch (e2) {
+                    console.error('Failed to parse knowledge base compilation response as JSON:', response.substring(0, 500));
+                    throw new Error('Invalid JSON response from knowledge base compilation');
+                }
+            } else {
+                console.error('Failed to parse knowledge base compilation response as JSON:', response.substring(0, 500));
+                throw new Error('Invalid JSON response from knowledge base compilation');
+            }
         }
 
         // Validate structure
