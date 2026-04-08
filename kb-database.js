@@ -286,11 +286,12 @@ export async function markQAFiledBack(qaId) {
 export async function getKBSourceData(userId, tagId) {
     const db = getPool();
     const result = await db.query(`
-        SELECT DISTINCT
+        SELECT
             n.id,
             n.title,
             n.summary,
             n.summary_language,
+            n.date_added,
             json_agg(DISTINCT jsonb_build_object(
                 'id', gn.id,
                 'name', gn.name,
@@ -302,7 +303,7 @@ export async function getKBSourceData(userId, tagId) {
         LEFT JOIN newsletter_entities ne ON n.id = ne.newsletter_id
         LEFT JOIN graph_nodes gn ON ne.node_id = gn.id
         WHERE n.user_id = $1 AND nt.tag_id = $2
-        GROUP BY n.id, n.title, n.summary, n.summary_language
+        GROUP BY n.id, n.title, n.summary, n.summary_language, n.date_added
         ORDER BY n.date_added DESC
     `, [userId, tagId]);
     return result.rows;
