@@ -54,9 +54,9 @@ export async function setupGraphTables(pool) {
             );
 
             -- Unique constraint for race-safe ON CONFLICT upsert in entity resolution
-            ALTER TABLE graph_nodes
-                ADD CONSTRAINT graph_nodes_user_canonical_type
-                UNIQUE (user_id, canonical_name, node_type);
+            -- Use DO NOTHING to skip if constraint already exists
+            CREATE UNIQUE INDEX IF NOT EXISTS graph_nodes_user_canonical_type
+                ON graph_nodes (user_id, canonical_name, node_type);
 
             CREATE INDEX IF NOT EXISTS idx_graph_nodes_user ON graph_nodes(user_id);
             CREATE INDEX IF NOT EXISTS idx_graph_nodes_type ON graph_nodes(user_id, node_type);
