@@ -1801,7 +1801,7 @@
         }
 
         function App() {
-            const [hasAccess, setHasAccess] = useState(localStorage.getItem('brevis_access') === 'true');
+            const [hasAccess, setHasAccess] = useState(true);
             const [language, setLanguage] = useState('es');
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);

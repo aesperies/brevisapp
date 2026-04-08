@@ -196,12 +196,12 @@ export async function insertArticles(kbId, articles) {
 
     const flatParams = articles.flatMap(article => [
         kbId,
-        article.article_type,
+        article.article_type || article.type || 'concept',
         article.title,
         article.slug || null,
         article.content,
         article.summary || null,
-        JSON.stringify(article.cross_links || [])
+        JSON.stringify(article.cross_links || article.crossLinks || [])
     ]);
 
     const result = await db.query(`
