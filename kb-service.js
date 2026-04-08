@@ -323,13 +323,16 @@ export async function queryKB(userId, kbId, question, language = 'en') {
 
         // Step 5: Call AI query
         console.log(`📚 [KB] Querying KB ${kbId}: "${question}"`);
-        const { answer, citations, tokensUsed } = await queryKnowledgeBase({
+        const { answer, citations, tokensUsed } = await queryKnowledgeBase(
             question,
-            indexArticle,
-            articles,
-            history,
+            {
+                tagName: kb.tag_name || 'Unknown',
+                indexArticle,
+                articles,
+                recentQA: history || []
+            },
             language
-        });
+        );
 
         // Step 6: Log the Q&A
         const qa = await logQA(kbId, question, answer, citations, tokensUsed);

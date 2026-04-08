@@ -636,13 +636,25 @@ Respond in this exact JSON format:
             messages: [{ role: 'user', content: prompts[language] || prompts.en }]
         }, 60000);
 
-        // Parse JSON response
+        // Parse JSON response — strip markdown code fences if present
         let parsed;
         try {
-            parsed = JSON.parse(response);
+            let jsonStr = response.trim();
+            if (jsonStr.startsWith('```')) {
+                jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+            }
+            parsed = JSON.parse(jsonStr);
         } catch (e) {
-            console.error('Failed to parse knowledge base query response as JSON');
-            throw new Error('Invalid JSON response from knowledge base query');
+            const match = response.match(/\{[\s\S]*"answer"[\s\S]*\}/);
+            if (match) {
+                try { parsed = JSON.parse(match[0]); } catch (e2) {
+                    console.error('Failed to parse knowledge base query response as JSON');
+                    throw new Error('Invalid JSON response from knowledge base query');
+                }
+            } else {
+                console.error('Failed to parse knowledge base query response as JSON');
+                throw new Error('Invalid JSON response from knowledge base query');
+            }
         }
 
         // Validate structure
