@@ -374,3 +374,282 @@ Output only the newsletter content, formatted in clean HTML.`
         throw error;
     }
 }
+
+/**
+ * Generate a simple URL-safe slug from a title.
+ * Converts to lowercase, replaces spaces with hyphens, removes special characters.
+ */
+export function generateSlug(title) {
+    return title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')  // Remove special characters
+        .replace(/\s+/g, '-')       // Replace spaces with hyphens
+        .replace(/-+/g, '-')        // Collapse multiple hyphens
+        .replace(/^-+|-+$/g, '');   // Remove leading/trailing hyphens
+}
+
+/**
+ * Compile a knowledge base from newsletter summaries and knowledge graph entities.
+ * Generates thematic concept articles and a master index.
+ *
+ * @param {Object} sourceMaterial - Object with tagName, newsletters array, entities array, existingArticles array
+ * @param {string} language - Language code ('en' or 'es', defaults to 'en')
+ * @returns {Promise<Object>} - { articles: [...], tokensUsed: number }
+ */
+export async function compileKnowledgeBase(sourceMaterial, language = 'en') {
+    if (!ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const { tagName, newsletters, entities, existingArticles = [] } = sourceMaterial;
+
+    // Format newsletter summaries for context
+    const newsletterContext = newsletters
+        .map(n => `- "${n.title}" (${n.sender}, ${n.date_added}): ${n.summary}`)
+        .join('\n');
+
+    // Format entities for knowledge graph structure
+    const entityContext = entities
+        .map(e => `- ${e.name} (${e.node_type}, mentioned ${e.mention_count}x)${e.connections ? ': connects to ' + e.connections.join(', ') : ''}`)
+        .join('\n');
+
+    // Format existing articles if this is a recompile
+    const existingContext = existingArticles.length > 0
+        ? `\n\nExisting articles (for reference and to avoid duplication):\n${existingArticles.map(a => `- ${a.title}`).join('\n')}`
+        : '';
+
+    const prompts = {
+        es: `Eres un experto en síntesis de conocimiento. Tu tarea es compilar una base de conocimiento temática sobre "${tagName}" basada en un conjunto de newsletters.
+
+Newsletters (resúmenes):
+${newsletterContext}
+
+Entidades clave del gráfico de conocimiento:
+${entityContext}
+${existingContext}
+
+Genera 5-10 artículos conceptuales temáticos (NO uno por newsletter, sino por TEMA) que sinteticen el contenido. Cada artículo debe:
+- Tener 300-600 palabras
+- Estar en markdown
+- Ser temático y transversal (no sobre un newsletter individual)
+- Incluir ejemplos concretos y hallazgos clave
+- Identificar relaciones con otros conceptos
+
+Después, genera UN artículo índice maestro que resuma todos los temas y enlace a los artículos.
+
+Para enlaces entre artículos, usa [[Título del Artículo]] en el contenido.
+
+Responde SOLO con JSON válido, sin texto adicional, en este formato exacto:
+{
+  "articles": [
+    {
+      "type": "concept|index",
+      "title": "Article Title",
+      "slug": "article-slug",
+      "content": "Markdown content...",
+      "summary": "One-line summary",
+      "crossLinks": ["Article Title 1", "Article Title 2"],
+      "sourceNewsletterIds": [id1, id2]
+    }
+  ]
+}`,
+        en: `You are a knowledge synthesis expert. Your task is to compile a thematic knowledge base about "${tagName}" based on a set of newsletters.
+
+Newsletters (summaries):
+${newsletterContext}
+
+Key entities from knowledge graph:
+${entityContext}
+${existingContext}
+
+Generate 5-10 thematic concept articles (NOT one per newsletter, but by THEME) that synthesize the content. Each article should:
+- Be 300-600 words
+- Be in markdown format
+- Be thematic and cross-cutting (not about a single newsletter)
+- Include concrete examples and key findings
+- Identify relationships with other concepts
+
+Then, generate ONE master index article that summarizes all topics and links to the articles.
+
+For links between articles, use [[Article Title]] in the content.
+
+Respond ONLY with valid JSON, no additional text, in this exact format:
+{
+  "articles": [
+    {
+      "type": "concept|index",
+      "title": "Article Title",
+      "slug": "article-slug",
+      "content": "Markdown content...",
+      "summary": "One-line summary",
+      "crossLinks": ["Article Title 1", "Article Title 2"],
+      "sourceNewsletterIds": [id1, id2]
+    }
+  ]
+}`
+    };
+
+    try {
+        const response = await anthropicRequest({
+            model: CLAUDE_MODEL,
+            max_tokens: 8192,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: prompts[language] || prompts.en }]
+        }, 120000);
+
+        // Parse JSON response
+        let parsed;
+        try {
+            parsed = JSON.parse(response);
+        } catch (e) {
+            console.error('Failed to parse knowledge base compilation response as JSON');
+            throw new Error('Invalid JSON response from knowledge base compilation');
+        }
+
+        // Validate structure
+        if (!parsed.articles || !Array.isArray(parsed.articles)) {
+            throw new Error('Response missing articles array');
+        }
+
+        // Ensure all articles have required fields
+        const articles = parsed.articles.map(a => ({
+            type: a.type || 'concept',
+            title: a.title || 'Untitled',
+            slug: a.slug || generateSlug(a.title || 'untitled'),
+            content: a.content || '',
+            summary: a.summary || '',
+            crossLinks: a.crossLinks || [],
+            sourceNewsletterIds: a.sourceNewsletterIds || []
+        }));
+
+        // Count tokens (rough estimate: ~4 chars per token)
+        const tokensUsed = Math.ceil(response.length / 4);
+
+        return {
+            articles,
+            tokensUsed
+        };
+    } catch (error) {
+        console.error('Error compiling knowledge base:', error);
+        throw error;
+    }
+}
+
+/**
+ * Query a knowledge base to answer a user question with citations.
+ * Sends index + summaries first, then cites relevant articles by title.
+ *
+ * @param {string} question - User's question
+ * @param {Object} kbContext - Object with tagName, articles array, recentQA array, indexArticle object
+ * @param {string} language - Language code ('en' or 'es', defaults to 'en')
+ * @returns {Promise<Object>} - { answer: string, citations: [...], tokensUsed: number }
+ */
+export async function queryKnowledgeBase(question, kbContext, language = 'en') {
+    if (!ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const { tagName, articles, recentQA = [], indexArticle } = kbContext;
+
+    // Build context: index article + article summaries for relevance detection
+    let contextText = '';
+
+    if (indexArticle && indexArticle.content) {
+        contextText += `Master Index:\n${indexArticle.content}\n\n`;
+    }
+
+    contextText += 'Available articles:\n';
+    articles.forEach(a => {
+        contextText += `- ${a.title}: ${a.summary}\n`;
+    });
+
+    // Build recent Q&A context for consistency
+    const qaContext = recentQA.length > 0
+        ? `\n\nRecent Q&A for context:\n${recentQA.map(qa => `Q: ${qa.question}\nA: ${qa.answer}`).join('\n\n')}`
+        : '';
+
+    const prompts = {
+        es: `Eres un asistente de búsqueda de base de conocimiento. Responde la pregunta del usuario basándote en el contexto de la base de conocimiento sobre "${tagName}".
+
+Contexto de la base de conocimiento:
+${contextText}
+${qaContext}
+
+Pregunta del usuario: ${question}
+
+Responde la pregunta de manera clara y completa. Cuando cites información, menciona el título del artículo de donde proviene entre corchetes [así].
+
+Responde en este formato JSON exacto:
+{
+  "answer": "Your answer here...",
+  "citations": [
+    {
+      "articleTitle": "Article Title",
+      "excerpt": "Relevant excerpt from the article"
+    }
+  ]
+}`,
+        en: `You are a knowledge base search assistant. Answer the user's question based on the knowledge base context about "${tagName}".
+
+Knowledge base context:
+${contextText}
+${qaContext}
+
+User question: ${question}
+
+Answer the question clearly and completely. When citing information, mention the article title it comes from in brackets [like this].
+
+Respond in this exact JSON format:
+{
+  "answer": "Your answer here...",
+  "citations": [
+    {
+      "articleTitle": "Article Title",
+      "excerpt": "Relevant excerpt from the article"
+    }
+  ]
+}`
+    };
+
+    try {
+        const response = await anthropicRequest({
+            model: CLAUDE_MODEL,
+            max_tokens: 2048,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: prompts[language] || prompts.en }]
+        }, 60000);
+
+        // Parse JSON response
+        let parsed;
+        try {
+            parsed = JSON.parse(response);
+        } catch (e) {
+            console.error('Failed to parse knowledge base query response as JSON');
+            throw new Error('Invalid JSON response from knowledge base query');
+        }
+
+        // Validate structure
+        if (!parsed.answer) {
+            throw new Error('Response missing answer field');
+        }
+
+        // Ensure citations are properly formatted
+        const citations = (parsed.citations || []).map(c => ({
+            articleTitle: c.articleTitle || 'Unknown',
+            excerpt: c.excerpt || ''
+        }));
+
+        // Count tokens (rough estimate: ~4 chars per token)
+        const tokensUsed = Math.ceil(response.length / 4);
+
+        return {
+            answer: parsed.answer,
+            citations,
+            tokensUsed
+        };
+    } catch (error) {
+        console.error('Error querying knowledge base:', error);
+        throw error;
+    }
+}

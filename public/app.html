@@ -1070,6 +1070,12 @@
         .kg-modal { height: 85vh; }
         .kg-modal .vis-network { border: none !important; }
         .kg-modal .vis-network canvas { outline: none; }
+        .kb-wikilink { color: #2BBCC0; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; }
+        .kb-wikilink:hover { text-decoration-style: solid; }
+        .kb-article-content h2 { font-size: 18px; margin: 20px 0 8px; }
+        .kb-article-content h3 { font-size: 16px; margin: 16px 0 6px; }
+        .kb-article-content h4 { font-size: 14px; margin: 12px 0 4px; font-weight: 600; }
+        .kb-article-content p { margin-bottom: 12px; }
         @media (max-width: 768px) {
             .kg-modal { max-width: 100vw !important; width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; margin: 0 !important; }
         }
@@ -2212,6 +2218,7 @@
             const [showBulkTagMenu, setShowBulkTagMenu] = useState(false);
             const [showNewsBuilder, setShowNewsBuilder] = useState(false);
             const [showKnowledgeGraph, setShowKnowledgeGraph] = useState(false);
+            const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
 
             // Projects state for News Builder
             const [projects, setProjects] = useState([]);
@@ -3146,6 +3153,12 @@
                                             </span>
                                             <span className="sidebar-item-label">{language === 'es' ? 'Knowledge Graph' : 'Knowledge Graph'}</span>
                                         </button>
+                                        <button className="sidebar-item" onClick={() => setShowKnowledgeBase(true)}>
+                                            <span className="sidebar-item-icon">
+                                                <LucideIcon name="book-open" size={16} />
+                                            </span>
+                                            <span className="sidebar-item-label">{language === 'es' ? 'Knowledge Bases' : 'Knowledge Bases'}</span>
+                                        </button>
                                     </div>
                                 ) : null,
                                 create: () => (
@@ -3692,6 +3705,17 @@
                     {showKnowledgeGraph && (
                         <KnowledgeGraph
                             onClose={() => setShowKnowledgeGraph(false)}
+                            language={language}
+                            API_URL={API_URL}
+                            user={user}
+                            showToast={showToast}
+                            tags={tags}
+                        />
+                    )}
+
+                    {showKnowledgeBase && (
+                        <KnowledgeBaseViewer
+                            onClose={() => setShowKnowledgeBase(false)}
                             language={language}
                             API_URL={API_URL}
                             user={user}
@@ -5052,6 +5076,481 @@
                                 )}
                             </div>
                         )}
+                    </div>
+                </div>
+            );
+        }
+
+        function KnowledgeBaseViewer({ onClose, language, API_URL, user, showToast, tags = [] }) {
+            const { useState, useEffect, useCallback, useRef } = React;
+
+            const [kbs, setKbs] = useState([]);
+            const [selectedKB, setSelectedKB] = useState(null);
+            const [articles, setArticles] = useState([]);
+            const [selectedArticle, setSelectedArticle] = useState(null);
+            const [view, setView] = useState('list'); // list, browse, query
+            const [loading, setLoading] = useState(true);
+            const [compiling, setCompiling] = useState(false);
+            const [compileProgress, setCompileProgress] = useState(null);
+            const [query, setQuery] = useState('');
+            const [querying, setQuerying] = useState(false);
+            const [qaHistory, setQaHistory] = useState([]);
+            const [qaAnswer, setQaAnswer] = useState(null);
+            const pollRef = useRef(null);
+
+            const t = language === 'es' ? {
+                title: 'Knowledge Bases',
+                noKBs: 'Selecciona una etiqueta para crear tu primera base de conocimiento.',
+                selectTag: 'Crear desde etiqueta',
+                compile: 'Compilar',
+                recompile: 'Recompilar',
+                compiling: 'Compilando...',
+                compileDone: 'Compilación completa',
+                articles: 'Artículos',
+                query: 'Consultar',
+                browse: 'Explorar',
+                back: 'Volver',
+                askPlaceholder: '¿Qué quieres saber sobre este tema?',
+                ask: 'Preguntar',
+                sources: 'Fuentes',
+                lastCompiled: 'Última compilación',
+                articleCount: 'artículos',
+                sourceCount: 'newsletters',
+                noArticles: 'Esta base aún no ha sido compilada.',
+                history: 'Historial',
+                index: 'Índice',
+                concepts: 'Conceptos',
+                entities: 'Entidades',
+                synthesis: 'Síntesis',
+                close: 'Cerrar',
+                delete: 'Eliminar',
+                confirmDelete: '¿Eliminar esta base de conocimiento?',
+                creating: 'Creando...',
+                status: { draft: 'Borrador', compiling: 'Compilando', ready: 'Lista', failed: 'Error' },
+            } : {
+                title: 'Knowledge Bases',
+                noKBs: 'Select a tag to create your first knowledge base.',
+                selectTag: 'Create from tag',
+                compile: 'Compile',
+                recompile: 'Recompile',
+                compiling: 'Compiling...',
+                compileDone: 'Compilation complete',
+                articles: 'Articles',
+                query: 'Query',
+                browse: 'Browse',
+                back: 'Back',
+                askPlaceholder: 'What do you want to know about this topic?',
+                ask: 'Ask',
+                sources: 'Sources',
+                lastCompiled: 'Last compiled',
+                articleCount: 'articles',
+                sourceCount: 'newsletters',
+                noArticles: 'This knowledge base hasn\'t been compiled yet.',
+                history: 'History',
+                index: 'Index',
+                concepts: 'Concepts',
+                entities: 'Entities',
+                synthesis: 'Synthesis',
+                close: 'Close',
+                delete: 'Delete',
+                confirmDelete: 'Delete this knowledge base?',
+                creating: 'Creating...',
+                status: { draft: 'Draft', compiling: 'Compiling', ready: 'Ready', failed: 'Failed' },
+            };
+
+            const kbFetch = useCallback(async (path, options = {}) => {
+                const res = await fetch(`${API_URL}/kb${path}`, {
+                    credentials: 'include', ...options,
+                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || `Request failed (${res.status})`);
+                }
+                return res.json();
+            }, [API_URL]);
+
+            const fetchKBs = useCallback(async () => {
+                try {
+                    const data = await kbFetch('/');
+                    setKbs(data.kbs || data);
+                } catch (err) { console.error('KB fetch error:', err); }
+            }, [kbFetch]);
+
+            useEffect(() => {
+                fetchKBs().finally(() => setLoading(false));
+            }, []);
+
+            const createKB = async (tagId) => {
+                try {
+                    const data = await kbFetch('/', { method: 'POST', body: JSON.stringify({ tag_id: tagId }) });
+                    showToast(language === 'es' ? 'Base creada' : 'Knowledge base created', 'success');
+                    await fetchKBs();
+                    setSelectedKB(data);
+                    setView('browse');
+                } catch (err) { showToast(err.message, 'error'); }
+            };
+
+            const startCompile = async (kbId) => {
+                setCompiling(true);
+                setCompileProgress({ status: 'running', progress: 0 });
+                try {
+                    const data = await kbFetch(`/${kbId}/compile`, { method: 'POST' });
+                    const taskId = data.taskId;
+                    // Poll for progress
+                    pollRef.current = setInterval(async () => {
+                        try {
+                            const status = await kbFetch(`/${kbId}/compile/status?taskId=${taskId}`);
+                            setCompileProgress(status);
+                            if (status.status === 'success' || status.status === 'failed') {
+                                clearInterval(pollRef.current);
+                                setCompiling(false);
+                                if (status.status === 'success') {
+                                    showToast(t.compileDone, 'success');
+                                    const kb = await kbFetch(`/${kbId}`);
+                                    setSelectedKB(kb);
+                                    setArticles(kb.articles || []);
+                                    fetchKBs();
+                                } else {
+                                    showToast(status.error || 'Compilation failed', 'error');
+                                }
+                            }
+                        } catch (err) {
+                            clearInterval(pollRef.current);
+                            setCompiling(false);
+                        }
+                    }, 2000);
+                } catch (err) {
+                    setCompiling(false);
+                    showToast(err.message, 'error');
+                }
+            };
+
+            useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
+
+            const openKB = async (kb) => {
+                try {
+                    const data = await kbFetch(`/${kb.id}`);
+                    setSelectedKB(data);
+                    setArticles(data.articles || []);
+                    setView('browse');
+                } catch (err) { showToast(err.message, 'error'); }
+            };
+
+            const handleQuery = async () => {
+                if (!query.trim() || !selectedKB) return;
+                setQuerying(true);
+                setQaAnswer(null);
+                try {
+                    const data = await kbFetch(`/${selectedKB.id}/query`, {
+                        method: 'POST', body: JSON.stringify({ question: query })
+                    });
+                    setQaAnswer(data);
+                    setQuery('');
+                    // Refresh Q&A history
+                    const qa = await kbFetch(`/${selectedKB.id}/qa`);
+                    setQaHistory(qa.history || qa);
+                } catch (err) { showToast(err.message, 'error'); }
+                finally { setQuerying(false); }
+            };
+
+            const deleteKB = async (kbId) => {
+                if (!confirm(t.confirmDelete)) return;
+                try {
+                    await kbFetch(`/${kbId}`, { method: 'DELETE' });
+                    setSelectedKB(null);
+                    setView('list');
+                    fetchKBs();
+                    showToast(language === 'es' ? 'Base eliminada' : 'Knowledge base deleted', 'success');
+                } catch (err) { showToast(err.message, 'error'); }
+            };
+
+            const formatMarkdown = (text) => {
+                if (!text) return '';
+                return text
+                    .replace(/### (.*)/g, '<h4>$1</h4>')
+                    .replace(/## (.*)/g, '<h3>$1</h3>')
+                    .replace(/# (.*)/g, '<h2>$1</h2>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\[\[(.*?)\]\]/g, '<a class="kb-wikilink" data-link="$1">$1</a>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n- /g, '<br>• ')
+                    .replace(/\n/g, '<br>');
+            };
+
+            const handleWikiLinkClick = (e) => {
+                if (e.target.classList.contains('kb-wikilink')) {
+                    const title = e.target.dataset.link;
+                    const article = articles.find(a => a.title === title);
+                    if (article) setSelectedArticle(article);
+                }
+            };
+
+            const typeIcon = (type) => {
+                switch(type) {
+                    case 'index': return 'list';
+                    case 'concept': return 'lightbulb';
+                    case 'entity': return 'user';
+                    case 'synthesis': return 'layers';
+                    default: return 'file-text';
+                }
+            };
+
+            const typeLabel = (type) => {
+                return t[type] || type;
+            };
+
+            const tagsWithoutKB = tags.filter(tag => !kbs.find(kb => kb.tag_id === tag.id));
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal kg-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '95vw', width: 1100, maxHeight: '92vh', display: 'flex', flexDirection: 'column'}}>
+                        {/* Header */}
+                        <div className="modal-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                                {selectedKB && view !== 'list' && (
+                                    <button className="btn btn-small" onClick={() => { setSelectedKB(null); setSelectedArticle(null); setView('list'); setQaAnswer(null); }}>
+                                        <LucideIcon name="arrow-left" size={14} />
+                                    </button>
+                                )}
+                                <LucideIcon name="book-open" size={20} />
+                                <h2 style={{margin: 0, fontSize: 18}}>
+                                    {selectedKB ? (selectedKB.tag_name || t.title) : t.title}
+                                </h2>
+                                {selectedKB && (
+                                    <span style={{fontSize: 11, padding: '2px 8px', borderRadius: 12, background: selectedKB.status === 'ready' ? '#00b89422' : '#fdcb6e22', color: selectedKB.status === 'ready' ? '#00b894' : '#fdcb6e', border: `1px solid ${selectedKB.status === 'ready' ? '#00b89444' : '#fdcb6e44'}`}}>
+                                        {t.status[selectedKB.status] || selectedKB.status}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                                {selectedKB && view !== 'list' && (
+                                    <>
+                                        <button className={`btn btn-small ${view === 'browse' ? 'btn-primary' : ''}`} onClick={() => { setView('browse'); setSelectedArticle(null); }}>
+                                            <LucideIcon name="book-open" size={14} />
+                                            <span style={{marginLeft: 4}}>{t.browse}</span>
+                                        </button>
+                                        <button className={`btn btn-small ${view === 'query' ? 'btn-primary' : ''}`} onClick={() => setView('query')}>
+                                            <LucideIcon name="search" size={14} />
+                                            <span style={{marginLeft: 4}}>{t.query}</span>
+                                        </button>
+                                        <button className="btn btn-small" onClick={() => startCompile(selectedKB.id)} disabled={compiling}>
+                                            <LucideIcon name="refresh-cw" size={14} />
+                                            <span style={{marginLeft: 4}}>{compiling ? t.compiling : (selectedKB.status === 'ready' ? t.recompile : t.compile)}</span>
+                                        </button>
+                                    </>
+                                )}
+                                <button className="modal-close" onClick={onClose}><LucideIcon name="x" size={20} /></button>
+                            </div>
+                        </div>
+
+                        {/* Compilation progress bar */}
+                        {compiling && compileProgress && (
+                            <div style={{padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: 12, fontSize: 12}}>
+                                    <span className="loading-spinner"></span>
+                                    <span style={{color: 'var(--text-secondary)'}}>{t.compiling}</span>
+                                    <div style={{flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden'}}>
+                                        <div style={{width: `${compileProgress.progress || 0}%`, height: '100%', background: '#2BBCC0', borderRadius: 2, transition: 'width 0.5s ease'}} />
+                                    </div>
+                                    <span style={{color: 'var(--text-muted)', minWidth: 30}}>{compileProgress.progress || 0}%</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Main content */}
+                        <div style={{flex: 1, overflow: 'auto', padding: 0, minHeight: 0}}>
+                            {loading ? (
+                                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: 'var(--text-secondary)'}}>
+                                    <LucideIcon name="loader" size={24} />
+                                </div>
+                            ) : view === 'list' ? (
+                                /* KB List View */
+                                <div style={{padding: 20}}>
+                                    {/* Existing KBs */}
+                                    {kbs.length > 0 && (
+                                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginBottom: 24}}>
+                                            {kbs.map(kb => (
+                                                <div key={kb.id} onClick={() => openKB(kb)}
+                                                    style={{padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: 8}}
+                                                    onMouseOver={e => e.currentTarget.style.borderColor = '#2BBCC0'}
+                                                    onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                                                        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                                                            <span style={{width: 10, height: 10, borderRadius: '50%', background: kb.tag_color || '#636e72'}} />
+                                                            <span style={{fontWeight: 600, fontSize: 15}}>{kb.tag_name}</span>
+                                                        </div>
+                                                        <span style={{fontSize: 10, padding: '2px 6px', borderRadius: 8, background: kb.status === 'ready' ? '#00b89422' : '#636e7222', color: kb.status === 'ready' ? '#00b894' : 'var(--text-muted)'}}>
+                                                            {t.status[kb.status] || kb.status}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-secondary)'}}>
+                                                        <span>{kb.article_count || 0} {t.articleCount}</span>
+                                                        <span>{kb.source_count || 0} {t.sourceCount}</span>
+                                                    </div>
+                                                    {kb.compiled_at && (
+                                                        <div style={{fontSize: 11, color: 'var(--text-muted)'}}>
+                                                            {t.lastCompiled}: {new Date(kb.compiled_at).toLocaleDateString()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Create new KB from tag */}
+                                    {tagsWithoutKB.length > 0 && (
+                                        <div>
+                                            <div style={{fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)'}}>
+                                                {t.selectTag}
+                                            </div>
+                                            <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+                                                {tagsWithoutKB.map(tag => (
+                                                    <button key={tag.id} className="btn btn-small" onClick={() => createKB(tag.id)}
+                                                        style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                                                        <span style={{width: 8, height: 8, borderRadius: '50%', background: tag.color || '#636e72'}} />
+                                                        {tag.name}
+                                                        <LucideIcon name="plus" size={12} />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {kbs.length === 0 && tagsWithoutKB.length === 0 && (
+                                        <div style={{textAlign: 'center', padding: 40, color: 'var(--text-secondary)'}}>
+                                            <LucideIcon name="book-open" size={48} />
+                                            <p style={{marginTop: 12}}>{t.noKBs}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : view === 'browse' ? (
+                                /* Article Browser */
+                                <div style={{display: 'flex', height: '100%', minHeight: 400}}>
+                                    {/* Article sidebar */}
+                                    <div style={{width: 260, borderRight: '1px solid var(--border)', overflowY: 'auto', flexShrink: 0, padding: '12px 0'}}>
+                                        {['index', 'concept', 'entity', 'synthesis'].map(type => {
+                                            const typeArticles = articles.filter(a => a.article_type === type);
+                                            if (!typeArticles.length) return null;
+                                            return (
+                                                <div key={type} style={{marginBottom: 12}}>
+                                                    <div style={{padding: '4px 16px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5}}>
+                                                        {typeLabel(type)} ({typeArticles.length})
+                                                    </div>
+                                                    {typeArticles.map(article => (
+                                                        <div key={article.id}
+                                                            className={`sidebar-item ${selectedArticle?.id === article.id ? 'active' : ''}`}
+                                                            onClick={() => setSelectedArticle(article)}
+                                                            style={{padding: '8px 16px', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8}}>
+                                                            <LucideIcon name={typeIcon(type)} size={14} />
+                                                            <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{article.title}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
+                                        {articles.length === 0 && !compiling && (
+                                            <div style={{padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13}}>
+                                                <p>{t.noArticles}</p>
+                                                <button className="btn btn-primary btn-small" onClick={() => startCompile(selectedKB.id)} style={{marginTop: 12}}>
+                                                    <LucideIcon name="sparkles" size={14} />
+                                                    <span style={{marginLeft: 4}}>{t.compile}</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                        {selectedKB && (
+                                            <div style={{padding: '12px 16px', borderTop: '1px solid var(--border)', marginTop: 8}}>
+                                                <button className="btn btn-small" onClick={() => deleteKB(selectedKB.id)}
+                                                    style={{width: '100%', color: '#d63031', fontSize: 12}}>
+                                                    <LucideIcon name="trash-2" size={12} />
+                                                    <span style={{marginLeft: 4}}>{t.delete}</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Article content */}
+                                    <div style={{flex: 1, overflowY: 'auto', padding: 24}} onClick={handleWikiLinkClick}>
+                                        {selectedArticle ? (
+                                            <div>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16}}>
+                                                    <LucideIcon name={typeIcon(selectedArticle.article_type)} size={18} />
+                                                    <h2 style={{margin: 0, fontSize: 20}}>{selectedArticle.title}</h2>
+                                                </div>
+                                                {selectedArticle.summary && (
+                                                    <div style={{padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic'}}>
+                                                        {selectedArticle.summary}
+                                                    </div>
+                                                )}
+                                                <div className="kb-article-content" style={{fontSize: 14, lineHeight: 1.7, color: 'var(--text-body)'}}
+                                                    dangerouslySetInnerHTML={{__html: '<p>' + formatMarkdown(selectedArticle.content) + '</p>'}} />
+                                            </div>
+                                        ) : (
+                                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 14}}>
+                                                {articles.length > 0 ? (language === 'es' ? 'Selecciona un artículo' : 'Select an article') : ''}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : view === 'query' ? (
+                                /* Query View */
+                                <div style={{padding: 20, maxWidth: 700, margin: '0 auto'}}>
+                                    {/* Query input */}
+                                    <div style={{display: 'flex', gap: 8, marginBottom: 20}}>
+                                        <input type="text" className="form-input" placeholder={t.askPlaceholder} value={query}
+                                            onChange={e => setQuery(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleQuery()}
+                                            style={{flex: 1, padding: '10px 14px', fontSize: 14}} />
+                                        <button className="btn btn-primary" onClick={handleQuery} disabled={querying || !query.trim()}>
+                                            {querying ? <span className="loading-spinner"></span> : <LucideIcon name="search" size={16} />}
+                                            <span style={{marginLeft: 6}}>{t.ask}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Current answer */}
+                                    {qaAnswer && (
+                                        <div style={{padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 20}}>
+                                            <div className="kb-article-content" style={{fontSize: 14, lineHeight: 1.7, color: 'var(--text-body)'}}
+                                                dangerouslySetInnerHTML={{__html: '<p>' + formatMarkdown(qaAnswer.answer) + '</p>'}} />
+                                            {qaAnswer.citations?.length > 0 && (
+                                                <div style={{marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)'}}>
+                                                    <div style={{fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6}}>{t.sources}</div>
+                                                    <div style={{display: 'flex', gap: 6, flexWrap: 'wrap'}}>
+                                                        {qaAnswer.citations.map((c, i) => (
+                                                            <span key={i} onClick={() => {
+                                                                const a = articles.find(a => a.title === c.articleTitle);
+                                                                if (a) { setSelectedArticle(a); setView('browse'); }
+                                                            }}
+                                                                style={{fontSize: 11, padding: '3px 8px', background: 'var(--bg-secondary)', borderRadius: 6, cursor: 'pointer', color: '#2BBCC0'}}>
+                                                                {c.articleTitle}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Q&A History */}
+                                    {qaHistory.length > 0 && (
+                                        <div>
+                                            <div style={{fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)'}}>{t.history}</div>
+                                            {qaHistory.map((qa, i) => (
+                                                <div key={i} style={{padding: 12, marginBottom: 8, background: 'var(--bg-secondary)', borderRadius: 8, fontSize: 13}}>
+                                                    <div style={{fontWeight: 600, marginBottom: 4}}>{qa.question}</div>
+                                                    <div style={{color: 'var(--text-secondary)', lineHeight: 1.5}}>
+                                                        {qa.answer?.substring(0, 200)}{qa.answer?.length > 200 ? '...' : ''}
+                                                    </div>
+                                                    <div style={{fontSize: 10, color: 'var(--text-muted)', marginTop: 4}}>
+                                                        {new Date(qa.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
             );

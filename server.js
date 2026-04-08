@@ -35,6 +35,7 @@ const authMiddleware = makeAuthMiddleware(async (userId) => {
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
 import { createGraphRouter } from './graph-routes.js';
 import { extractAndStoreGraph } from './graph-extractor.js';
+import { createKBRouter } from './kb-routes.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
 
@@ -311,6 +312,9 @@ const webhookLimiter = rateLimit({
 
 // Knowledge Graph routes
 app.use('/api/graph', authMiddleware, createGraphRouter());
+
+// Knowledge Base routes
+app.use('/api/kb', authMiddleware, createKBRouter());
 
 // Verify access code (keeps the code server-side only)
 app.post('/api/auth/verify-access-code', authLimiter, async (req, res) => {

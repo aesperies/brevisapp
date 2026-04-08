@@ -2,6 +2,7 @@ import pg from 'pg';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { setupGraphTables } from './graph-database.js';
+import { setupKBTables } from './kb-database.js';
 
 const { Pool } = pg;
 
@@ -150,6 +151,9 @@ export async function setupDatabase() {
 
         // Knowledge Graph tables
         await setupGraphTables(pool);
+
+        // Knowledge Base tables
+        await setupKBTables(pool);
 
         console.log('✅ Database initialized (PostgreSQL)');
         return pool;
