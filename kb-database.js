@@ -85,6 +85,12 @@ export async function setupKBTables(pool) {
     }
 }
 
+export async function getTagName(tagId) {
+    const db = getPool();
+    const result = await db.query(`SELECT name FROM tags WHERE id = $1`, [tagId]);
+    return result.rows[0]?.name || 'Unknown';
+}
+
 export async function createKB(userId, tagId) {
     const db = getPool();
     const result = await db.query(`

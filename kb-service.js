@@ -23,7 +23,8 @@ import {
     clearArticles,
     getKBSourceData,
     logQA,
-    getQAHistory
+    getQAHistory,
+    getTagName
 } from './kb-database.js';
 import { compileKnowledgeBase, queryKnowledgeBase } from './ai-service.js';
 
@@ -169,7 +170,28 @@ export async function compileKB(userId, tagId, language = 'en') {
         // Step 8: Call AI compilation
         updateCompilationTask(taskId, { progress: 50 });
         console.log(`📚 [KB] Compiling KB ${kb.id} with ${sourceMaterial.length} newsletters in ${language}...`);
-        const { articles, tokensUsed } = await compileKnowledgeBase(sourceMaterial, language);
+
+        // Reshape source data into the format compileKnowledgeBase expects
+        const tagName = await getTagName(tagId);
+        const allEntities = [];
+        const seenEntityIds = new Set();
+        for (const nl of sourceMaterial) {
+            if (nl.entities) {
+                for (const e of nl.entities) {
+                    if (e.id && !seenEntityIds.has(e.id)) {
+                        seenEntityIds.add(e.id);
+                        allEntities.push(e);
+                    }
+                }
+            }
+        }
+        const formattedSource = {
+            tagName,
+            newsletters: sourceMaterial,
+            entities: allEntities
+        };
+
+        const { articles, tokensUsed } = await compileKnowledgeBase(formattedSource, language);
 
         if (!articles || articles.length === 0) {
             await updateKBStatus(kb.id, 'failed', {
