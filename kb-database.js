@@ -11,9 +11,15 @@
  *   await setupKBTables(pool);
  */
 
-import { getDb as getDatabasePool } from './database.js';
+// Store pool reference from setupKBTables to avoid circular import with database.js
+let _pool = null;
+function getPool() {
+    if (!_pool) throw new Error('KB tables not initialized — call setupKBTables first');
+    return _pool;
+}
 
 export async function setupKBTables(pool) {
+    _pool = pool;
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS knowledge_bases (
@@ -80,7 +86,7 @@ export async function setupKBTables(pool) {
 }
 
 export async function createKB(userId, tagId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         INSERT INTO knowledge_bases (user_id, tag_id, status)
         VALUES ($1, $2, 'draft')
@@ -92,7 +98,7 @@ export async function createKB(userId, tagId) {
 }
 
 export async function getKB(userId, kbId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         SELECT kb.*, t.name AS tag_name, t.color AS tag_color
         FROM knowledge_bases kb
@@ -103,7 +109,7 @@ export async function getKB(userId, kbId) {
 }
 
 export async function getUserKBs(userId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         SELECT kb.*, t.name AS tag_name, t.color AS tag_color
         FROM knowledge_bases kb
@@ -115,7 +121,7 @@ export async function getUserKBs(userId) {
 }
 
 export async function updateKBStatus(kbId, status, extras = {}) {
-    const db = getDatabasePool();
+    const db = getPool();
     const {
         articleCount = null,
         sourceCount = null,
@@ -164,7 +170,7 @@ export async function updateKBStatus(kbId, status, extras = {}) {
 }
 
 export async function deleteKB(userId, kbId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         DELETE FROM knowledge_bases
         WHERE id = $1 AND user_id = $2
@@ -174,7 +180,7 @@ export async function deleteKB(userId, kbId) {
 }
 
 export async function insertArticles(kbId, articles) {
-    const db = getDatabasePool();
+    const db = getPool();
     if (!articles || articles.length === 0) return [];
 
     const values = articles.map((article, idx) => {
@@ -208,7 +214,7 @@ export async function insertArticles(kbId, articles) {
 }
 
 export async function getArticles(kbId, type = null) {
-    const db = getDatabasePool();
+    const db = getPool();
     if (type) {
         const result = await db.query(`
             SELECT * FROM kb_articles
@@ -227,7 +233,7 @@ export async function getArticles(kbId, type = null) {
 }
 
 export async function getArticle(kbId, articleId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         SELECT * FROM kb_articles
         WHERE id = $1 AND kb_id = $2
@@ -236,7 +242,7 @@ export async function getArticle(kbId, articleId) {
 }
 
 export async function clearArticles(kbId) {
-    const db = getDatabasePool();
+    const db = getPool();
     await db.query('DELETE FROM kb_articles WHERE kb_id = $1', [kbId]);
     await db.query(`
         UPDATE knowledge_bases
@@ -246,7 +252,7 @@ export async function clearArticles(kbId) {
 }
 
 export async function logQA(kbId, question, answer, citations, tokensUsed) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         INSERT INTO kb_qa_history (kb_id, question, answer, citations, tokens_used)
         VALUES ($1, $2, $3, $4, $5)
@@ -256,7 +262,7 @@ export async function logQA(kbId, question, answer, citations, tokensUsed) {
 }
 
 export async function getQAHistory(kbId, limit = 20) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         SELECT * FROM kb_qa_history
         WHERE kb_id = $1
@@ -267,7 +273,7 @@ export async function getQAHistory(kbId, limit = 20) {
 }
 
 export async function markQAFiledBack(qaId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         UPDATE kb_qa_history
         SET filed_back = true
@@ -278,7 +284,7 @@ export async function markQAFiledBack(qaId) {
 }
 
 export async function getKBSourceData(userId, tagId) {
-    const db = getDatabasePool();
+    const db = getPool();
     const result = await db.query(`
         SELECT DISTINCT
             n.id,
