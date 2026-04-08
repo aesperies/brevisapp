@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Switch from Pocket to Brevis - Your Newsletters Deserve Better</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="description" content="Pocket saved articles you never read. Brevis reads your newsletters for you with AI-powered summaries. Start your free trial with 50% off.">
+    <meta name="og:title" content="Switch from Pocket to Brevis">
+    <meta name="og:description" content="Your newsletters deserve better. Brevis reads and summarizes them for you.">
+    <meta name="og:type" content="website">
+    <meta name="og:image" content="https://brevisapp.com/og-image.png">
+    <link rel="canonical" href="https://brevisapp.com/switch-from-pocket">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* ─── NAVIGATION ─────────────────────────────── */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+            transform: translateY(-1px) scale(1.03);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            transition: all 0.3s ease;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white !important;
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(43,188,192,0.35);
+        }
+
+        /* ─── HERO ───────────────────────────────────── */
+        .hero {
+            padding: 100px 32px 56px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse 70% 50% at 50% 0%, rgba(38,198,218,0.13) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(38,198,218,0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            max-width: 820px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 64px;
+            font-weight: 600;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .hero h1 em {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            font-size: 17px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            line-height: 1.6;
+            font-weight: 400;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hero-cta .btn {
+            padding: 13px 32px;
+            font-size: 15px;
+        }
+
+        .hero-note {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 48px;
+        }
+
+        /* ─── SECTION LAYOUT ──────────────────────────── */
+        .section-label {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 44px;
+            max-width: 460px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ─── PAIN POINTS ─────────────────────────────── */
+        .pain-points {
+            padding: 72px 32px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pain-points-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .pain-points-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 36px;
+            text-align: left;
+        }
+
+        .pain-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 22px;
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+
+        .pain-card:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+
+        .pain-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-light);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 14px;
+        }
+
+        .pain-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .pain-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ─── HOW IT WORKS ────────────────────────────── */
+        .how {
+            padding: 72px 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 32px;
+            left: calc(33.33% - 10px);
+            width: calc(33.33% + 20px);
+            height: 1px;
+            background: var(--border);
+        }
+
+        .step {
+            padding: 28px 24px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            text-align: center;
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+
+        .step:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+
+        .step-number {
+            width: 44px;
+            height: 44px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Instrument Serif', serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 auto 16px;
+        }
+
+        .step:nth-child(2) .step-number { background: var(--accent); }
+
+        .step h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+
+        .step p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ─── COMPARISON TABLE ────────────────────────── */
+        .comparison {
+            padding: 72px 32px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .comparison-table {
+            margin-top: 36px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            padding: 16px 20px;
+            background: var(--surface);
+            text-align: left;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .comparison-table tr:last-child td { border-bottom: none; }
+
+        .check { color: var(--accent); font-weight: 700; }
+        .x { color: var(--text-tertiary); }
+
+        /* ─── FOUNDER STORY ────────────────────────────– */
+        .founder {
+            padding: 72px 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .founder-content {
+            max-width: 720px;
+            margin: 36px auto 0;
+            text-align: left;
+        }
+
+        .founder-quote {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            color: var(--primary);
+            line-height: 1.4;
+        }
+
+        .founder-quote em {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        .founder-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .founder-author {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* ─── PRICING SECTION (Dark) ──────────────────── */
+        .pricing {
+            padding: 72px 32px;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+        }
+
+        .pricing .section-label { color: rgba(43,188,192,0.8); }
+        .pricing .section-title { color: white; }
+        .pricing .section-subtitle { color: rgba(255,255,255,0.55); }
+
+        .pricing-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            background: rgba(255,255,255,0.08);
+            border-radius: 100px;
+            padding: 4px;
+            margin-bottom: 36px;
+        }
+
+        .toggle-btn {
+            padding: 10px 28px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.55);
+        }
+
+        .toggle-btn.active {
+            background: white;
+            color: var(--primary);
+        }
+
+        .toggle-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            background: var(--accent);
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            margin-left: 6px;
+        }
+
+        .pricing-cards {
+            max-width: 820px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .pricing-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 32px 28px;
+            border-radius: 20px;
+            text-align: left;
+            transition: transform 0.2s;
+        }
+
+        .pricing-card.featured {
+            background: var(--accent);
+            border-color: transparent;
+            transform: scale(1.03);
+        }
+
+        .pricing-name {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 14px;
+            opacity: 0.65;
+        }
+
+        .pricing-price {
+            font-family: 'Instrument Serif', serif;
+            font-size: 44px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .pricing-price span {
+            font-size: 16px;
+            font-weight: 600;
+            opacity: 0.65;
+        }
+
+        .pricing-original {
+            font-size: 12px;
+            opacity: 0.5;
+            text-decoration: line-through;
+            margin-bottom: 14px;
+            min-height: 18px;
+        }
+
+        .pricing-description {
+            font-size: 14px;
+            margin-bottom: 20px;
+            opacity: 0.75;
+            line-height: 1.5;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 24px;
+        }
+
+        .pricing-features li {
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 500;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pricing-features li::before {
+            content: '✓';
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .pricing-card.featured .pricing-features li::before { color: white; }
+
+        .pricing-card .btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 15px;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .pricing-card .btn-primary {
+            background: white;
+            color: var(--primary) !important;
+        }
+
+        .pricing-card .btn-primary:hover {
+            background: #f0f0f0;
+        }
+
+        .pricing-card.featured .btn {
+            background: white;
+            color: var(--accent-dark) !important;
+        }
+
+        /* ─── FAQ ─────────────────────────────────────– */
+        .faq {
+            padding: 72px 32px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .faq-inner {
+            max-width: 680px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .faq-list {
+            margin-top: 36px;
+            text-align: left;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-item:first-child { border-top: 1px solid var(--border); }
+
+        .faq-question {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 18px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .faq-question-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--primary);
+            line-height: 1.4;
+        }
+
+        .faq-chevron {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.3s, background 0.2s;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .faq-item.open .faq-chevron {
+            transform: rotate(180deg);
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .faq-answer {
+            display: none;
+            padding: 0 0 18px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .faq-item.open .faq-answer { display: block; }
+
+        /* ─── CTA FINAL ───────────────────────────────– */
+        .cta {
+            padding: 80px 32px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(43,188,192,0.10) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 14px;
+            color: var(--primary);
+            position: relative;
+        }
+
+        .cta p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .cta-buttons .btn {
+            padding: 13px 32px;
+            font-size: 15px;
+        }
+
+        .cta-note {
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            position: relative;
+        }
+
+        /* ─── FOOTER ──────────────────────────────────– */
+        footer {
+            padding: 48px 32px 32px;
+            background: var(--primary);
+            color: white;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto 36px;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 40px;
+        }
+
+        .footer-brand-name {
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .footer-tagline {
+            color: rgba(255,255,255,0.45);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 280px;
+        }
+
+        .footer-email {
+            margin-top: 20px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .footer-email a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer-links h4 {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 20px;
+        }
+
+        .footer-links ul { list-style: none; }
+
+        .footer-links li { margin-bottom: 12px; }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover { color: white; }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 13px;
+        }
+
+        /* ─── RESPONSIVE ──────────────────────────────– */
+        @media (max-width: 900px) {
+            .nav-container { padding: 0 20px; }
+            .nav-links { display: none; }
+
+            .hero { padding: 80px 20px 48px; }
+            .hero h1 { font-size: 36px; }
+            .hero p { font-size: 15px; }
+
+            .pain-points, .how, .founder, .faq { padding: 56px 20px; }
+            .comparison { padding: 56px 20px; }
+            .section-title { font-size: 30px; }
+
+            .pain-points-grid, .steps-grid { grid-template-columns: 1fr; gap: 12px; }
+            .steps-grid::before { display: none; }
+
+            .pricing { padding: 56px 20px; }
+            .pricing-cards { grid-template-columns: 1fr; max-width: 440px; }
+            .pricing-card.featured { transform: scale(1); }
+
+            .cta { padding: 60px 20px; }
+            .cta h2 { font-size: 34px; }
+
+            footer { padding: 40px 20px 28px; }
+            .footer-content { grid-template-columns: 1fr 1fr; gap: 28px; }
+            .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 30px; }
+            .hero-cta .btn { width: 100%; text-align: center; }
+            .footer-content { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── NAVIGATION ─── -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="./logo-v2-3-light.svg" alt="BREVIS">
+            </a>
+            <div class="nav-links">
+                <a href="#how-it-works">How it works</a>
+                <a href="#comparison">Compare</a>
+                <a href="#pricing">Pricing</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Log in</a>
+                <a href="/app.html" class="btn btn-primary">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ─── HERO ─── -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Your Newsletters Deserve <em>Better</em></h1>
+            <p>Pocket saved articles you never read. Brevis reads your newsletters for you.</p>
+            <div class="hero-cta">
+                <a href="/app.html" class="btn btn-accent">Start Free Trial — 50% Off</a>
+                <a href="#how-it-works" class="btn-ghost btn">See how it works</a>
+            </div>
+            <p class="hero-note">No credit card · Cancel anytime</p>
+        </div>
+    </section>
+
+    <!-- ─── PAIN POINTS ─── -->
+    <section class="pain-points">
+        <div class="pain-points-inner">
+            <div class="section-label">Why Switch?</div>
+            <h2 class="section-title">Pocket Has Its Limits</h2>
+            <p class="section-subtitle">Save articles. Never read them. Sound familiar?</p>
+
+            <div class="pain-points-grid">
+                <div class="pain-card">
+                    <div class="pain-icon">📚</div>
+                    <h3>No Summaries</h3>
+                    <p>Pocket just saves. Brevis reads and summarizes everything for you automatically.</p>
+                </div>
+                <div class="pain-card">
+                    <div class="pain-icon">⏰</div>
+                    <h3>Time Drain</h3>
+                    <p>You're still reading full newsletters. Brevis cuts through the noise in seconds.</p>
+                </div>
+                <div class="pain-card">
+                    <div class="pain-icon">🔍</div>
+                    <h3>Hard to Find</h3>
+                    <p>Searching through piles of saved articles is tedious. Brevis organizes everything intelligently.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── HOW IT WORKS ─── -->
+    <section id="how-it-works" class="how">
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Three Steps</h2>
+        <p class="section-subtitle">Get started in minutes.</p>
+
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Forward or Paste</h3>
+                <p>Use your BREVIS email address, paste URLs, or upload PDFs. It all works seamlessly.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>AI Summarizes</h3>
+                <p>Claude reads every newsletter and extracts the key points in seconds. No fluff.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>You Read Less</h3>
+                <p>Browse organized summaries, filter by topics, and get custom briefings. That's it.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── COMPARISON ─── -->
+    <section id="comparison" class="comparison">
+        <div class="comparison-inner">
+            <div class="section-label">The Difference</div>
+            <h2 class="section-title">Brevis vs Pocket</h2>
+            <p class="section-subtitle">Why Brevis is built for newsletter readers.</p>
+
+            <div class="comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Pocket</th>
+                            <th>Brevis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Saves articles/newsletters</td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>AI summaries</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Automatic organization</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Smart tagging</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Custom briefings</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Email forwarding</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>RSS feeds</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>PDF uploads</td>
+                            <td><span class="x">✗</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── FOUNDER STORY ─── -->
+    <section class="founder">
+        <div class="section-label">Why we built this</div>
+        <h2 class="section-title">Newsletters are <em>everywhere</em></h2>
+        <div class="founder-content">
+            <p class="founder-text">
+                I was drowning in newsletters. Dozens came in every day—from investors, founders, engineers, and thought leaders. I wanted to stay informed, but I didn't have hours to read them. I'd save them to Pocket, promise myself I'd read them later, and never did.
+            </p>
+            <p class="founder-text">
+                That's when I realized the problem: I didn't need to save articles. I needed someone to read them <em>for me</em> and tell me what matters.
+            </p>
+            <p class="founder-text">
+                Brevis was born from that frustration. We built it for professionals who care about staying informed but value their time even more.
+            </p>
+            <p class="founder-author">— Antonio, Founder of Brevis</p>
+        </div>
+    </section>
+
+    <!-- ─── PRICING ─── -->
+    <section id="pricing" class="pricing">
+        <div class="section-label">Limited-time offer</div>
+        <h2 class="section-title">50% Off Your First 3 Months</h2>
+        <p class="section-subtitle">Pay monthly or annual—your choice.</p>
+
+        <div class="pricing-cards">
+            <div class="pricing-card">
+                <div class="pricing-name">Starter</div>
+                <div class="pricing-price">$6<span>/month</span></div>
+                <div class="pricing-original">Normally $12</div>
+                <p class="pricing-description">Perfect for getting started</p>
+                <ul class="pricing-features">
+                    <li>Unlimited newsletters</li>
+                    <li>AI summaries</li>
+                    <li>Email forwarding</li>
+                    <li>Smart tagging</li>
+                </ul>
+                <a href="/app.html" class="btn btn-primary">Start free</a>
+            </div>
+            <div class="pricing-card featured">
+                <div class="pricing-name">Premium</div>
+                <div class="pricing-price">$14.50<span>/month</span></div>
+                <div class="pricing-original">Normally $29</div>
+                <p class="pricing-description">For power users</p>
+                <ul class="pricing-features">
+                    <li>Everything in Starter</li>
+                    <li>Custom briefings</li>
+                    <li>Advanced analytics</li>
+                    <li>Priority support</li>
+                </ul>
+                <a href="/app.html" class="btn btn-primary">Start free</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── FAQ ─── -->
+    <section class="faq">
+        <div class="faq-inner">
+            <div class="section-label">Questions?</div>
+            <h2 class="section-title">Frequently Asked</h2>
+
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span class="faq-question-text">Do I need to cancel Pocket?</span>
+                        <div class="faq-chevron">›</div>
+                    </button>
+                    <div class="faq-answer">No. You can use both. But we think you'll find Brevis covers everything Pocket did, just better. Many users switch completely and love having one tool for newsletter management.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span class="faq-question-text">Can I import from Pocket?</span>
+                        <div class="faq-chevron">›</div>
+                    </button>
+                    <div class="faq-answer">We're working on a direct import feature. For now, we recommend setting up email forwarding for new newsletters and gradually building your Brevis library. It takes minutes to get started.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span class="faq-question-text">What if I don't like it?</span>
+                        <div class="faq-chevron">›</div>
+                    </button>
+                    <div class="faq-answer">Cancel anytime with no questions asked. Your free trial has no credit card required, so there's zero risk. We're confident you'll love it.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span class="faq-question-text">Is my data private?</span>
+                        <div class="faq-chevron">›</div>
+                    </button>
+                    <div class="faq-answer">Absolutely. We encrypt everything in transit and at rest. We never sell your data. Brevis is SOC 2 compliant and takes security seriously.</div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span class="faq-question-text">Does the 50% discount expire?</span>
+                        <div class="faq-chevron">›</div>
+                    </button>
+                    <div class="faq-answer">Yes. This limited-time offer covers your first 3 months at 50% off. After that, you'll be charged the full price. Start now to lock in the savings.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── CTA FINAL ─── -->
+    <section class="cta">
+        <h2>Ready to escape the read-it-later trap?</h2>
+        <p>Join hundreds of professionals who've replaced Pocket with Brevis.</p>
+        <div class="cta-buttons">
+            <a href="/app.html" class="btn btn-primary">Start Free Trial</a>
+            <a href="#comparison" class="btn-ghost btn">Compare features</a>
+        </div>
+        <p class="cta-note">50% off first 3 months. No credit card. Cancel anytime.</p>
+    </section>
+
+    <!-- ─── FOOTER ─── -->
+    <footer>
+        <div class="footer-content">
+            <div>
+                <div class="footer-brand-name">BREVIS</div>
+                <p class="footer-tagline">AI-powered newsletter summaries for professionals who value their time.</p>
+                <div class="footer-email">
+                    Questions? Email <a href="mailto:hola@brevisapp.com">hola@brevisapp.com</a>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="/app.html">App</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacy</a></li>
+                    <li><a href="#">Terms</a></li>
+                    <li><a href="#">Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2026 BREVIS. All rights reserved.</span>
+            <span>Built with Claude AI by Anthropic</span>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const item = button.parentElement;
+                item.classList.toggle('open');
+            });
+        });
+    </script>
+
+</body>
+</html>

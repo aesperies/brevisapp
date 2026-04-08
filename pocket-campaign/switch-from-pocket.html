@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brevis - AI Newsletter Summaries | Pocket Migration</title>
+    <meta name="description" content="Switch from Pocket to Brevis - AI-powered newsletter summaries in 4-6 bullets. 50% off your first 3 months.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #2d3436;
+            background: #ffffff;
+        }
+
+        /* Navigation */
+        nav {
+            background: #1a1a2e;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4361ee;
+            text-decoration: none;
+        }
+
+        nav a {
+            color: #ffffff;
+            text-decoration: none;
+            margin-left: 2rem;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #4361ee;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero .container {
+            max-width: 800px;
+        }
+
+        .promo-badge {
+            display: inline-block;
+            background: #4361ee;
+            color: white;
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #4361ee;
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .cta-button:hover {
+            background: #3a52cc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .trust-badge {
+            margin-top: 2rem;
+            font-size: 0.95rem;
+            color: #b0b0b0;
+        }
+
+        .trust-badge i {
+            color: #4361ee;
+            margin-right: 0.5rem;
+        }
+
+        /* Pain Points Section */
+        .pain-section {
+            padding: 5rem 2rem;
+            background: #f8f9fa;
+        }
+
+        .pain-section .container {
+            max-width: 1000px;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #1a1a2e;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .pain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .pain-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pain-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+        }
+
+        .pain-card .icon {
+            font-size: 2.5rem;
+            color: #4361ee;
+            margin-bottom: 1rem;
+        }
+
+        .pain-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a2e;
+        }
+
+        .pain-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* How It Works Section */
+        .how-section {
+            padding: 5rem 2rem;
+            background: white;
+        }
+
+        .how-section .container {
+            max-width: 1000px;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            background: #4361ee;
+            color: white;
+            border-radius: 50%;
+            line-height: 60px;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a2e;
+        }
+
+        .step p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Comparison Table */
+        .comparison-section {
+            padding: 5rem 2rem;
+            background: #f8f9fa;
+        }
+
+        .comparison-section .container {
+            max-width: 1100px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: #1a1a2e;
+            color: white;
+            padding: 1.25rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 1.25rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table tr:nth-child(odd) {
+            background: #f8f9fa;
+        }
+
+        .feature-name {
+            font-weight: 600;
+            color: #1a1a2e;
+            min-width: 150px;
+        }
+
+        .check {
+            color: #4361ee;
+            font-weight: bold;
+        }
+
+        .cross {
+            color: #999;
+        }
+
+        .brevis-row {
+            background: #f0f4ff;
+        }
+
+        .price-highlight {
+            color: #4361ee;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* Founder Story */
+        .founder-section {
+            padding: 5rem 2rem;
+            background: white;
+        }
+
+        .founder-section .container {
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .founder-content {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+            padding: 3rem;
+            border-radius: 12px;
+            border-left: 4px solid #4361ee;
+        }
+
+        .founder-content p {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .founder-quote {
+            font-style: italic;
+            color: #4361ee;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            padding: 5rem 2rem;
+            background: #f8f9fa;
+        }
+
+        .pricing-section .container {
+            max-width: 1000px;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
+        .pricing-card.featured {
+            border: 2px solid #4361ee;
+            transform: scale(1.05);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4361ee;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #1a1a2e;
+        }
+
+        .pricing-description {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #4361ee;
+            margin: 1.5rem 0;
+        }
+
+        .price-period {
+            color: #999;
+            font-size: 0.95rem;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .discount-label {
+            color: #4361ee;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .pricing-features li {
+            padding: 0.5rem 0;
+            color: #666;
+            border-bottom: 1px solid #eee;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-features li:before {
+            content: "✓ ";
+            color: #4361ee;
+            font-weight: bold;
+            margin-right: 0.75rem;
+        }
+
+        .promo-note {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            padding: 5rem 2rem;
+            background: white;
+        }
+
+        .faq-section .container {
+            max-width: 800px;
+        }
+
+        .faq-items {
+            margin-top: 2rem;
+        }
+
+        .faq-item {
+            margin-bottom: 1.5rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #1a1a2e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: #f0f0f0;
+        }
+
+        .faq-icon {
+            color: #4361ee;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            display: none;
+            padding: 1.5rem;
+            color: #666;
+            line-height: 1.6;
+            background: white;
+        }
+
+        .faq-item.active .faq-answer {
+            display: block;
+        }
+
+        /* Final CTA Section */
+        .final-cta {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .final-cta .container {
+            max-width: 700px;
+        }
+
+        .final-cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.3;
+        }
+
+        .final-cta p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #e0e0e0;
+        }
+
+        /* Footer */
+        footer {
+            background: #0f0f1e;
+            color: #999;
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #4361ee;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .section-title {
+                font-size: 1.8rem;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .comparison-table {
+                font-size: 0.9rem;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 0.75rem;
+            }
+
+            nav a {
+                margin-left: 1rem;
+                font-size: 0.85rem;
+            }
+
+            .final-cta h2 {
+                font-size: 1.8rem;
+            }
+
+            .cta-button {
+                padding: 0.85rem 2rem;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                padding: 4rem 1rem;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            nav .container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav a {
+                margin-left: 0;
+                margin-right: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .pain-grid,
+            .steps-grid,
+            .pricing-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-table {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <a href="#" class="logo">Brevis</a>
+            <div>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+                <a href="https://brevisapp.com" target="_blank">Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="promo-badge">🎉 Pocket Migration Special</div>
+            <h1>Your Newsletters Deserve Better</h1>
+            <p>Pocket saved articles you never read. Brevis reads your newsletters for you — delivering 4-6 bullet-point summaries in one daily digest.</p>
+            <button class="cta-button" onclick="scrollToSignup()">Start Free Trial — 50% Off First 3 Months</button>
+            <div class="trust-badge">
+                <i class="fas fa-shield-alt"></i> Trusted by lawyers, VCs, and consultants
+            </div>
+        </div>
+    </section>
+
+    <!-- Pain Points Section -->
+    <section class="pain-section">
+        <div class="container">
+            <h2 class="section-title">Sound Familiar?</h2>
+            <p class="section-subtitle">You're not alone. Here's what Pocket users tell us:</p>
+            <div class="pain-grid">
+                <div class="pain-card">
+                    <div class="icon"><i class="fas fa-inbox"></i></div>
+                    <h3>20+ Newsletters Piling Up</h3>
+                    <p>Your inbox overflows with newsletters from industry leaders, but you can't keep up with them all. They pile up, unread and forgotten.</p>
+                </div>
+                <div class="pain-card">
+                    <div class="icon"><i class="fas fa-hourglass-end"></i></div>
+                    <h3>No Time to Read Everything</h3>
+                    <p>Each newsletter can take 10-15 minutes to read. With dozens arriving daily, it's impossible to stay informed without sacrificing your schedule.</p>
+                </div>
+                <div class="pain-card">
+                    <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <h3>Your Workflow Is Gone</h3>
+                    <p>Pocket is shutting down. You've lost your read-later workflow. You need a new solution — one designed for the information overload of 2026.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-section">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Three simple steps to smarter reading</p>
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Forward Your Newsletters</h3>
+                    <p>Get your unique Brevis email address. Forward newsletters to it with one click. That's it.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>AI Reads & Summarizes</h3>
+                    <p>Claude AI reads each newsletter and extracts the 4-6 most important insights in clear, actionable bullets.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Read Your Digest</h3>
+                    <p>Get one clean daily digest with all your summaries. Read everything that matters in 10 minutes instead of 60.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Table Section -->
+    <section class="comparison-section">
+        <div class="container">
+            <h2 class="section-title">Brevis vs. The Rest</h2>
+            <p class="section-subtitle">See why Brevis is the smart choice for newsletter power users</p>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Brevis</th>
+                        <th>Pocket</th>
+                        <th>Readless</th>
+                        <th>Matter</th>
+                        <th>Readwise Reader</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="brevis-row">
+                        <td class="feature-name">AI Summaries</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                    </tr>
+                    <tr class="brevis-row">
+                        <td class="feature-name">Daily Digest</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr class="brevis-row">
+                        <td class="feature-name">Professional Focus</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                    </tr>
+                    <tr class="brevis-row">
+                        <td class="feature-name">Bilingual (EN/ES)</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td><span class="cross">—</span></td>
+                    </tr>
+                    <tr class="brevis-row">
+                        <td class="feature-name">Price</td>
+                        <td><span class="price-highlight">$6-14.50/mo*</span></td>
+                        <td><span class="cross">—</span></td>
+                        <td>$4.90/mo</td>
+                        <td>Free</td>
+                        <td>$8.99/mo</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.9rem;">* With 50% off first 3 months. Regular: $12-29/mo</p>
+        </div>
+    </section>
+
+    <!-- Founder Story Section -->
+    <section class="founder-section">
+        <div class="container">
+            <h2 class="section-title">Built for People Like You</h2>
+            <div class="founder-content">
+                <p>Brevis was built by a VC lawyer who subscribes to 20+ newsletters and couldn't keep up. He spent hours reading, annotating, and synthesizing insights for his team — time he'd rather spend on deals and legal strategy.</p>
+                <p>Instead of hiring an assistant, he built Brevis. Now he reads everything that matters in his first coffee.</p>
+                <p class="founder-quote">"I'm not just the founder—I'm Brevis user #1. Everything on this platform solves a problem I face every day."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section" id="pricing">
+        <div class="container">
+            <h2 class="section-title">Limited-Time Offer: 50% Off Your First 3 Months</h2>
+            <p class="section-subtitle">Migrate from Pocket with confidence. Try Brevis risk-free.</p>
+            <div class="pricing-cards">
+                <div class="pricing-card">
+                    <h3>Professional</h3>
+                    <p class="pricing-description">Perfect for individuals</p>
+                    <div class="original-price">$12/month</div>
+                    <div class="price">$6<span class="price-period">/mo</span></div>
+                    <div class="discount-label">50% off for 3 months</div>
+                    <ul class="pricing-features">
+                        <li>10 forwarded newsletters/day</li>
+                        <li>AI summaries (4-6 bullets)</li>
+                        <li>Daily digest</li>
+                        <li>Email support</li>
+                    </ul>
+                    <button class="cta-button" onclick="scrollToSignup()">Start Trial</button>
+                    <div class="promo-note">Then $12/mo. Cancel anytime.</div>
+                </div>
+                <div class="pricing-card featured">
+                    <div class="pricing-badge">Most Popular</div>
+                    <h3>Premium</h3>
+                    <p class="pricing-description">For teams and power users</p>
+                    <div class="original-price">$29/month</div>
+                    <div class="price">$14.50<span class="price-period">/mo</span></div>
+                    <div class="discount-label">50% off for 3 months</div>
+                    <ul class="pricing-features">
+                        <li>Unlimited forwarded newsletters</li>
+                        <li>AI summaries (4-6 bullets)</li>
+                        <li>Daily digest + Smart tags</li>
+                        <li>Team access (3 seats)</li>
+                        <li>Priority support</li>
+                        <li>Vertical specialization*</li>
+                    </ul>
+                    <button class="cta-button" onclick="scrollToSignup()">Start Trial</button>
+                    <div class="promo-note">Then $29/mo. Cancel anytime.</div>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 2rem; color: #666; font-size: 0.9rem;">* Legal, VC, Consulting, or Custom</p>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section" id="faq">
+        <div class="container">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <div class="faq-items">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>How does Brevis actually read my newsletters?</span>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        When you forward a newsletter to your Brevis address, our system extracts the content and sends it to Claude AI, Anthropic's most capable language model. Claude reads and understands the newsletter in context, then extracts 4-6 key insights as concise, actionable bullet points. You get a summary that captures what matters most — without the fluff.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Is my data safe? What happens to my newsletters?</span>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        Your data is encrypted in transit and at rest. We never sell your data or use it to train models. Your newsletters are processed securely through Anthropic's API and stored only for the time needed to generate your digest. You can delete your account and data at any time. We comply with GDPR and SOC 2 standards.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Can I import my old Pocket articles into Brevis?</span>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        Pocket allows you to export your saved articles before shutdown. While Brevis is designed for forward-looking newsletter management rather than archiving past articles, we're building import tools for our Premium users. For now, focus on forwarding your current newsletters to Brevis and start fresh with a cleaner, smarter system.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>What happens after the 3-month promotional period ends?</span>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        After 3 months, your subscription will automatically renew at the regular price ($12/mo for Professional, $29/mo for Premium). We'll send you a reminder before the first full-price charge. You can cancel anytime, no questions asked. No contracts, no lock-in.
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Do you support languages other than English?</span>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        Yes! Brevis is bilingual: English and Spanish (Español). Summaries are generated in the language of the original newsletter. Premium users can also request summaries in a different language. We're planning support for French, Portuguese, and German in Q3 2026.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <div class="container">
+            <h2>Stop Drowning in Newsletters</h2>
+            <p>Start reading smarter with Brevis. 50% off your first 3 months — only for Pocket users.</p>
+            <button class="cta-button" onclick="scrollToSignup()">Get Started Now</button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Brevis. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a> | <a href="#">Contact</a></p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(element) {
+            const item = element.parentElement;
+            item.classList.toggle('active');
+        }
+
+        function scrollToSignup() {
+            const pricingSection = document.getElementById('pricing');
+            pricingSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Close FAQ items when clicking outside
+        document.addEventListener('click', function(event) {
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                if (!item.contains(event.target)) {
+                    item.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brevis vs Readless — Which AI Newsletter Tool Is Right for You?</title>
+    <meta name="description" content="Compare Brevis and Readless AI newsletter tools. See pricing, features, and which is right for your professional workflow.">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* ─── NAVIGATION ───────────────────────────── */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            height: 60px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* ─── CONTAINER ───────────────────────────── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        /* ─── HERO ────────────────────────────────── */
+        .hero {
+            padding-top: 100px;
+            padding-bottom: 80px;
+            text-align: center;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 56px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .hero .italic-accent {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        .hero .subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ─── SECTION LABEL ───────────────────────── */
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 40px;
+            color: var(--text);
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* ─── SECTION BASE ────────────────────────── */
+        section {
+            padding: 80px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        section.alt {
+            background: var(--surface);
+        }
+
+        /* ─── VERDICT CARDS ───────────────────────── */
+        .verdict-section {
+            background: var(--bg);
+        }
+
+        .verdict-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .verdict-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .verdict-card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .verdict-card h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .verdict-card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .verdict-card li {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .verdict-card li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* ─── COMPARISON TABLE ────────────────────── */
+        .comparison-section {
+            background: var(--surface);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--text);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 18px 20px;
+            font-size: 15px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td:first-child {
+            font-weight: 600;
+            color: var(--text);
+            background: var(--surface);
+        }
+
+        .checkmark {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .x-mark {
+            color: #888;
+            font-weight: 700;
+            font-size: 18px;
+            opacity: 0.6;
+        }
+
+        .coming-soon {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            font-weight: 500;
+        }
+
+        /* ─── PRICING SECTION ─────────────────────── */
+        .pricing-section {
+            background: var(--bg);
+        }
+
+        .pricing-intro {
+            text-align: center;
+            margin-bottom: 48px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+        }
+
+        .pricing-intro strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        .pricing-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .pricing-card h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 28px;
+            color: var(--text);
+        }
+
+        .pricing-tier {
+            margin-bottom: 24px;
+        }
+
+        .pricing-tier:not(:last-child) {
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pricing-tier-name {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .price {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .price-subtext {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-top: 6px;
+        }
+
+        /* ─── WINS SECTION ────────────────────────── */
+        .wins-section {
+            background: var(--surface);
+        }
+
+        .wins-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .wins-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .wins-card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .wins-card h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .wins-card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .wins-card li {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .wins-card li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .wins-card strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* ─── PERSONAS SECTION ────────────────────── */
+        .personas-section {
+            background: var(--bg);
+        }
+
+        .personas-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .persona-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px 32px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .persona-card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .persona-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .persona-card h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .persona-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* ─── CTA SECTION ─────────────────────────── */
+        .cta-section {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 80px 32px;
+            border-bottom: none;
+        }
+
+        .cta-content h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .cta-content p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.85);
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 36px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: white;
+            color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 1.5px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* ─── FOOTER ──────────────────────────────── */
+        footer {
+            background: var(--primary);
+            color: var(--text-tertiary);
+            text-align: center;
+            padding: 32px 32px;
+            font-size: 13px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: white;
+        }
+
+        /* ─── RESPONSIVE ──────────────────────────── */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .section-title {
+                font-size: 28px;
+            }
+
+            .verdict-grid,
+            .pricing-grid,
+            .wins-grid,
+            .personas-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero,
+            section {
+                padding: 56px 0;
+            }
+
+            .cta-content h2 {
+                font-size: 32px;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="/logo-v2-3-light.svg" alt="BREVIS">
+            </a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="#comparison">Compare</a>
+                <a href="#pricing">Pricing</a>
+            </div>
+            <div class="nav-right" style="display:flex;gap:12px;align-items:center;">
+                <a href="/app.html" class="btn" style="padding:10px 24px;border-radius:100px;font-weight:600;font-size:14px;border:1.5px solid var(--border);color:var(--text);background:transparent;text-decoration:none;">Log in</a>
+                <a href="/app.html" class="btn btn-primary" style="padding:10px 24px;text-decoration:none;">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Brevis vs <span class="italic-accent">Readless</span></h1>
+            <p class="subtitle">Both are excellent newsletter tools. Here's how to choose what's right for your workflow.</p>
+        </div>
+    </section>
+
+    <!-- Quick Verdict -->
+    <section class="verdict-section">
+        <div class="container">
+            <div class="section-label">Quick Verdict</div>
+            <h2 class="section-title">Choose Your Tool</h2>
+            <div class="verdict-grid">
+                <div class="verdict-card">
+                    <h3>Choose Brevis if you:</h3>
+                    <ul>
+                        <li>Work in legal, VC, or consulting</li>
+                        <li>Need deep, context-aware summaries</li>
+                        <li>Require bilingual support (EN/ES)</li>
+                        <li>Bill $200+/hour and value time savings</li>
+                        <li>Want professional-grade AI understanding</li>
+                    </ul>
+                </div>
+                <div class="verdict-card">
+                    <h3>Choose Readless if you:</h3>
+                    <ul>
+                        <li>Want the lowest possible price point</li>
+                        <li>Prefer RSS feeds + newsletter digests</li>
+                        <li>Need trend detection built-in today</li>
+                        <li>Read newsletters casually, not professionally</li>
+                        <li>Don't need vertical specialization</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature Comparison Table -->
+    <section class="comparison-section">
+        <div class="container">
+            <div class="section-label">Detailed Comparison</div>
+            <h2 class="section-title">Feature Matrix</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Brevis</th>
+                            <th>Readless</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AI Engine</td>
+                            <td>Claude AI (Anthropic)</td>
+                            <td>Proprietary AI</td>
+                        </tr>
+                        <tr>
+                            <td>Summary Depth</td>
+                            <td>4–6 contextual bullets</td>
+                            <td>Condensed digest format</td>
+                        </tr>
+                        <tr>
+                            <td>Vertical Specialization</td>
+                            <td><span class="checkmark">✓</span> Legal, VC, Consulting</td>
+                            <td><span class="x-mark">−</span> Generalist approach</td>
+                        </tr>
+                        <tr>
+                            <td>RSS Support</td>
+                            <td><span class="coming-soon">Roadmap</span></td>
+                            <td><span class="checkmark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Trend Detection</td>
+                            <td><span class="coming-soon">Roadmap</span></td>
+                            <td><span class="checkmark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Bilingual EN/ES</td>
+                            <td><span class="checkmark">✓</span></td>
+                            <td><span class="x-mark">−</span></td>
+                        </tr>
+                        <tr>
+                            <td>Daily Digest Email</td>
+                            <td><span class="checkmark">✓</span></td>
+                            <td><span class="checkmark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Custom Schedule</td>
+                            <td><span class="checkmark">✓</span></td>
+                            <td><span class="checkmark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Ad Filtering</td>
+                            <td><span class="checkmark">✓</span></td>
+                            <td><span class="checkmark">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td>Setup Time</td>
+                            <td>&lt;60 seconds</td>
+                            <td>&lt;60 seconds</td>
+                        </tr>
+                        <tr>
+                            <td>Free Trial</td>
+                            <td>14 days, no credit card</td>
+                            <td>Available</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section">
+        <div class="container">
+            <div class="section-label">Value Analysis</div>
+            <h2 class="section-title">Pricing Comparison</h2>
+            <p class="pricing-intro"><strong>The real question isn't monthly cost—it's which tool saves you the most time.</strong> For professionals billing $200+/hour, saving 30 minutes per day with better summaries is worth $100+ daily. The $7–17 monthly difference becomes negligible when measured against billable time recovered.</p>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Brevis</h3>
+                    <div class="pricing-tier">
+                        <div class="pricing-tier-name">Professional</div>
+                        <div class="price">$12<span style="font-size: 18px; font-weight: 500;">/mo</span></div>
+                        <div class="price-subtext">Billed annually: $120/year</div>
+                    </div>
+                    <div class="pricing-tier">
+                        <div class="pricing-tier-name">Premium</div>
+                        <div class="price">$29<span style="font-size: 18px; font-weight: 500;">/mo</span></div>
+                        <div class="price-subtext">Billed annually: $290/year</div>
+                    </div>
+                </div>
+                <div class="pricing-card">
+                    <h3>Readless</h3>
+                    <div class="pricing-tier">
+                        <div class="pricing-tier-name">Standard Plan</div>
+                        <div class="price">$4.90<span style="font-size: 18px; font-weight: 500;">/mo</span></div>
+                        <div class="price-subtext">Most affordable option</div>
+                    </div>
+                    <div class="pricing-tier">
+                        <div class="pricing-tier-name">Premium Plans</div>
+                        <div class="price-subtext" style="margin-top: 12px;">Higher tiers available for more features</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Wins Section -->
+    <section class="wins-section">
+        <div class="container">
+            <div class="section-label">The Breakdown</div>
+            <h2 class="section-title">Where Each Tool Excels</h2>
+            <div class="wins-grid">
+                <div class="wins-card">
+                    <h3>✓ Where Readless Wins</h3>
+                    <ul>
+                        <li><strong>Price.</strong> At $4.90/month, Readless is significantly cheaper—excellent for cost-conscious readers.</li>
+                        <li><strong>RSS support today.</strong> If RSS feeds are central to your workflow, Readless delivers this now, not on a roadmap.</li>
+                        <li><strong>Trend detection.</strong> Built-in trend detection helps you spot emerging topics across your newsletters.</li>
+                        <li><strong>Established product.</strong> Readless has proven reliability and a mature feature set from years in market.</li>
+                        <li><strong>Generalist approach.</strong> Great if you read newsletters across many industries and prefer a neutral tool.</li>
+                    </ul>
+                </div>
+                <div class="wins-card">
+                    <h3>✓ Where Brevis Wins</h3>
+                    <ul>
+                        <li><strong>Professional-grade AI.</strong> Claude understands context in legal documents, VC term sheets, and consulting frameworks—not generic news.</li>
+                        <li><strong>Vertical specialization.</strong> Built specifically for legal, VC, and consulting professionals. The only tool with this depth of domain knowledge.</li>
+                        <li><strong>Bilingual EN/ES.</strong> Full English and Spanish support from day one. Essential for legal and VC professionals in Latin America.</li>
+                        <li><strong>Founded by your user.</strong> Built by an in-house counsel at BITKRAFT Ventures who understands your exact workflow intimately.</li>
+                        <li><strong>Richer summaries.</strong> 4–6 contextual bullets vs. condensed digest. More detail where professionals need it most.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Personas Section -->
+    <section class="personas-section">
+        <div class="container">
+            <div class="section-label">User Profiles</div>
+            <h2 class="section-title">Who Is Each Tool For?</h2>
+            <div class="personas-grid">
+                <div class="persona-card">
+                    <span class="persona-icon">💰</span>
+                    <h3>The Budget-Conscious Reader</h3>
+                    <p>You read newsletters casually, price matters most, and you want a simple digest without specialization. Readless is the smart choice.</p>
+                </div>
+                <div class="persona-card">
+                    <span class="persona-icon">⚖️</span>
+                    <h3>The Time-Pressed Professional</h3>
+                    <p>You're a lawyer, VC, or consultant. Your time is expensive. You need summaries that understand domain context, vertical nuance, and bilingual support. Brevis is built for you.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Try Brevis?</h2>
+                <p>Start your free 14-day trial today. No credit card required. See if professional-grade AI summaries save you time.</p>
+                <div class="cta-buttons">
+                    <a href="https://brevisapp.com/signup" class="btn btn-primary">Start Free Trial</a>
+                    <a href="https://brevisapp.com" class="btn btn-secondary">Back to Brevis →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="padding: 48px 32px 32px; background: var(--primary); color: white;">
+        <div style="max-width:1200px;margin:0 auto 36px;display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:40px;">
+            <div>
+                <div style="font-family:'Instrument Serif',serif;font-size:22px;font-weight:600;letter-spacing:-0.03em;color:white;margin-bottom:8px;">BREVIS</div>
+                <p style="color:rgba(255,255,255,0.45);font-size:14px;line-height:1.6;max-width:280px;">AI-powered newsletter summaries for professionals who value their time.</p>
+                <div style="margin-top:20px;font-size:13px;color:rgba(255,255,255,0.35);">Questions? Email <a href="mailto:hola@brevisapp.com" style="color:var(--accent);text-decoration:none;">hola@brevisapp.com</a></div>
+            </div>
+            <div>
+                <h4 style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.45);margin-bottom:20px;">Product</h4>
+                <ul style="list-style:none;">
+                    <li style="margin-bottom:12px;"><a href="/" style="color:rgba(255,255,255,0.65);text-decoration:none;font-size:14px;">Home</a></li>
+                    <li style="margin-bottom:12px;"><a href="/app.html" style="color:rgba(255,255,255,0.65);text-decoration:none;font-size:14px;">App</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.45);margin-bottom:20px;">Compare</h4>
+                <ul style="list-style:none;">
+                    <li style="margin-bottom:12px;"><a href="/switch-from-pocket.html" style="color:rgba(255,255,255,0.65);text-decoration:none;font-size:14px;">vs Pocket</a></li>
+                    <li style="margin-bottom:12px;"><a href="/brevis-vs-readless.html" style="color:rgba(255,255,255,0.65);text-decoration:none;font-size:14px;">vs Readless</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.45);margin-bottom:20px;">Legal</h4>
+                <ul style="list-style:none;">
+                    <li style="margin-bottom:12px;"><a href="#" style="color:rgba(255,255,255,0.65);text-decoration:none;font-size:14px;">Privacy</a></li>
+                    <li style="margin-bottom:12px;"><a href="#" style="color:rgba(255,255,255,0.65);text-decoration:none;font-size:14px;">Terms</a></li>
+                </ul>
+            </div>
+        </div>
+        <div style="max-width:1200px;margin:0 auto;padding-top:32px;border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center;color:rgba(255,255,255,0.3);font-size:13px;">
+            <span>&copy; 2026 BREVIS. All rights reserved.</span>
+            <span style="font-size:12px;">Comparison based on publicly available information as of April 2026.</span>
+        </div>
+    </footer>
+
+    <script>
+        // Simple CTA tracking
+        document.querySelector('.btn-primary').addEventListener('click', function() {
+            if (window.gtag) {
+                window.gtag('event', 'cta_click', {
+                    'button_text': 'Start Free Trial',
+                    'section': 'cta_section'
+                });
+            }
+        });
+    </script>
+</body>
+</html>

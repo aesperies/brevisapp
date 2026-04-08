@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brevis Blog — Newsletter Management & AI Summaries</title>
+    <meta name="description" content="Insights on newsletter management, AI summarization, and reading intelligence for lawyers, VCs, and professionals.">
+
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Main content */
+        main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+        }
+
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 56px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 16px;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Blog grid */
+        .blog-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            margin-bottom: 80px;
+        }
+
+        @media (max-width: 900px) {
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Article card */
+        .article-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .article-card:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .article-category {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .article-reading-time {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            font-weight: 500;
+        }
+
+        .article-card h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            color: var(--text);
+            flex-grow: 1;
+        }
+
+        .article-excerpt {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        .article-link {
+            display: inline-flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent);
+            text-decoration: none;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .article-link:hover {
+            gap: 12px;
+            color: var(--accent-dark);
+        }
+
+        .article-link span {
+            font-size: 16px;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 48px 32px 32px;
+            margin-top: 120px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 48px;
+        }
+
+        .footer-brand {
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.6;
+        }
+
+        .footer-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .footer-section a {
+            display: block;
+            font-size: 14px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        .footer-bottom p {
+            margin: 0;
+        }
+
+        @media (max-width: 900px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .footer-container {
+                grid-template-columns: 1fr 1fr;
+                gap: 32px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .footer-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a class="logo" href="/"><img src="/logo-v2-3-light.svg" alt="BREVIS" style="height:36px;"></a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/blog/">Blog</a>
+                <a href="/#precios">Pricing</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Log in</a>
+                <a href="/app.html" class="btn btn-primary">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main>
+        <div class="hero">
+            <h1>Brevis Blog</h1>
+            <p>Insights on newsletter management, AI summarization, and reading intelligence for professionals.</p>
+        </div>
+
+        <div class="blog-container">
+            <div class="blog-grid">
+                <!-- 1. Best Pocket Alternatives in 2026 -->
+                <a href="/blog/pocket-alternatives-2026.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Tools</span>
+                        <span class="article-reading-time">10 min</span>
+                    </div>
+                    <h2>Best Pocket Alternatives in 2026</h2>
+                    <p class="article-excerpt">Pocket shut down in July 2025. Here's our honest review of 8 alternatives for professionals.</p>
+                    <a href="/blog/pocket-alternatives-2026.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 2. The Legal Newsletter Crisis -->
+                <a href="/blog/legal-newsletter-crisis.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Legal</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>The Legal Newsletter Crisis</h2>
+                    <p class="article-excerpt">Why in-house counsel are drowning in newsletters and how to reclaim your inbox.</p>
+                    <a href="/blog/legal-newsletter-crisis.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 3. 50 Best Legal Industry Newsletters -->
+                <a href="/blog/best-legal-newsletters-2026.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Legal</span>
+                        <span class="article-reading-time">12 min</span>
+                    </div>
+                    <h2>50 Best Legal Industry Newsletters</h2>
+                    <p class="article-excerpt">The definitive list of legal newsletters every lawyer and counsel should follow in 2026.</p>
+                    <a href="/blog/best-legal-newsletters-2026.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 4. Why Lawyers Choose Specialized Tools -->
+                <a href="/blog/brevis-vs-generic-tools.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Legal</span>
+                        <span class="article-reading-time">7 min</span>
+                    </div>
+                    <h2>Why Lawyers Choose Specialized Tools</h2>
+                    <p class="article-excerpt">Generic newsletter tools miss what legal professionals actually need. Here's why specialization matters.</p>
+                    <a href="/blog/brevis-vs-generic-tools.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 5. How VC Firms Should Manage Newsletters -->
+                <a href="/blog/vc-newsletter-management.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">VC/PE</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>How VC Firms Should Manage Newsletters</h2>
+                    <p class="article-excerpt">Best practices for managing deal flow, market research, and industry intelligence at VC firms.</p>
+                    <a href="/blog/vc-newsletter-management.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 6. AI Summarization for Legal Professionals -->
+                <a href="/blog/ai-newsletter-summarization-legal.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Legal</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>AI Summarization for Legal Professionals</h2>
+                    <p class="article-excerpt">How AI is transforming legal research and newsletter consumption for in-house counsel.</p>
+                    <a href="/blog/ai-newsletter-summarization-legal.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 7. Consulting Newsletter Overload: A 5-Step System -->
+                <a href="/blog/consulting-newsletter-overload.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Consulting</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>Consulting Newsletter Overload: A 5-Step System</h2>
+                    <p class="article-excerpt">A practical framework for managing dozens of industry newsletters while staying focused on client work.</p>
+                    <a href="/blog/consulting-newsletter-overload.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 8. The 20 Best VC & PE Newsletters -->
+                <a href="/blog/best-vc-newsletters-2026.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">VC/PE</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>The 20 Best VC & PE Newsletters</h2>
+                    <p class="article-excerpt">Essential newsletters for venture capital and private equity professionals in 2026.</p>
+                    <a href="/blog/best-vc-newsletters-2026.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 9. Newsletter Management for In-House Counsel -->
+                <a href="/blog/newsletter-management-inhouse-counsel.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Legal</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>Newsletter Management for In-House Counsel</h2>
+                    <p class="article-excerpt">Stay on top of regulatory changes, industry trends, and legal developments without losing focus.</p>
+                    <a href="/blog/newsletter-management-inhouse-counsel.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 10. Newsletters Legales en Espanol -->
+                <a href="/blog/newsletters-legales-espanol-2026.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Legal (ES)</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>Newsletters Legales en Español</h2>
+                    <p class="article-excerpt">Las mejores publicaciones legales en español para abogados y profesionales del derecho.</p>
+                    <a href="/blog/newsletters-legales-espanol-2026.html" class="article-link">Read <span>→</span></a>
+                </a>
+
+                <!-- 11. How to Build a Personal Research Digest -->
+                <a href="/blog/personal-research-digest-guide.html" class="article-card">
+                    <div class="article-meta">
+                        <span class="article-category">Guide</span>
+                        <span class="article-reading-time">8 min</span>
+                    </div>
+                    <h2>How to Build a Personal Research Digest</h2>
+                    <p class="article-excerpt">A comprehensive guide to organizing newsletters, articles, and research into a daily intelligence feed.</p>
+                    <a href="/blog/personal-research-digest-guide.html" class="article-link">Read <span>→</span></a>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div>
+                <div class="footer-brand">BREVIS</div>
+                <p class="footer-tagline">Read smarter. Summarize everything. Stay current on what matters.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Product</h3>
+                <a href="/">Home</a>
+                <a href="/features">Features</a>
+                <a href="/#precios">Pricing</a>
+                <a href="/blog/">Blog</a>
+            </div>
+            <div class="footer-section">
+                <h3>Company</h3>
+                <a href="/about">About</a>
+                <a href="/careers">Careers</a>
+                <a href="/press">Press</a>
+                <a href="mailto:hello@brevisapp.com">Contact</a>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+                <a href="/security">Security</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Brevis. All rights reserved. Made for professionals who read.</p>
+        </div>
+    </footer>
+</body>
+</html>
