@@ -1,94 +1,710 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BREVIS - Terms of Service</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Instrument Sans', sans-serif; background: #F8F9FA; color: #2C3544; line-height: 1.7; }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 24px; }
-        .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
-        .logo img { height: 32px; }
-        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .updated { color: #7A8599; font-size: 14px; margin-bottom: 32px; }
-        h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
-        p, li { font-size: 15px; color: #4A5568; margin-bottom: 12px; }
-        ul { padding-left: 24px; }
-        a { color: #2C3544; }
-        .back { display: inline-block; margin-top: 40px; color: #7A8599; text-decoration: none; font-size: 14px; }
-        .back:hover { color: #2C3544; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Terms of Service for BREVIS - AI-powered newsletter management platform">
+  <meta property="og:title" content="Terms of Service - BREVIS">
+  <meta property="og:description" content="Terms of Service for BREVIS - AI-powered newsletter management platform">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://brevisapp.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="canonical" href="https://brevisapp.com/terms">
+  <title>Terms of Service - BREVIS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-main: #FFE5D4;
+      --bg-cream: #FFF6E0;
+      --bg-mint: #B5EAD7;
+      --bg-pink: #FFCED1;
+      --bg-blue: #C5DEFF;
+      --bg-yellow: #FFD23F;
+      --bg-lilac: #E4D4FC;
+      --ink: #1A1A1A;
+      --red: #E63946;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--bg-main);
+      border-bottom: 3px solid var(--ink);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      gap: 40px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--ink);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .nav-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
+      flex: 1;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      padding: 8px 16px;
+      border: 3px solid transparent;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background-color: var(--bg-mint);
+      border-color: var(--ink);
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .lang-toggle {
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      border: 3px solid var(--ink);
+      background-color: transparent;
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn.active {
+      background-color: var(--ink);
+      color: var(--bg-main);
+    }
+
+    .lang-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .nav-login {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .nav-login:hover {
+      opacity: 0.7;
+    }
+
+    .nav-cta {
+      padding: 10px 20px;
+      background-color: var(--bg-yellow);
+      border: 3px solid var(--ink);
+      color: var(--ink);
+      font-weight: 600;
+      border-radius: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 4px 4px 0 var(--red);
+    }
+
+    .nav-cta:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--red);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 140px 40px 80px;
+      text-align: center;
+      background-color: var(--bg-main);
+      margin-top: 80px;
+    }
+
+    .hero-label {
+      display: inline-block;
+      background-color: var(--bg-pink);
+      border: 3px solid var(--ink);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(42px, 8vw, 64px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .hero-meta {
+      font-size: 16px;
+      color: var(--ink);
+      opacity: 0.8;
+    }
+
+    /* Content Card */
+    .content-wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+
+    .content-card {
+      background-color: var(--bg-cream);
+      border: 3px solid var(--ink);
+      border-radius: 20px;
+      padding: 56px;
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+
+    /* Table of Contents */
+    .toc-box {
+      background-color: var(--bg-blue);
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .toc-box h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .toc-box ul {
+      list-style: none;
+    }
+
+    .toc-box li {
+      margin-bottom: 8px;
+    }
+
+    .toc-box a {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      font-size: 14px;
+      transition: opacity 0.2s;
+    }
+
+    .toc-box a:hover {
+      opacity: 0.6;
+      text-decoration: underline;
+    }
+
+    /* Content sections */
+    .legal-section {
+      margin-bottom: 40px;
+    }
+
+    .legal-section h2 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 4px solid var(--ink);
+      position: relative;
+    }
+
+    .legal-section h2::before {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      height: 4px;
+      background-color: var(--bg-yellow);
+      width: 0;
+    }
+
+    .legal-section h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    .legal-section p {
+      font-size: 16px;
+      line-height: 1.8;
+      margin-bottom: 16px;
+      color: var(--ink);
+    }
+
+    .legal-section ul, .legal-section ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    .legal-section li {
+      margin-bottom: 8px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .legal-section strong {
+      font-weight: 700;
+    }
+
+    /* Dividers */
+    .section-divider {
+      border-top: 3px solid var(--ink);
+      margin: 40px 0;
+    }
+
+    /* Footer */
+    footer {
+      background-color: var(--bg-main);
+      border-top: 3px solid var(--ink);
+      padding: 60px 40px;
+      margin-top: 80px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-col h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 12px;
+    }
+
+    .footer-col a {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .footer-col a:hover {
+      opacity: 0.6;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .footer-brand-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .footer-brand-text {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .footer-tagline {
+      font-size: 13px;
+      color: var(--ink);
+      margin-top: 12px;
+      max-width: 280px;
+    }
+
+    .footer-bottom {
+      border-top: 2px solid var(--ink);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav {
+        padding: 16px 20px;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .nav-center {
+        gap: 16px;
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .hero {
+        padding: 120px 20px 60px;
+        margin-top: 120px;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .content-wrapper {
+        padding: 0 20px 60px;
+      }
+
+      .content-card {
+        padding: 32px;
+      }
+
+      .legal-section h2 {
+        font-size: 24px;
+      }
+
+      footer {
+        padding: 40px 20px;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .content-card {
+      animation: fadeInUp 0.6s ease-out;
+    }
+  </style>
+
+  <meta name="theme-color" content="#FFD23F">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <div class="container">
-        <a href="/" class="logo"><img src="/logo-v2-3-light.svg" alt="BREVIS"></a>
-        <h1>Terms of Service</h1>
-        <p class="updated">Last updated: February 2025</p>
-
-        <h2>1. Acceptance of Terms</h2>
-        <p>By accessing or using BREVIS ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
-
-        <h2>2. Description of Service</h2>
-        <p>BREVIS is a newsletter management platform that helps you organize, summarize, and analyze newsletter content using AI technology. The Service includes email forwarding, AI-powered summaries, briefs, reports, and newsletter management tools.</p>
-
-        <h2>3. Account Registration</h2>
-        <ul>
-            <li>You must provide accurate and complete information when creating an account.</li>
-            <li>You are responsible for maintaining the security of your account credentials.</li>
-            <li>You must be at least 16 years old to use the Service.</li>
-            <li>One person per account. Account sharing is not permitted.</li>
-        </ul>
-
-        <h2>4. Acceptable Use</h2>
-        <p>You agree not to:</p>
-        <ul>
-            <li>Use the Service for any unlawful purpose.</li>
-            <li>Attempt to gain unauthorized access to the Service or its systems.</li>
-            <li>Upload malicious content or attempt to exploit the Service.</li>
-            <li>Resell, redistribute, or commercially exploit the Service without permission.</li>
-            <li>Use the Service to process content you do not have the right to use.</li>
-        </ul>
-
-        <h2>5. Subscriptions & Payments</h2>
-        <ul>
-            <li>Free accounts have limited functionality. Paid plans unlock additional AI features.</li>
-            <li>Payments are processed securely through Stripe.</li>
-            <li>Subscriptions renew automatically. You can cancel at any time through your account settings.</li>
-            <li>Refunds are handled on a case-by-case basis. Contact us within 14 days of charge.</li>
-        </ul>
-
-        <h2>6. AI-Generated Content</h2>
-        <p>Summaries, briefs, and reports are generated by AI (Anthropic's Claude). While we strive for accuracy, AI-generated content may contain errors or omissions. You should verify important information independently. BREVIS is not responsible for decisions made based on AI-generated content.</p>
-
-        <h2>7. Intellectual Property</h2>
-        <ul>
-            <li>You retain ownership of content you upload or forward to the Service.</li>
-            <li>AI-generated summaries and reports are yours to use freely.</li>
-            <li>The BREVIS platform, brand, and technology remain our intellectual property.</li>
-        </ul>
-
-        <h2>8. Data & Privacy</h2>
-        <p>Your use of the Service is also governed by our <a href="/privacy.html">Privacy Policy</a>. By using the Service, you consent to the collection and use of information as described therein.</p>
-
-        <h2>9. Service Availability</h2>
-        <p>We strive to maintain high availability but do not guarantee uninterrupted access. The Service may be temporarily unavailable due to maintenance, updates, or circumstances beyond our control.</p>
-
-        <h2>10. Limitation of Liability</h2>
-        <p>To the maximum extent permitted by law, BREVIS shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service. Our total liability is limited to the amount you paid for the Service in the 12 months preceding the claim.</p>
-
-        <h2>11. Termination</h2>
-        <p>We reserve the right to suspend or terminate accounts that violate these terms. You may delete your account at any time by contacting us.</p>
-
-        <h2>12. Changes to Terms</h2>
-        <p>We may update these terms from time to time. Continued use of the Service after changes constitutes acceptance of the updated terms.</p>
-
-        <h2>13. Contact</h2>
-        <p>For questions about these terms, contact us at <strong>legal@brevisapp.com</strong>.</p>
-
-        <a href="/" class="back">&larr; Back to BREVIS</a>
+  <!-- Navigation -->
+  <nav>
+    <a href="/" class="nav-brand">
+      <svg class="nav-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <g transform="rotate(-4 100 100)">
+          <rect x="14" y="14" width="172" height="172" rx="22" fill="#FFD23F" stroke="#1A1A1A" stroke-width="8"/>
+          <text x="100" y="136" font-family="'Bricolage Grotesque', 'Inter', system-ui, sans-serif" font-weight="800" font-size="92" text-anchor="middle" fill="#1A1A1A" letter-spacing="-5">brv.</text>
+        </g>
+      </svg>
+      BREVIS
+    </a>
+    <div class="nav-center">
+      <a href="/" class="nav-link" data-en="Home" data-es="Inicio">Home</a>
+      <a href="/blog" class="nav-link" data-en="Blog" data-es="Blog">Blog</a>
+      <a href="/#pricing" class="nav-link" data-en="Pricing" data-es="Precios">Pricing</a>
     </div>
+    <div class="nav-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="es">ES</button>
+      </div>
+      <a href="/login" class="nav-login" data-en="Log in" data-es="Iniciar sesión">Log in</a>
+      <a href="#" class="nav-cta">Start free trial →</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-label" data-en="LEGAL" data-es="LEGAL">LEGAL</div>
+    <h1 data-en="Terms of Service" data-es="Términos de Servicio">Terms of Service</h1>
+    <p class="hero-meta" data-en="Last updated: April 2026" data-es="Última actualización: Abril 2026">Last updated: April 2026</p>
+  </section>
+
+  <!-- Content -->
+  <div class="content-wrapper">
+    <div class="content-card">
+      <!-- Table of Contents -->
+      <div class="toc-box">
+        <h3 data-en="Quick Navigation" data-es="Navegación Rápida">Quick Navigation</h3>
+        <ul>
+          <li><a href="#acceptance" data-en="Acceptance of Terms" data-es="Aceptación de Términos">Acceptance of Terms</a></li>
+          <li><a href="#service" data-en="Description of Service" data-es="Descripción del Servicio">Description of Service</a></li>
+          <li><a href="#registration" data-en="Account Registration" data-es="Registro de Cuenta">Account Registration</a></li>
+          <li><a href="#billing" data-en="Subscription & Billing" data-es="Suscripción y Facturación">Subscription & Billing</a></li>
+          <li><a href="#acceptable-use" data-en="Acceptable Use" data-es="Uso Aceptable">Acceptable Use</a></li>
+          <li><a href="#ip" data-en="Intellectual Property" data-es="Propiedad Intelectual">Intellectual Property</a></li>
+          <li><a href="#ai" data-en="AI-Generated Content" data-es="Contenido Generado por IA">AI-Generated Content</a></li>
+          <li><a href="#privacy" data-en="Privacy" data-es="Privacidad">Privacy</a></li>
+          <li><a href="#limitation" data-en="Limitation of Liability" data-es="Limitación de Responsabilidad">Limitation of Liability</a></li>
+          <li><a href="#termination" data-en="Termination" data-es="Terminación">Termination</a></li>
+          <li><a href="#changes" data-en="Changes to Terms" data-es="Cambios en los Términos">Changes to Terms</a></li>
+          <li><a href="#contact" data-en="Contact" data-es="Contacto">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- 1. Acceptance of Terms -->
+      <section class="legal-section" id="acceptance">
+        <h2 data-en="1. Acceptance of Terms" data-es="1. Aceptación de Términos">1. Acceptance of Terms</h2>
+        <p data-en="By accessing and using the BREVIS service (the 'Service'), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service ('Terms'). If you do not agree to these Terms, you may not use the Service." data-es="Al acceder y utilizar el servicio BREVIS (el 'Servicio'), reconoce que ha leído, entendido y acepta ser vinculado por estos Términos de Servicio ('Términos'). Si no está de acuerdo con estos Términos, no puede utilizar el Servicio.">By accessing and using the BREVIS service (the "Service"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Service.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 2. Description of Service -->
+      <section class="legal-section" id="service">
+        <h2 data-en="2. Description of Service" data-es="2. Descripción del Servicio">2. Description of Service</h2>
+        <p data-en="BREVIS is an AI-powered newsletter management and summarization platform designed for legal professionals, venture capital firms, private equity firms, and other professionals. The Service aggregates, summarizes, and organizes newsletters to help you manage your professional reading more efficiently." data-es="BREVIS es una plataforma de gestión y resumen de newsletters impulsada por IA, diseñada para profesionales legales, firmas de capital de riesgo, firmas de capital privado y otros profesionales. El Servicio agrega, resume y organiza newsletters para ayudarlo a gestionar su lectura profesional de manera más eficiente.">BREVIS is an AI-powered newsletter management and summarization platform designed for legal professionals, venture capital firms, private equity firms, and other professionals. The Service aggregates, summarizes, and organizes newsletters to help you manage your professional reading more efficiently.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 3. Account Registration -->
+      <section class="legal-section" id="registration">
+        <h2 data-en="3. Account Registration & Security" data-es="3. Registro de Cuenta y Seguridad">3. Account Registration & Security</h2>
+        <p data-en="You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to provide accurate, current, and complete information during registration and to update such information as needed." data-es="Usted es responsable de mantener la confidencialidad de las credenciales de su cuenta y de todas las actividades que ocurran bajo su cuenta. Usted acepta proporcionar información precisa, actual y completa durante el registro y actualizar dicha información según sea necesario.">You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to provide accurate, current, and complete information during registration and to update such information as needed.</p>
+        <p data-en="You agree to notify us immediately of any unauthorized use of your account or any other breach of security." data-es="Usted acepta notificarnos inmediatamente de cualquier uso no autorizado de su cuenta o cualquier otra violación de seguridad.">You agree to notify us immediately of any unauthorized use of your account or any other breach of security.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 4. Subscription Plans & Billing -->
+      <section class="legal-section" id="billing">
+        <h2 data-en="4. Subscription Plans & Billing" data-es="4. Planes de Suscripción y Facturación">4. Subscription Plans & Billing</h2>
+        <h3 data-en="4.1 Pricing" data-es="4.1 Precios">4.1 Pricing</h3>
+        <p data-en="BREVIS offers two subscription tiers:" data-es="BREVIS ofrece dos niveles de suscripción:">BREVIS offers two subscription tiers:</p>
+        <ul>
+          <li data-en="Standard: $12/month (billed monthly)" data-es="Estándar: $12/mes (facturado mensualmente)"><strong data-en="Standard:" data-es="Estándar:">Standard:</strong> <span data-en="$12/month (billed monthly)" data-es="$12/mes (facturado mensualmente)">$12/month (billed monthly)</span></li>
+          <li data-en="Premium: $29/month (billed monthly)" data-es="Premium: $29/mes (facturado mensualmente)"><strong data-en="Premium:" data-es="Premium:">Premium:</strong> <span data-en="$29/month (billed monthly)" data-es="$29/mes (facturado mensualmente)">$29/month (billed monthly)</span></li>
+        </ul>
+        <h3 data-en="4.2 Free Trial" data-es="4.2 Prueba Gratuita">4.2 Free Trial</h3>
+        <p data-en="New users receive a complimentary 15-day trial of the Premium plan. After the trial period ends, your account will automatically convert to the Standard plan unless you select otherwise." data-es="Los nuevos usuarios reciben una prueba gratuita de 15 días del plan Premium. Después de que finalice el período de prueba, su cuenta se convertirá automáticamente al plan Estándar a menos que seleccione lo contrario.">New users receive a complimentary 15-day trial of the Premium plan. After the trial period ends, your account will automatically convert to the Standard plan unless you select otherwise.</p>
+        <h3 data-en="4.3 Billing" data-es="4.3 Facturación">4.3 Billing</h3>
+        <p data-en="Billing occurs on the date you subscribe to the Service. Subsequent billing dates depend on your subscription plan. You authorize BREVIS to charge your payment method on file for all subscription fees." data-es="La facturación ocurre en la fecha en que se suscribe al Servicio. Las fechas de facturación posteriores dependen de su plan de suscripción. Autoriza a BREVIS a cargar su método de pago en el archivo por todas las tarifas de suscripción.">Billing occurs on the date you subscribe to the Service. Subsequent billing dates depend on your subscription plan. You authorize BREVIS to charge your payment method on file for all subscription fees.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 5. Acceptable Use -->
+      <section class="legal-section" id="acceptable-use">
+        <h2 data-en="5. Acceptable Use" data-es="5. Uso Aceptable">5. Acceptable Use</h2>
+        <p data-en="You agree not to use the Service for any unlawful or prohibited purposes, including but not limited to:" data-es="Usted acepta no utilizar el Servicio para ningún propósito ilegal o prohibido, incluyendo pero no limitado a:">You agree not to use the Service for any unlawful or prohibited purposes, including but not limited to:</p>
+        <ul>
+          <li data-en="Violating any applicable laws or regulations" data-es="Violar cualquier ley o regulación aplicable">Violating any applicable laws or regulations</li>
+          <li data-en="Infringing on intellectual property rights" data-es="Infringir derechos de propiedad intelectual">Infringing on intellectual property rights</li>
+          <li data-en="Transmitting malware or harmful code" data-es="Transmitir malware o código dañino">Transmitting malware or harmful code</li>
+          <li data-en="Harassment or abusive conduct" data-es="Acoso o conducta abusiva">Harassment or abusive conduct</li>
+          <li data-en="Attempting to gain unauthorized access to the Service" data-es="Intentar obtener acceso no autorizado al Servicio">Attempting to gain unauthorized access to the Service</li>
+        </ul>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 6. Intellectual Property -->
+      <section class="legal-section" id="ip">
+        <h2 data-en="6. Intellectual Property" data-es="6. Propiedad Intelectual">6. Intellectual Property</h2>
+        <p data-en="The Service and all content, features, and functionality are owned exclusively by BREVIS, its licensors, or other providers of such material. All rights are reserved globally." data-es="El Servicio y todo el contenido, características y funcionalidad son propiedad exclusiva de BREVIS, sus licenciantes u otros proveedores de dicho material. Todos los derechos se reservan globalmente.">The Service and all content, features, and functionality are owned exclusively by BREVIS, its licensors, or other providers of such material. All rights are reserved globally.</p>
+        <p data-en="You may not reproduce, distribute, or transmit the Service or its content without explicit written permission from BREVIS." data-es="No puede reproducir, distribuir o transmitir el Servicio o su contenido sin permiso escrito explícito de BREVIS.">You may not reproduce, distribute, or transmit the Service or its content without explicit written permission from BREVIS.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 7. AI-Generated Content Disclaimer -->
+      <section class="legal-section" id="ai">
+        <h2 data-en="7. AI-Generated Content Disclaimer" data-es="7. Descargo de Responsabilidad de Contenido Generado por IA">7. AI-Generated Content Disclaimer</h2>
+        <p data-en="BREVIS uses artificial intelligence to summarize newsletters. While we strive for accuracy, AI-generated summaries may contain errors, omissions, or inaccuracies. You should review original sources before relying on summarized content for critical decisions." data-es="BREVIS utiliza inteligencia artificial para resumir newsletters. Aunque nos esforzamos por la precisión, los resúmenes generados por IA pueden contener errores, omisiones o imprecisiones. Debe revisar las fuentes originales antes de confiar en el contenido resumido para decisiones críticas.">BREVIS uses artificial intelligence to summarize newsletters. While we strive for accuracy, AI-generated summaries may contain errors, omissions, or inaccuracies. You should review original sources before relying on summarized content for critical decisions.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 8. Privacy -->
+      <section class="legal-section" id="privacy">
+        <h2 data-en="8. Privacy" data-es="8. Privacidad">8. Privacy</h2>
+        <p data-en="Your use of the Service is also governed by our Privacy Policy, which can be found at brevisapp.com/privacy. Please review our Privacy Policy to understand our practices regarding the collection and use of your personal information." data-es="Su uso del Servicio también se rige por nuestra Política de Privacidad, que se puede encontrar en brevisapp.com/privacy. Consulte nuestra Política de Privacidad para comprender nuestras prácticas con respecto a la recopilación y uso de su información personal.">Your use of the Service is also governed by our Privacy Policy, which can be found at brevisapp.com/privacy. Please review our Privacy Policy to understand our practices regarding the collection and use of your personal information.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 9. Limitation of Liability -->
+      <section class="legal-section" id="limitation">
+        <h2 data-en="9. Limitation of Liability" data-es="9. Limitación de Responsabilidad">9. Limitation of Liability</h2>
+        <p data-en="To the fullest extent permitted by law, BREVIS shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data loss, or business interruption, even if BREVIS has been advised of the possibility of such damages." data-es="En la máxima medida permitida por la ley, BREVIS no será responsable de ningún daño indirecto, incidental, especial, consecuente o punitivo, incluyendo pero no limitado a pérdida de ganancias, pérdida de datos o interrupción del negocio, incluso si BREVIS ha sido informado de la posibilidad de tales daños.">To the fullest extent permitted by law, BREVIS shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data loss, or business interruption, even if BREVIS has been advised of the possibility of such damages.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 10. Termination -->
+      <section class="legal-section" id="termination">
+        <h2 data-en="10. Termination" data-es="10. Terminación">10. Termination</h2>
+        <p data-en="You may terminate your account at any time by contacting customer support at hello@brevisapp.com. BREVIS may terminate your account if you violate these Terms or for other business reasons, provided we give you 30 days' notice." data-es="Puede terminar su cuenta en cualquier momento contactando al soporte al cliente en hello@brevisapp.com. BREVIS puede terminar su cuenta si viola estos Términos u por otras razones comerciales, siempre que le demos 30 días de aviso.">You may terminate your account at any time by contacting customer support at hello@brevisapp.com. BREVIS may terminate your account if you violate these Terms or for other business reasons, provided we give you 30 days' notice.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 11. Changes to Terms -->
+      <section class="legal-section" id="changes">
+        <h2 data-en="11. Changes to Terms" data-es="11. Cambios en los Términos">11. Changes to Terms</h2>
+        <p data-en="BREVIS reserves the right to modify these Terms at any time. Material changes will be communicated via email or in-app notification. Your continued use of the Service following any changes constitutes your acceptance of the new Terms." data-es="BREVIS se reserva el derecho de modificar estos Términos en cualquier momento. Los cambios materiales se comunicarán por correo electrónico o notificación en la aplicación. Su uso continuo del Servicio después de cualquier cambio constituye su aceptación de los nuevos Términos.">BREVIS reserves the right to modify these Terms at any time. Material changes will be communicated via email or in-app notification. Your continued use of the Service following any changes constitutes your acceptance of the new Terms.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 12. Contact -->
+      <section class="legal-section" id="contact">
+        <h2 data-en="12. Contact" data-es="12. Contacto">12. Contact</h2>
+        <p data-en="If you have questions about these Terms, please contact us at:" data-es="Si tiene preguntas sobre estos Términos, contáctenos en:">If you have questions about these Terms, please contact us at:</p>
+        <p>
+          <strong data-en="BREVIS, Inc." data-es="BREVIS, Inc.">BREVIS, Inc.</strong><br>
+          <span data-en="Email: hello@brevisapp.com" data-es="Correo Electrónico: hello@brevisapp.com">Email: <a href="mailto:hello@brevisapp.com">hello@brevisapp.com</a></span>
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-brand">
+            <svg class="footer-brand-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <g transform="rotate(-4 100 100)">
+                <rect x="14" y="14" width="172" height="172" rx="22" fill="#FFD23F" stroke="#1A1A1A" stroke-width="8"/>
+                <text x="100" y="136" font-family="'Bricolage Grotesque', 'Inter', system-ui, sans-serif" font-weight="800" font-size="92" text-anchor="middle" fill="#1A1A1A" letter-spacing="-5">brv.</text>
+              </g>
+            </svg>
+            <div class="footer-brand-text">BREVIS</div>
+          </div>
+          <p class="footer-tagline" data-en="Your reading list. Curated. Summarized." data-es="Tu lista de lectura. Curada. Resumida.">Your reading list. Curated. Summarized.</p>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Product" data-es="Producto">Product</h3>
+          <ul>
+            <li><a href="/" data-en="Home" data-es="Inicio">Home</a></li>
+            <li><a href="/#features" data-en="Features" data-es="Características">Features</a></li>
+            <li><a href="/#pricing" data-en="Pricing" data-es="Precios">Pricing</a></li>
+            <li><a href="/blog" data-en="Blog" data-es="Blog">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Company" data-es="Empresa">Company</h3>
+          <ul>
+            <li><a href="/about" data-en="About" data-es="Acerca de">About</a></li>
+            <li><a href="mailto:hello@brevisapp.com" data-en="Contact" data-es="Contacto">Contact</a></li>
+            <li><a href="/careers" data-en="Careers" data-es="Carreras">Careers</a></li>
+            <li><a href="/press" data-en="Press" data-es="Prensa">Press</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Legal" data-es="Legal">Legal</h3>
+          <ul>
+            <li><a href="/terms" data-en="Terms" data-es="Términos">Terms</a></li>
+            <li><a href="/privacy" data-en="Privacy" data-es="Privacidad">Privacy</a></li>
+            <li><a href="/cookies" data-en="Cookies" data-es="Cookies">Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom" data-en="© 2026 BREVIS. Made with ☕ and AI." data-es="© 2026 BREVIS. Hecho con ☕ e IA.">© 2026 BREVIS. Made with ☕ and AI.</div>
+    </div>
+  </footer>
+
+  <script>
+    // Language toggle
+    const langBtns = document.querySelectorAll('.lang-btn');
+    let currentLang = localStorage.getItem('brevisLang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('brevisLang', lang);
+
+      document.querySelectorAll('[data-en], [data-es]').forEach(el => {
+        const text = el.getAttribute(`data-${lang}`);
+        if (text) {
+          el.textContent = text;
+        }
+      });
+
+      langBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-lang') === lang) {
+          btn.classList.add('active');
+        }
+      });
+    }
+
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => setLanguage(btn.getAttribute('data-lang')));
+    });
+
+    // Initialize language
+    setLanguage(currentLang);
+  </script>
 </body>
 </html>

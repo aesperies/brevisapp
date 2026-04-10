@@ -1,82 +1,738 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BREVIS - Privacy Policy</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Instrument Sans', sans-serif; background: #F8F9FA; color: #2C3544; line-height: 1.7; }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 24px; }
-        .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 48px; }
-        .logo img { height: 32px; }
-        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .updated { color: #7A8599; font-size: 14px; margin-bottom: 32px; }
-        h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
-        p, li { font-size: 15px; color: #4A5568; margin-bottom: 12px; }
-        ul { padding-left: 24px; }
-        a { color: #2C3544; }
-        .back { display: inline-block; margin-top: 40px; color: #7A8599; text-decoration: none; font-size: 14px; }
-        .back:hover { color: #2C3544; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Privacy Policy for BREVIS - AI-powered newsletter management platform">
+  <meta property="og:title" content="Privacy Policy - BREVIS">
+  <meta property="og:description" content="Privacy Policy for BREVIS - AI-powered newsletter management platform">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://brevisapp.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="canonical" href="https://brevisapp.com/privacy">
+  <title>Privacy Policy - BREVIS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-main: #FFE5D4;
+      --bg-cream: #FFF6E0;
+      --bg-mint: #B5EAD7;
+      --bg-pink: #FFCED1;
+      --bg-blue: #C5DEFF;
+      --bg-yellow: #FFD23F;
+      --bg-lilac: #E4D4FC;
+      --ink: #1A1A1A;
+      --red: #E63946;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--bg-main);
+      border-bottom: 3px solid var(--ink);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      gap: 40px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--ink);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .nav-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
+      flex: 1;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      padding: 8px 16px;
+      border: 3px solid transparent;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background-color: var(--bg-mint);
+      border-color: var(--ink);
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .lang-toggle {
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      border: 3px solid var(--ink);
+      background-color: transparent;
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn.active {
+      background-color: var(--ink);
+      color: var(--bg-main);
+    }
+
+    .lang-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .nav-login {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .nav-login:hover {
+      opacity: 0.7;
+    }
+
+    .nav-cta {
+      padding: 10px 20px;
+      background-color: var(--bg-yellow);
+      border: 3px solid var(--ink);
+      color: var(--ink);
+      font-weight: 600;
+      border-radius: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 4px 4px 0 var(--red);
+    }
+
+    .nav-cta:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--red);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 140px 40px 80px;
+      text-align: center;
+      background-color: var(--bg-main);
+      margin-top: 80px;
+    }
+
+    .hero-label {
+      display: inline-block;
+      background-color: var(--bg-lilac);
+      border: 3px solid var(--ink);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(42px, 8vw, 64px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .hero-meta {
+      font-size: 16px;
+      color: var(--ink);
+      opacity: 0.8;
+    }
+
+    /* Content Card */
+    .content-wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+
+    .content-card {
+      background-color: var(--bg-cream);
+      border: 3px solid var(--ink);
+      border-radius: 20px;
+      padding: 56px;
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+
+    /* Table of Contents */
+    .toc-box {
+      background-color: var(--bg-lilac);
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 40px;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .toc-box h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .toc-box ul {
+      list-style: none;
+    }
+
+    .toc-box li {
+      margin-bottom: 8px;
+    }
+
+    .toc-box a {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      font-size: 14px;
+      transition: opacity 0.2s;
+    }
+
+    .toc-box a:hover {
+      opacity: 0.6;
+      text-decoration: underline;
+    }
+
+    /* Content sections */
+    .legal-section {
+      margin-bottom: 40px;
+    }
+
+    .legal-section h2 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 4px solid var(--ink);
+      position: relative;
+    }
+
+    .legal-section h2::before {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      height: 4px;
+      background-color: var(--bg-pink);
+      width: 0;
+    }
+
+    .legal-section h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    .legal-section p {
+      font-size: 16px;
+      line-height: 1.8;
+      margin-bottom: 16px;
+      color: var(--ink);
+    }
+
+    .legal-section ul, .legal-section ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    .legal-section li {
+      margin-bottom: 8px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .legal-section strong {
+      font-weight: 700;
+    }
+
+    .legal-section a {
+      color: var(--ink);
+      text-decoration: underline;
+      transition: opacity 0.2s;
+    }
+
+    .legal-section a:hover {
+      opacity: 0.7;
+    }
+
+    /* Dividers */
+    .section-divider {
+      border-top: 3px solid var(--ink);
+      margin: 40px 0;
+    }
+
+    /* Footer */
+    footer {
+      background-color: var(--bg-main);
+      border-top: 3px solid var(--ink);
+      padding: 60px 40px;
+      margin-top: 80px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-col h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 12px;
+    }
+
+    .footer-col a {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .footer-col a:hover {
+      opacity: 0.6;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .footer-brand-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .footer-brand-text {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .footer-tagline {
+      font-size: 13px;
+      color: var(--ink);
+      margin-top: 12px;
+      max-width: 280px;
+    }
+
+    .footer-bottom {
+      border-top: 2px solid var(--ink);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav {
+        padding: 16px 20px;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .nav-center {
+        gap: 16px;
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .hero {
+        padding: 120px 20px 60px;
+        margin-top: 120px;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .content-wrapper {
+        padding: 0 20px 60px;
+      }
+
+      .content-card {
+        padding: 32px;
+      }
+
+      .legal-section h2 {
+        font-size: 24px;
+      }
+
+      footer {
+        padding: 40px 20px;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .content-card {
+      animation: fadeInUp 0.6s ease-out;
+    }
+  </style>
+
+  <meta name="theme-color" content="#FFD23F">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <div class="container">
-        <a href="/" class="logo"><img src="/logo-v2-3-light.svg" alt="BREVIS"></a>
-        <h1>Privacy Policy</h1>
-        <p class="updated">Last updated: February 2025</p>
-
-        <h2>1. Information We Collect</h2>
-        <p>When you create an account, we collect:</p>
-        <ul>
-            <li><strong>Account information:</strong> name, email address, and password (hashed).</li>
-            <li><strong>Newsletter content:</strong> emails forwarded to your BREVIS inbox for processing.</li>
-            <li><strong>Usage data:</strong> features used, summaries generated, and preferences.</li>
-            <li><strong>Payment information:</strong> processed securely by Stripe. We do not store card details.</li>
-        </ul>
-
-        <h2>2. How We Use Your Information</h2>
-        <ul>
-            <li>To provide and improve the BREVIS service.</li>
-            <li>To generate AI-powered summaries, briefs, and reports from your newsletters.</li>
-            <li>To send service-related communications (verification emails, password resets).</li>
-            <li>To process payments via Stripe.</li>
-        </ul>
-
-        <h2>3. Data Storage & Security</h2>
-        <p>Your data is stored in encrypted databases. Passwords are hashed using bcrypt. All connections use HTTPS. We follow industry-standard security practices to protect your information.</p>
-
-        <h2>4. Third-Party Services</h2>
-        <ul>
-            <li><strong>Anthropic (Claude):</strong> AI processing for summaries and reports. Newsletter content is sent to Claude's API for analysis.</li>
-            <li><strong>Stripe:</strong> Payment processing. Subject to <a href="https://stripe.com/privacy" target="_blank">Stripe's Privacy Policy</a>.</li>
-            <li><strong>Google OAuth:</strong> Optional sign-in. Subject to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</li>
-        </ul>
-
-        <h2>5. Data Retention</h2>
-        <p>Your newsletters and account data are retained for as long as your account is active. You can delete individual newsletters at any time. To delete your entire account, contact us.</p>
-
-        <h2>6. Your Rights</h2>
-        <p>You have the right to:</p>
-        <ul>
-            <li>Access your personal data.</li>
-            <li>Request correction of inaccurate data.</li>
-            <li>Request deletion of your account and data.</li>
-            <li>Export your data.</li>
-        </ul>
-
-        <h2>7. Cookies</h2>
-        <p>We use essential cookies only: authentication tokens (httpOnly, secure) and your language preference. We do not use advertising or tracking cookies.</p>
-
-        <h2>8. Changes to This Policy</h2>
-        <p>We may update this policy from time to time. We will notify you of significant changes via email or in-app notification.</p>
-
-        <h2>9. Contact</h2>
-        <p>For privacy-related inquiries, contact us at <strong>privacy@brevisapp.com</strong>.</p>
-
-        <a href="/" class="back">&larr; Back to BREVIS</a>
+  <!-- Navigation -->
+  <nav>
+    <a href="/" class="nav-brand">
+      <svg class="nav-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <g transform="rotate(-4 100 100)">
+          <rect x="14" y="14" width="172" height="172" rx="22" fill="#FFD23F" stroke="#1A1A1A" stroke-width="8"/>
+          <text x="100" y="136" font-family="'Bricolage Grotesque', 'Inter', system-ui, sans-serif" font-weight="800" font-size="92" text-anchor="middle" fill="#1A1A1A" letter-spacing="-5">brv.</text>
+        </g>
+      </svg>
+      BREVIS
+    </a>
+    <div class="nav-center">
+      <a href="/" class="nav-link" data-en="Home" data-es="Inicio">Home</a>
+      <a href="/blog" class="nav-link" data-en="Blog" data-es="Blog">Blog</a>
+      <a href="/#pricing" class="nav-link" data-en="Pricing" data-es="Precios">Pricing</a>
     </div>
+    <div class="nav-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="es">ES</button>
+      </div>
+      <a href="/login" class="nav-login" data-en="Log in" data-es="Iniciar sesión">Log in</a>
+      <a href="#" class="nav-cta">Start free trial →</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-label" data-en="PRIVACY" data-es="PRIVACIDAD">PRIVACY</div>
+    <h1 data-en="Privacy Policy" data-es="Política de Privacidad">Privacy Policy</h1>
+    <p class="hero-meta" data-en="Last updated: April 2026" data-es="Última actualización: Abril 2026">Last updated: April 2026</p>
+  </section>
+
+  <!-- Content -->
+  <div class="content-wrapper">
+    <div class="content-card">
+      <!-- Table of Contents -->
+      <div class="toc-box">
+        <h3 data-en="Quick Navigation" data-es="Navegación Rápida">Quick Navigation</h3>
+        <ul>
+          <li><a href="#intro" data-en="Introduction" data-es="Introducción">Introduction</a></li>
+          <li><a href="#information-we-collect" data-en="Information We Collect" data-es="Información que Recopilamos">Information We Collect</a></li>
+          <li><a href="#how-we-use" data-en="How We Use Information" data-es="Cómo Usamos la Información">How We Use Information</a></li>
+          <li><a href="#data-storage" data-en="Data Storage & Security" data-es="Almacenamiento y Seguridad de Datos">Data Storage & Security</a></li>
+          <li><a href="#third-party" data-en="Third-Party Services" data-es="Servicios de Terceros">Third-Party Services</a></li>
+          <li><a href="#ai-processing" data-en="AI Processing" data-es="Procesamiento de IA">AI Processing</a></li>
+          <li><a href="#user-rights" data-en="Your Rights" data-es="Sus Derechos">Your Rights</a></li>
+          <li><a href="#cookies" data-en="Cookies & Tracking" data-es="Cookies y Seguimiento">Cookies & Tracking</a></li>
+          <li><a href="#children" data-en="Children's Privacy" data-es="Privacidad de Menores">Children's Privacy</a></li>
+          <li><a href="#international" data-en="International Users" data-es="Usuarios Internacionales">International Users</a></li>
+          <li><a href="#changes" data-en="Changes to Policy" data-es="Cambios de Política">Changes to Policy</a></li>
+          <li><a href="#contact" data-en="Contact" data-es="Contacto">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- 1. Introduction -->
+      <section class="legal-section" id="intro">
+        <h2 data-en="1. Introduction" data-es="1. Introducción">1. Introduction</h2>
+        <p data-en="BREVIS (referred to as 'we,' 'us,' 'our,' or 'Company') is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website, mobile application, and related services (collectively, the 'Service')." data-es="BREVIS (referido como 'nosotros', 'nos', 'nuestro' o 'Empresa') se compromete a proteger su privacidad. Esta Política de Privacidad explica cómo recopilamos, utilizamos, divulgamos y salvaguardamos su información cuando utiliza nuestro sitio web, aplicación móvil y servicios relacionados (colectivamente, el 'Servicio').">BREVIS (referred to as "we," "us," "our," or "Company") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website, mobile application, and related services (collectively, the "Service").</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 2. Information We Collect -->
+      <section class="legal-section" id="information-we-collect">
+        <h2 data-en="2. Information We Collect" data-es="2. Información que Recopilamos">2. Information We Collect</h2>
+        <h3 data-en="2.1 Information You Provide" data-es="2.1 Información que Usted Proporciona">2.1 Information You Provide</h3>
+        <ul>
+          <li data-en="Account registration details (name, email, password)" data-es="Detalles de registro de cuenta (nombre, correo electrónico, contraseña)">Account registration details (name, email, password)</li>
+          <li data-en="Newsletter subscriptions and preferences" data-es="Suscripciones a newsletters y preferencias">Newsletter subscriptions and preferences</li>
+          <li data-en="Communication and support inquiries" data-es="Comunicaciones e indagaciones de soporte">Communication and support inquiries</li>
+          <li data-en="Payment information (processed securely by Stripe)" data-es="Información de pago (procesada de forma segura por Stripe)">Payment information (processed securely by Stripe)</li>
+        </ul>
+
+        <h3 data-en="2.2 Information Collected Automatically" data-es="2.2 Información Recopilada Automáticamente">2.2 Information Collected Automatically</h3>
+        <ul>
+          <li data-en="Device information (IP address, browser type, OS)" data-es="Información del dispositivo (dirección IP, tipo de navegador, SO)">Device information (IP address, browser type, OS)</li>
+          <li data-en="Usage patterns and analytics" data-es="Patrones de uso y análisis">Usage patterns and analytics</li>
+          <li data-en="Cookies and similar tracking technologies" data-es="Cookies y tecnologías de seguimiento similares">Cookies and similar tracking technologies</li>
+        </ul>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 3. How We Use Information -->
+      <section class="legal-section" id="how-we-use">
+        <h2 data-en="3. How We Use Your Information" data-es="3. Cómo Utilizamos su Información">3. How We Use Your Information</h2>
+        <p data-en="We use the information we collect to:" data-es="Utilizamos la información que recopilamos para:">We use the information we collect to:</p>
+        <ul>
+          <li data-en="Provide, maintain, and improve the Service" data-es="Proporcionar, mantener y mejorar el Servicio">Provide, maintain, and improve the Service</li>
+          <li data-en="Process transactions and send billing information" data-es="Procesar transacciones y enviar información de facturación">Process transactions and send billing information</li>
+          <li data-en="Send service announcements and updates" data-es="Enviar anuncios de servicio y actualizaciones">Send service announcements and updates</li>
+          <li data-en="Respond to customer support requests" data-es="Responder a solicitudes de soporte al cliente">Respond to customer support requests</li>
+          <li data-en="Detect and prevent fraud and security issues" data-es="Detectar y prevenir fraude y problemas de seguridad">Detect and prevent fraud and security issues</li>
+          <li data-en="Comply with legal obligations" data-es="Cumplir con obligaciones legales">Comply with legal obligations</li>
+        </ul>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 4. Data Storage & Security -->
+      <section class="legal-section" id="data-storage">
+        <h2 data-en="4. Data Storage & Security" data-es="4. Almacenamiento y Seguridad de Datos">4. Data Storage & Security</h2>
+        <p data-en="We implement industry-standard security measures including encryption, secure authentication, and regular security audits. However, no method of transmission over the internet is 100% secure. We cannot guarantee the absolute security of your information." data-es="Implementamos medidas de seguridad estándar de la industria, incluida encriptación, autenticación segura y auditorías de seguridad regulares. Sin embargo, ningún método de transmisión a través de Internet es 100% seguro. No podemos garantizar la seguridad absoluta de su información.">We implement industry-standard security measures including encryption, secure authentication, and regular security audits. However, no method of transmission over the internet is 100% secure. We cannot guarantee the absolute security of your information.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 5. Third-Party Services -->
+      <section class="legal-section" id="third-party">
+        <h2 data-en="5. Third-Party Services" data-es="5. Servicios de Terceros">5. Third-Party Services</h2>
+        <p data-en="We use third-party services including:" data-es="Utilizamos servicios de terceros, incluidos:">We use third-party services including:</p>
+        <ul>
+          <li data-en="Stripe for payment processing" data-es="Stripe para procesamiento de pagos">Stripe for payment processing</li>
+          <li data-en="Email service providers for communications" data-es="Proveedores de servicios de correo electrónico para comunicaciones">Email service providers for communications</li>
+          <li data-en="Analytics platforms for usage insights" data-es="Plataformas de análisis para información de uso">Analytics platforms for usage insights</li>
+        </ul>
+        <p data-en="These third parties have their own privacy policies and may collect data according to their practices. We are not responsible for their privacy practices." data-es="Estos terceros tienen sus propias políticas de privacidad y pueden recopilar datos de acuerdo con sus prácticas. No somos responsables de sus prácticas de privacidad.">These third parties have their own privacy policies and may collect data according to their practices. We are not responsible for their privacy practices.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 6. AI Processing -->
+      <section class="legal-section" id="ai-processing">
+        <h2 data-en="6. AI Processing of Content" data-es="6. Procesamiento de Contenido por IA">6. AI Processing of Content</h2>
+        <p data-en="BREVIS uses artificial intelligence to analyze and summarize newsletter content you subscribe to. Your newsletter content is processed to generate summaries and may be retained for service improvement, subject to your privacy settings." data-es="BREVIS utiliza inteligencia artificial para analizar y resumir el contenido del boletín informativo al que se suscribe. Su contenido del boletín se procesa para generar resúmenes y puede ser retenido para la mejora del servicio, sujeto a su configuración de privacidad.">BREVIS uses artificial intelligence to analyze and summarize newsletter content you subscribe to. Your newsletter content is processed to generate summaries and may be retained for service improvement, subject to your privacy settings.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 7. User Rights -->
+      <section class="legal-section" id="user-rights">
+        <h2 data-en="7. Your Rights" data-es="7. Sus Derechos">7. Your Rights</h2>
+        <p data-en="Depending on your location, you may have the right to:" data-es="Dependiendo de su ubicación, puede tener derecho a:">Depending on your location, you may have the right to:</p>
+        <ul>
+          <li data-en="Access your personal data" data-es="Acceder a sus datos personales">Access your personal data</li>
+          <li data-en="Correct or update your information" data-es="Corregir o actualizar su información">Correct or update your information</li>
+          <li data-en="Request deletion of your account and data" data-es="Solicitar la eliminación de su cuenta y datos">Request deletion of your account and data</li>
+          <li data-en="Export your data in a portable format" data-es="Exportar sus datos en un formato portátil">Export your data in a portable format</li>
+          <li data-en="Opt-out of certain processing activities" data-es="Optar por no participar en ciertas actividades de procesamiento">Opt-out of certain processing activities</li>
+        </ul>
+        <p data-en="To exercise these rights, contact us at privacy@brevisapp.com." data-es="Para ejercer estos derechos, contáctenos en privacy@brevisapp.com.">To exercise these rights, contact us at privacy@brevisapp.com.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 8. Cookies & Tracking -->
+      <section class="legal-section" id="cookies">
+        <h2 data-en="8. Cookies & Tracking" data-es="8. Cookies y Seguimiento">8. Cookies & Tracking</h2>
+        <p data-en="We use cookies and similar technologies to enhance your experience. You can control cookie preferences through your browser settings. Some cookies are essential for the Service to function, while others are used for analytics and personalization." data-es="Utilizamos cookies y tecnologías similares para mejorar su experiencia. Puede controlar las preferencias de cookies a través de la configuración de su navegador. Algunas cookies son esenciales para que el Servicio funcione, mientras que otras se utilizan para análisis y personalización.">We use cookies and similar technologies to enhance your experience. You can control cookie preferences through your browser settings. Some cookies are essential for the Service to function, while others are used for analytics and personalization.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 9. Children's Privacy -->
+      <section class="legal-section" id="children">
+        <h2 data-en="9. Children's Privacy" data-es="9. Privacidad de Menores">9. Children's Privacy</h2>
+        <p data-en="The Service is not intended for children under 18 years of age. We do not knowingly collect personal information from children. If we become aware that a child has provided us with personal information, we will delete such information and terminate the child's account." data-es="El Servicio no está dirigido a menores de 18 años. No recopilamos información personal de menores deliberadamente. Si nos enteramos de que un menor nos ha proporcionado información personal, eliminaremos esa información y terminaremos la cuenta del menor.">The Service is not intended for children under 18 years of age. We do not knowingly collect personal information from children. If we become aware that a child has provided us with personal information, we will delete such information and terminate the child's account.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 10. International Users -->
+      <section class="legal-section" id="international">
+        <h2 data-en="10. International Users" data-es="10. Usuarios Internacionales">10. International Users</h2>
+        <p data-en="If you access the Service from outside the United States, your information may be transferred to, stored in, and processed in the United States. By using the Service, you consent to such transfers." data-es="Si accede al Servicio desde fuera de los Estados Unidos, su información puede ser transferida, almacenada y procesada en los Estados Unidos. Al utilizar el Servicio, usted consiente tales transferencias.">If you access the Service from outside the United States, your information may be transferred to, stored in, and processed in the United States. By using the Service, you consent to such transfers.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 11. Changes to Policy -->
+      <section class="legal-section" id="changes">
+        <h2 data-en="11. Changes to This Policy" data-es="11. Cambios en esta Política">11. Changes to This Policy</h2>
+        <p data-en="We may update this Privacy Policy periodically. Material changes will be communicated via email or prominent notice on the Service. Your continued use of the Service following any changes constitutes your acceptance of the new Privacy Policy." data-es="Podemos actualizar esta Política de Privacidad periódicamente. Los cambios materiales se comunicarán por correo electrónico o aviso prominente en el Servicio. Su uso continuo del Servicio después de cualquier cambio constituye su aceptación de la nueva Política de Privacidad.">We may update this Privacy Policy periodically. Material changes will be communicated via email or prominent notice on the Service. Your continued use of the Service following any changes constitutes your acceptance of the new Privacy Policy.</p>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- 12. Contact -->
+      <section class="legal-section" id="contact">
+        <h2 data-en="12. Contact Us" data-es="12. Contáctenos">12. Contact Us</h2>
+        <p data-en="If you have questions about this Privacy Policy or our privacy practices, please contact us at:" data-es="Si tiene preguntas sobre esta Política de Privacidad o nuestras prácticas de privacidad, contáctenos en:">If you have questions about this Privacy Policy or our privacy practices, please contact us at:</p>
+        <p>
+          <strong data-en="BREVIS, Inc." data-es="BREVIS, Inc.">BREVIS, Inc.</strong><br>
+          <span data-en="Privacy Email: privacy@brevisapp.com" data-es="Correo de Privacidad: privacy@brevisapp.com">Privacy Email: <a href="mailto:privacy@brevisapp.com">privacy@brevisapp.com</a></span><br>
+          <span data-en="General Contact: hello@brevisapp.com" data-es="Contacto General: hello@brevisapp.com">General Contact: <a href="mailto:hello@brevisapp.com">hello@brevisapp.com</a></span>
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-brand">
+            <svg class="footer-brand-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <g transform="rotate(-4 100 100)">
+                <rect x="14" y="14" width="172" height="172" rx="22" fill="#FFD23F" stroke="#1A1A1A" stroke-width="8"/>
+                <text x="100" y="136" font-family="'Bricolage Grotesque', 'Inter', system-ui, sans-serif" font-weight="800" font-size="92" text-anchor="middle" fill="#1A1A1A" letter-spacing="-5">brv.</text>
+              </g>
+            </svg>
+            <div class="footer-brand-text">BREVIS</div>
+          </div>
+          <p class="footer-tagline" data-en="Your reading list. Curated. Summarized." data-es="Tu lista de lectura. Curada. Resumida.">Your reading list. Curated. Summarized.</p>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Product" data-es="Producto">Product</h3>
+          <ul>
+            <li><a href="/" data-en="Home" data-es="Inicio">Home</a></li>
+            <li><a href="/#features" data-en="Features" data-es="Características">Features</a></li>
+            <li><a href="/#pricing" data-en="Pricing" data-es="Precios">Pricing</a></li>
+            <li><a href="/blog" data-en="Blog" data-es="Blog">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Company" data-es="Empresa">Company</h3>
+          <ul>
+            <li><a href="/about" data-en="About" data-es="Acerca de">About</a></li>
+            <li><a href="mailto:hello@brevisapp.com" data-en="Contact" data-es="Contacto">Contact</a></li>
+            <li><a href="/careers" data-en="Careers" data-es="Carreras">Careers</a></li>
+            <li><a href="/press" data-en="Press" data-es="Prensa">Press</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Legal" data-es="Legal">Legal</h3>
+          <ul>
+            <li><a href="/terms" data-en="Terms" data-es="Términos">Terms</a></li>
+            <li><a href="/privacy" data-en="Privacy" data-es="Privacidad">Privacy</a></li>
+            <li><a href="/cookies" data-en="Cookies" data-es="Cookies">Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom" data-en="© 2026 BREVIS. Made with ☕ and AI." data-es="© 2026 BREVIS. Hecho con ☕ e IA.">© 2026 BREVIS. Made with ☕ and AI.</div>
+    </div>
+  </footer>
+
+  <script>
+    // Language toggle
+    const langBtns = document.querySelectorAll('.lang-btn');
+    let currentLang = localStorage.getItem('brevisLang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('brevisLang', lang);
+
+      document.querySelectorAll('[data-en], [data-es]').forEach(el => {
+        const text = el.getAttribute(`data-${lang}`);
+        if (text) {
+          el.textContent = text;
+        }
+      });
+
+      langBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-lang') === lang) {
+          btn.classList.add('active');
+        }
+      });
+    }
+
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => setLanguage(btn.getAttribute('data-lang')));
+    });
+
+    // Initialize language
+    setLanguage(currentLang);
+  </script>
 </body>
 </html>
