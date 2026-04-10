@@ -1428,7 +1428,7 @@
         <button class="lang-btn active" data-lang="en" data-en="EN" data-es="EN">EN</button>
         <button class="lang-btn" data-lang="es" data-en="ES" data-es="ES">ES</button>
       </div>
-      <a href="#" class="nav-login" data-en="Login" data-es="Iniciar sesión">Login</a>
+      <a href="/app.html" class="nav-login" data-en="Login" data-es="Iniciar sesión">Login</a>
       <button class="btn-cta" data-en="Start free trial →" data-es="Prueba gratuita →">Start free trial →</button>
     </div>
   </nav>
@@ -1917,15 +1917,30 @@
     });
 
     // ===== BUTTON INTERACTIONS =====
-    document.querySelectorAll('.btn-primary, .btn-secondary, .btn-cta').forEach(btn => {
+    // btn-primary + btn-cta always navigate to the app.
+    // btn-secondary is context-dependent:
+    //   - "See it in action" / "Véalo en acción" → smooth-scroll to #features
+    //   - "Log in" / "Iniciar sesión" → navigate to /app.html
+    document.querySelectorAll('.btn-primary, .btn-cta').forEach(btn => {
       btn.addEventListener('click', function(e) {
-        // Add ripple effect
-        const rect = this.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        window.location.href = '/app.html';
+      });
+    });
 
-        // For now, just log (in production, these would navigate)
-        console.log('Button clicked:', this.textContent);
+    document.querySelectorAll('.btn-secondary').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const txt = (this.textContent || '').toLowerCase();
+        if (txt.includes('log in') || txt.includes('sesión') || txt.includes('sign in')) {
+          window.location.href = '/app.html';
+          return;
+        }
+        // Otherwise: smooth-scroll to #features (the "See it in action" CTA)
+        const target = document.getElementById('features');
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.location.href = '/app.html';
+        }
       });
     });
   </script>
