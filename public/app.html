@@ -1251,8 +1251,13 @@
 <body>
     <div id="app"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.production.min.js"></script>
+    <!-- React from unpkg (canonical). Fallback to jsdelivr if unpkg fails.
+         DO NOT move back to cdnjs.cloudflare.com/ajax/libs/react/* — those
+         paths returned 503 on 2026-04-10 and broke the entire app. -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script>window.React || document.write('<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"><\/script>')</script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script>window.ReactDOM || document.write('<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"><\/script>')</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
@@ -2223,15 +2228,102 @@
             );
         }
 
+        // ERROR BOUNDARY — catches any crash in the component tree so the
+        // user sees something instead of a blank page, and logs to console.
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { err: null, info: null };
+            }
+            static getDerivedStateFromError(err) { return { err }; }
+            componentDidCatch(err, info) {
+                console.error('[brevis] crash caught by ErrorBoundary:', err);
+                console.error('[brevis] component stack:', info && info.componentStack);
+                this.setState({ info });
+            }
+            render() {
+                if (this.state.err) {
+                    return (
+                        <div style={{
+                            minHeight: '100vh',
+                            padding: '40px 24px',
+                            background: '#FFE5D4',
+                            fontFamily: "'Inter', system-ui, sans-serif",
+                            color: '#1A1A1A'
+                        }}>
+                            <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+                                <div style={{
+                                    fontFamily: "'Bricolage Grotesque', 'Inter', system-ui, sans-serif",
+                                    fontWeight: 800,
+                                    fontSize: '48px',
+                                    letterSpacing: '-0.03em',
+                                    marginBottom: '8px'
+                                }}>brv.</div>
+                                <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
+                                    Something crashed while loading the app.
+                                </div>
+                                <div style={{
+                                    background: '#FFCED1',
+                                    border: '3px solid #1A1A1A',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    fontSize: '13px',
+                                    fontFamily: "'Space Mono', ui-monospace, monospace",
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    marginBottom: '16px'
+                                }}>
+                                    {String(this.state.err && this.state.err.message || this.state.err)}
+                                </div>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    style={{
+                                        background: '#FFD23F',
+                                        border: '3px solid #1A1A1A',
+                                        borderRadius: '12px',
+                                        padding: '12px 24px',
+                                        fontSize: '14px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        boxShadow: '4px 4px 0 #1A1A1A',
+                                        marginRight: '12px'
+                                    }}
+                                >Reload</button>
+                                <a href="/" style={{
+                                    display: 'inline-block',
+                                    padding: '12px 24px',
+                                    border: '3px solid #1A1A1A',
+                                    borderRadius: '12px',
+                                    textDecoration: 'none',
+                                    color: '#1A1A1A',
+                                    fontWeight: 700
+                                }}>Back to site</a>
+                            </div>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         // RENDER
         function Root() {
             // null = checking, false = show auth, true = show app
             const [isLoggedIn, setIsLoggedIn] = useState(null);
+            const [authError, setAuthError] = useState(null);
 
             useEffect(() => {
+                console.log('[brevis] Root mounted, checking /api/auth/me...');
                 fetch('/api/auth/me', { credentials: 'include' })
-                    .then(res => setIsLoggedIn(res.ok))
-                    .catch(() => setIsLoggedIn(false));
+                    .then(res => {
+                        console.log('[brevis] /api/auth/me status:', res.status);
+                        setIsLoggedIn(res.ok);
+                    })
+                    .catch(err => {
+                        console.error('[brevis] /api/auth/me failed:', err);
+                        setAuthError(err.message);
+                        setIsLoggedIn(false);
+                    });
             }, []);
 
             if (isLoggedIn === null) {
@@ -2239,16 +2331,16 @@
                     <div style={{
                         minHeight: '100vh',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'var(--bg-main, #FFE5D4)',
+                        gap: '12px',
+                        background: '#FFE5D4',
                         fontFamily: "'Bricolage Grotesque', 'Inter', system-ui, sans-serif",
-                        fontWeight: 800,
-                        fontSize: '24px',
-                        color: '#1A1A1A',
-                        letterSpacing: '-0.02em'
+                        color: '#1A1A1A'
                     }}>
-                        brv.
+                        <div style={{ fontWeight: 800, fontSize: '48px', letterSpacing: '-0.03em' }}>brv.</div>
+                        <div style={{ fontSize: '14px', fontWeight: 500, opacity: 0.6 }}>loading…</div>
                     </div>
                 );
             }
@@ -2258,8 +2350,19 @@
                 : <AuthView onSuccess={() => setIsLoggedIn(true)} />;
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('app'));
-        root.render(<Root />);
+        const rootEl = document.getElementById('app');
+        if (!rootEl) {
+            document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">Mount point #app missing.</div>';
+        } else {
+            try {
+                const root = ReactDOM.createRoot(rootEl);
+                root.render(<ErrorBoundary><Root /></ErrorBoundary>);
+                console.log('[brevis] React mounted');
+            } catch (e) {
+                console.error('[brevis] React mount failed:', e);
+                rootEl.innerHTML = '<div style="padding:40px;font-family:sans-serif;background:#FFE5D4;min-height:100vh"><h1>brv.</h1><p>React failed to mount: ' + (e && e.message) + '</p></div>';
+            }
+        }
     </script>
 </body>
 </html>
