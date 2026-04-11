@@ -1712,17 +1712,84 @@
             );
         }
 
+        // Normalize a newsletter row from the API (snake_case) into the
+        // shape the UI expects (camelCase + friendly date).
+        function normalizeNewsletter(n) {
+            const raw = n.date_added || n.created_at || null;
+            let date = '';
+            if (raw) {
+                const d = new Date(raw);
+                const diffMs = Date.now() - d.getTime();
+                const mins = Math.round(diffMs / 60000);
+                const hrs = Math.round(diffMs / 3600000);
+                const days = Math.round(diffMs / 86400000);
+                if (mins < 60) date = mins + 'm ago';
+                else if (hrs < 24) date = hrs + 'h ago';
+                else if (days < 30) date = days + 'd ago';
+                else date = d.toLocaleDateString();
+            }
+            return {
+                id: n.id,
+                sender: n.sender || '',
+                title: n.title || '',
+                date,
+                tags: Array.isArray(n.tags) ? n.tags.map(t => typeof t === 'string' ? t : (t && t.name) || '').filter(Boolean) : [],
+                summary: n.summary || '',
+                content: n.content || '',
+                url: n.url || null,
+                isRead: !!n.is_read,
+                isUnread: !n.is_read,
+            };
+        }
+
         // MAIN APP COMPONENT
         function App() {
             const [currentView, setCurrentView] = useState('newsletters');
             const [selectedNewsletter, setSelectedNewsletter] = useState(null);
-            const [newsLetters, setNewsletters] = useState(mockNewsletters);
+            const [newsLetters, setNewsletters] = useState([]);
+            const [tags, setTags] = useState([]);
+            const [dataLoading, setDataLoading] = useState(true);
+            const [dataError, setDataError] = useState(null);
             const [selectedItems, setSelectedItems] = useState([]);
             const [filter, setFilter] = useState('all');
             const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
             const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
             const [activeModal, setActiveModal] = useState(null);
             const [sidebarOpen, setSidebarOpen] = useState(false);
+
+            // Fetch real newsletters + tags from the API on mount.
+            useEffect(() => {
+                let cancelled = false;
+                (async () => {
+                    try {
+                        setDataLoading(true);
+                        const [nRes, tRes] = await Promise.all([
+                            fetch('/api/newsletters', { credentials: 'include' }),
+                            fetch('/api/tags', { credentials: 'include' }),
+                        ]);
+                        if (!nRes.ok) throw new Error('Failed to load newsletters (' + nRes.status + ')');
+                        if (!tRes.ok) throw new Error('Failed to load tags (' + tRes.status + ')');
+                        const nJson = await nRes.json();
+                        const tJson = await tRes.json();
+                        const nArr = Array.isArray(nJson) ? nJson : (nJson.newsletters || []);
+                        const tArr = Array.isArray(tJson) ? tJson : (tJson.tags || []);
+                        if (cancelled) return;
+                        setNewsletters(nArr.map(normalizeNewsletter));
+                        setTags(tArr.map(t => ({
+                            id: t.id,
+                            name: t.name,
+                            color: t.color || '#FFD23F',
+                        })));
+                        setDataError(null);
+                    } catch (err) {
+                        console.error('[brevis] data load failed:', err);
+                        if (!cancelled) setDataError(err.message || 'Failed to load data');
+                    } finally {
+                        if (!cancelled) setDataLoading(false);
+                    }
+                })();
+                return () => { cancelled = true; };
+            }, []);
 
             useEffect(() => {
                 document.documentElement.setAttribute('data-theme', theme);
@@ -1791,7 +1858,7 @@
                         {/* TAGS */}
                         <div className="nav-section tags-section">
                             <div className="nav-section-title">{t('tags')}</div>
-                            {mockTags.map(tag => (
+                            {tags.map(tag => (
                                 <div key={tag.name} className="tag-item">
                                     <div className="tag-dot" style={{ backgroundColor: tag.color }}></div>
                                     {tag.name}
@@ -2208,7 +2275,7 @@
                                 <form className="modal-form">
                                     <div className="form-group">
                                         <label className="form-label">By Tags</label>
-                                        {mockTags.map(tag => (
+                                        {tags.map(tag => (
                                             <label key={tag.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
                                                 <input type="checkbox" />
                                                 <div className="tag-dot" style={{ backgroundColor: tag.color, width: '10px', height: '10px' }}></div>
