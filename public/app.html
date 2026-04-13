@@ -582,56 +582,83 @@
         }
 
         /* ============ NEWSLETTER CARDS ============ */
+        /* --- LIST MODE (default) --- */
         .newsletter-list {
             flex: 1;
             overflow-y: auto;
-            padding: 24px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             align-content: start;
         }
 
         .newsletter-card {
             background-color: var(--bg-cream);
             border: 3px solid var(--ink);
-            border-radius: 14px;
-            padding: 24px;
-            box-shadow: 5px 5px 0 var(--ink);
-            transition: all 0.2s;
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: 3px 3px 0 var(--ink);
+            transition: all 0.15s;
             cursor: pointer;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: center;
             gap: 16px;
             position: relative;
         }
 
-        .newsletter-card:nth-child(1),
-        .newsletter-card:nth-child(4) {
-            background-color: var(--bg-cream);
-        }
-
-        .newsletter-card:nth-child(2),
-        .newsletter-card:nth-child(5) {
-            background-color: var(--bg-blue);
-        }
-
-        .newsletter-card:nth-child(3) {
-            background-color: var(--bg-pink);
-        }
-
-        .newsletter-card:nth-child(6) {
-            background-color: var(--bg-lilac);
-        }
+        .newsletter-card:nth-child(6n+1) { background-color: var(--bg-cream); }
+        .newsletter-card:nth-child(6n+2) { background-color: var(--bg-blue); }
+        .newsletter-card:nth-child(6n+3) { background-color: var(--bg-pink); }
+        .newsletter-card:nth-child(6n+4) { background-color: var(--bg-lilac); }
+        .newsletter-card:nth-child(6n+5) { background-color: var(--bg-cream); }
+        .newsletter-card:nth-child(6n+6) { background-color: var(--bg-blue); }
 
         .newsletter-card:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: 7px 7px 0 var(--ink);
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 5px 0 var(--ink);
         }
 
         .newsletter-card.read {
             opacity: 0.65;
         }
+
+        /* In list mode, hide the summary and show a compact row */
+        .newsletter-list .newsletter-card .ai-summary-box { display: none; }
+        .newsletter-list .newsletter-card .newsletter-actions { margin-left: auto; flex-shrink: 0; flex-direction: row; gap: 4px; }
+        .newsletter-list .newsletter-card .newsletter-header { flex: 0 0 auto; min-width: 120px; }
+        .newsletter-list .newsletter-card .newsletter-title { flex: 1; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .newsletter-list .newsletter-card .newsletter-tags { flex: 0 0 auto; }
+
+        /* --- CARD MODE (toggled via class) --- */
+        .newsletter-list.card-mode {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            padding: 24px;
+        }
+        .newsletter-list.card-mode .newsletter-card {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 24px;
+            gap: 16px;
+        }
+        .newsletter-list.card-mode .newsletter-card .ai-summary-box { display: block; }
+        .newsletter-list.card-mode .newsletter-card .newsletter-title { white-space: normal; font-size: inherit; }
+        .newsletter-list.card-mode .newsletter-card .newsletter-actions { margin-left: 0; flex-direction: row; }
+        .newsletter-list.card-mode .newsletter-card .newsletter-header { min-width: 0; }
+
+        /* Selection checkbox overlay */
+        .select-checkbox {
+            width: 20px; height: 20px; border: 2px solid var(--ink); border-radius: 6px;
+            background: white; display: flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0; cursor: pointer;
+        }
+        .select-checkbox.checked { background: var(--yellow); }
+
+        /* Active tag highlight */
+        .tag-item.active-tag { background: var(--yellow); border-radius: 8px; font-weight: 700; }
 
         .newsletter-header {
             display: flex;
@@ -1748,31 +1775,43 @@
             const [selectedNewsletter, setSelectedNewsletter] = useState(null);
             const [newsLetters, setNewsletters] = useState([]);
             const [tags, setTags] = useState([]);
+            const [subscriptions, setSubscriptions] = useState([]);
+            const [user, setUser] = useState(null);
             const [dataLoading, setDataLoading] = useState(true);
             const [dataError, setDataError] = useState(null);
             const [selectedItems, setSelectedItems] = useState([]);
+            const [selectionMode, setSelectionMode] = useState(false);
             const [filter, setFilter] = useState('all');
+            const [activeTag, setActiveTag] = useState(null);
+            const [filterTags, setFilterTags] = useState([]);
+            const [viewMode, setViewMode] = useState('list');
+            const [searchQuery, setSearchQuery] = useState('');
             const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
             const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
             const [activeModal, setActiveModal] = useState(null);
             const [sidebarOpen, setSidebarOpen] = useState(false);
 
-            // Fetch real newsletters + tags from the API on mount.
+            // Fetch newsletters, tags, subscriptions, user profile on mount.
             useEffect(() => {
                 let cancelled = false;
                 (async () => {
                     try {
                         setDataLoading(true);
-                        const [nRes, tRes] = await Promise.all([
+                        const [nRes, tRes, sRes, uRes] = await Promise.all([
                             fetch('/api/newsletters', { credentials: 'include' }),
                             fetch('/api/tags', { credentials: 'include' }),
+                            fetch('/api/subscriptions', { credentials: 'include' }),
+                            fetch('/api/auth/me', { credentials: 'include' }),
                         ]);
                         if (!nRes.ok) throw new Error('Failed to load newsletters (' + nRes.status + ')');
                         if (!tRes.ok) throw new Error('Failed to load tags (' + tRes.status + ')');
                         const nJson = await nRes.json();
                         const tJson = await tRes.json();
+                        const sJson = sRes.ok ? await sRes.json() : [];
+                        const uJson = uRes.ok ? await uRes.json() : {};
                         const nArr = Array.isArray(nJson) ? nJson : (nJson.newsletters || []);
                         const tArr = Array.isArray(tJson) ? tJson : (tJson.tags || []);
+                        const sArr = Array.isArray(sJson) ? sJson : (sJson.subscriptions || []);
                         if (cancelled) return;
                         setNewsletters(nArr.map(normalizeNewsletter));
                         setTags(tArr.map(t => ({
@@ -1780,6 +1819,8 @@
                             name: t.name,
                             color: t.color || '#FFD23F',
                         })));
+                        setSubscriptions(sArr);
+                        setUser(uJson.user || uJson);
                         setDataError(null);
                     } catch (err) {
                         console.error('[brevis] data load failed:', err);
@@ -1811,8 +1852,20 @@
             };
 
             const filteredNewsletters = newsLetters.filter(n => {
-                if (filter === 'unread') return n.isUnread;
-                if (filter === 'read') return n.isRead;
+                // Read/unread filter
+                if (filter === 'unread' && !n.isUnread) return false;
+                if (filter === 'read' && !n.isRead) return false;
+                // Sidebar tag filter (single tag)
+                if (activeTag && !n.tags.includes(activeTag)) return false;
+                // Modal multi-tag filter
+                if (filterTags.length > 0 && !filterTags.some(ft => n.tags.includes(ft))) return false;
+                // Search
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    if (!(n.title||'').toLowerCase().includes(q) &&
+                        !(n.sender||'').toLowerCase().includes(q) &&
+                        !(n.summary||'').toLowerCase().includes(q)) return false;
+                }
                 return true;
             });
 
@@ -1826,7 +1879,9 @@
                             <BRLogo />
                             <div className="sidebar-brand">
                                 <div className="sidebar-wordmark">BREVIS</div>
-                                <div className="plan-badge">STANDARD</div>
+                                <div className="plan-badge" onClick={() => setActiveModal('upgrade')} style={{ cursor: 'pointer' }}>
+                                    {(user && user.plan) ? user.plan.toUpperCase() : 'FREE'}
+                                </div>
                             </div>
                         </div>
 
@@ -1859,22 +1914,41 @@
                         <div className="nav-section tags-section">
                             <div className="nav-section-title">{t('tags')}</div>
                             {tags.map(tag => (
-                                <div key={tag.name} className="tag-item">
+                                <div
+                                    key={tag.name}
+                                    className={`tag-item ${activeTag === tag.name ? 'active-tag' : ''}`}
+                                    onClick={() => {
+                                        setActiveTag(prev => prev === tag.name ? null : tag.name);
+                                        setSidebarOpen(false);
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
                                     <div className="tag-dot" style={{ backgroundColor: tag.color }}></div>
                                     {tag.name}
                                 </div>
                             ))}
                         </div>
 
+                        {/* FORWARDING EMAIL */}
+                        {user && user.email_code && (
+                            <div className="nav-section" style={{ padding: '12px', background: 'var(--yellow)', borderRadius: '10px', border: '2px solid var(--ink)', margin: '0 8px 8px' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px', opacity: 0.7 }}>Forward newsletters to:</div>
+                                <div style={{ fontSize: '12px', fontWeight: 600, wordBreak: 'break-all', fontFamily: "'Space Mono', monospace" }}>
+                                    {user.email_code}@newsletters.brevisapp.com
+                                </div>
+                            </div>
+                        )}
+
                         {/* SUBSCRIPTIONS */}
                         <div className="nav-section">
                             <div className="nav-section-title">{t('subscriptions')}</div>
-                            <div className="tag-item">
-                                🔗 Tech News RSS
-                            </div>
-                            <div className="tag-item">
-                                📰 Legal Updates
-                            </div>
+                            {subscriptions.length === 0 ? (
+                                <div style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '4px 12px' }}>No RSS subscriptions yet</div>
+                            ) : subscriptions.map(sub => (
+                                <div key={sub.id} className="tag-item" title={sub.url}>
+                                    🔗 {sub.name || sub.url}
+                                </div>
+                            ))}
                         </div>
 
                         {/* INTELLIGENCE */}
@@ -1934,7 +2008,7 @@
                                 <button className="icon-btn" onClick={() => setActiveModal('settings')} title="Settings">
                                     ⚙️
                                 </button>
-                                <div className="user-avatar">AB</div>
+                                <div className="user-avatar">{user && user.name ? user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : '?'}</div>
                             </div>
                         </div>
                     </aside>
@@ -1957,14 +2031,30 @@
                                     type="text"
                                     className="search-input"
                                     placeholder={t('search')}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
 
-                            <button className="filter-dropdown" onClick={() => setActiveModal('filter')}>
-                                {t('filter')}
+                            <button
+                                className={`filter-dropdown ${filterTags.length > 0 ? 'active' : ''}`}
+                                onClick={() => setActiveModal('filter')}
+                                style={filterTags.length > 0 ? { background: 'var(--yellow)', fontWeight: 700 } : {}}
+                            >
+                                {t('filter')}{filterTags.length > 0 ? ` (${filterTags.length})` : ''}
                             </button>
-                            <button className="view-toggle">📊 {t('viewToggle')}</button>
-                            <button className="selection-mode" onClick={() => setSelectedItems([])}>
+                            <button
+                                className={`view-toggle ${viewMode === 'card' ? 'active' : ''}`}
+                                onClick={() => setViewMode(prev => prev === 'list' ? 'card' : 'list')}
+                                style={viewMode === 'card' ? { background: 'var(--yellow)', fontWeight: 700 } : {}}
+                            >
+                                {viewMode === 'list' ? '📊' : '📋'} {t('viewToggle')}
+                            </button>
+                            <button
+                                className={`selection-mode ${selectionMode ? 'active' : ''}`}
+                                onClick={() => { setSelectionMode(prev => !prev); setSelectedItems([]); }}
+                                style={selectionMode ? { background: 'var(--yellow)', fontWeight: 700 } : {}}
+                            >
                                 ✓ {t('selectionMode')}
                             </button>
                         </div>
@@ -1991,17 +2081,43 @@
                             </div>
                         )}
 
-                        {/* NEWSLETTER GRID */}
-                        <div className="newsletter-list">
+                        {/* NEWSLETTER LIST / GRID */}
+                        {dataLoading ? (
+                            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <div style={{ fontWeight: 800, fontSize: '32px', marginBottom: '8px', fontFamily: "'Bricolage Grotesque', sans-serif" }}>brv.</div>
+                                Loading newsletters...
+                            </div>
+                        ) : dataError ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--red)' }}>
+                                {dataError}
+                                <button className="btn" onClick={() => window.location.reload()} style={{ marginTop: '12px' }}>Retry</button>
+                            </div>
+                        ) : filteredNewsletters.length === 0 ? (
+                            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                {newsLetters.length === 0
+                                    ? 'No newsletters yet — forward emails to your Brevis address to get started!'
+                                    : 'No newsletters match your current filters.'}
+                            </div>
+                        ) : null}
+                        <div className={`newsletter-list ${viewMode === 'card' ? 'card-mode' : ''}`}>
                             {filteredNewsletters.map(newsletter => (
                                 <div
                                     key={newsletter.id}
-                                    className={`newsletter-card ${newsletter.isRead ? 'read' : ''}`}
+                                    className={`newsletter-card ${newsletter.isRead ? 'read' : ''} ${selectedItems.includes(newsletter.id) ? 'selected' : ''}`}
                                     onClick={() => {
-                                        setSelectedNewsletter(newsletter);
-                                        setCurrentView('reader');
+                                        if (selectionMode) {
+                                            handleSelectItem(newsletter.id);
+                                        } else {
+                                            setSelectedNewsletter(newsletter);
+                                            setCurrentView('reader');
+                                        }
                                     }}
                                 >
+                                    {selectionMode && (
+                                        <div className={`select-checkbox ${selectedItems.includes(newsletter.id) ? 'checked' : ''}`}>
+                                            {selectedItems.includes(newsletter.id) ? '✓' : ''}
+                                        </div>
+                                    )}
                                     <div className="newsletter-header">
                                         <div className="newsletter-meta">
                                             <div className="newsletter-sender">{newsletter.sender}</div>
@@ -2165,9 +2281,11 @@
                                     <button className="modal-tab">Query</button>
                                 </div>
 
-                                <div className="graph-container" style={{ height: '500px', background: 'linear-gradient(135deg, var(--bg-cream), var(--bg-blue))', border: '3px solid var(--ink)' }}>
-                                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                        Knowledge graph visualization will appear here
+                                <div className="graph-container" style={{ height: '400px', background: 'linear-gradient(135deg, var(--bg-cream), var(--bg-blue))', border: '3px solid var(--ink)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🕸️</div>
+                                        <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Knowledge Graph is building</div>
+                                        <div style={{ fontSize: '13px', maxWidth: '300px' }}>Your graph grows automatically as Brevis processes newsletters. Keep reading — connections will appear here soon.</div>
                                     </div>
                                 </div>
                             </div>
@@ -2181,13 +2299,10 @@
                                 <button className="modal-close-btn" onClick={() => setActiveModal(null)}>✕</button>
                                 <h2 className="modal-title">{t('knowledgeBases')}</h2>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginTop: '24px' }}>
-                                    {['Legal Compliance', 'AI Best Practices', 'Vendor Database', 'Case Studies'].map((kb) => (
-                                        <div key={kb} className="upgrade-plan-card" style={{ cursor: 'pointer', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                            <h4 className="plan-card-name">{kb}</h4>
-                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>32 articles</p>
-                                        </div>
-                                    ))}
+                                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>📚</div>
+                                    <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>No Knowledge Bases yet</div>
+                                    <div style={{ fontSize: '13px' }}>Knowledge bases are auto-created from your newsletters as you read. The more you use Brevis, the smarter it gets.</div>
                                 </div>
                             </div>
                         </div>
@@ -2202,26 +2317,64 @@
 
                                 <div className="plan-cards">
                                     {[
-                                        { name: 'Free', price: '$0', features: ['5 newsletters', 'Basic summaries'] },
-                                        { name: 'Standard', price: '$12/mo', features: ['Unlimited newsletters', 'AI summaries', 'Tags & folders'] },
-                                        { name: 'Premium', price: '$29/mo', features: ['Everything in Standard', 'Knowledge Graph', 'Custom AI rules'] },
-                                    ].map((plan) => (
-                                        <div key={plan.name} className="upgrade-plan-card">
-                                            <h4 className="plan-card-name">{plan.name}</h4>
-                                            <div className="plan-card-price">{plan.price}</div>
-                                            <div className="plan-features">
-                                                {plan.features.map((feature) => (
-                                                    <div key={feature} className="feature-item">
-                                                        <span className="feature-check">✓</span>
-                                                        <span>{feature}</span>
-                                                    </div>
-                                                ))}
+                                        { id: 'free', name: 'Free', price: '$0', features: ['5 newsletters', 'Basic summaries'] },
+                                        { id: 'standard', name: 'Standard', price: '$12/mo', features: ['Unlimited newsletters', 'AI summaries', 'Tags & folders'] },
+                                        { id: 'premium', name: 'Premium', price: '$29/mo', features: ['Everything in Standard', 'Knowledge Graph', 'Custom AI rules'] },
+                                    ].map((plan) => {
+                                        const isCurrent = user && user.plan && user.plan.toLowerCase() === plan.id;
+                                        return (
+                                            <div key={plan.name} className="upgrade-plan-card" style={isCurrent ? { border: '3px solid var(--yellow)', boxShadow: '5px 5px 0 var(--yellow)' } : {}}>
+                                                <h4 className="plan-card-name">{plan.name}</h4>
+                                                <div className="plan-card-price">{plan.price}</div>
+                                                <div className="plan-features">
+                                                    {plan.features.map((feature) => (
+                                                        <div key={feature} className="feature-item">
+                                                            <span className="feature-check">✓</span>
+                                                            <span>{feature}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {isCurrent ? (
+                                                    <button
+                                                        className="btn"
+                                                        style={{ marginTop: '16px', width: '100%' }}
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'include' });
+                                                                const data = await res.json();
+                                                                if (data.url) window.location.href = data.url;
+                                                                else alert(data.error || 'Could not open billing portal');
+                                                            } catch (e) { alert('Error: ' + e.message); }
+                                                        }}
+                                                    >
+                                                        Manage Plan
+                                                    </button>
+                                                ) : plan.id === 'free' ? (
+                                                    <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>Free forever</div>
+                                                ) : (
+                                                    <button
+                                                        className="btn btn-primary"
+                                                        style={{ marginTop: '16px', width: '100%' }}
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await fetch('/api/stripe/checkout', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    credentials: 'include',
+                                                                    body: JSON.stringify({ plan: plan.id, interval: 'month' }),
+                                                                });
+                                                                const data = await res.json();
+                                                                if (data.url) window.location.href = data.url;
+                                                                else alert(data.error || 'Could not start checkout');
+                                                            } catch (e) { alert('Error: ' + e.message); }
+                                                        }}
+                                                    >
+                                                        {t('upgrade') || 'Upgrade'}
+                                                    </button>
+                                                )}
                                             </div>
-                                            <button className="btn btn-primary" style={{ marginTop: '16px', width: '100%' }}>
-                                                {t('upgrade')}
-                                            </button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -2234,31 +2387,57 @@
                                 <button className="modal-close-btn" onClick={() => setActiveModal(null)}>✕</button>
                                 <h2 className="modal-title">{t('profileSettings')}</h2>
 
-                                <form className="modal-form" onSubmit={(e) => { e.preventDefault(); setActiveModal(null); }}>
+                                <form className="modal-form" onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    // Could wire to PUT /api/auth/profile if it exists
+                                    setActiveModal(null);
+                                }}>
                                     <div className="form-group">
                                         <label className="form-label">{t('name')}</label>
-                                        <input type="text" className="form-input" placeholder="Antonio Bitkraft" />
+                                        <input type="text" className="form-input" defaultValue={(user && user.name) || ''} />
                                     </div>
 
                                     <div className="form-group">
                                         <label className="form-label">{t('email')}</label>
-                                        <input type="email" className="form-input" placeholder="antonio@bitkraft.vc" />
+                                        <input type="email" className="form-input" defaultValue={(user && user.email) || ''} readOnly style={{ opacity: 0.7 }} />
                                     </div>
+
+                                    {user && user.email_code && (
+                                        <div className="form-group">
+                                            <label className="form-label">Your forwarding address</label>
+                                            <div className="form-input" style={{ background: 'var(--yellow)', fontFamily: "'Space Mono', monospace", fontSize: '13px', cursor: 'pointer' }}
+                                                 onClick={() => { navigator.clipboard.writeText(user.email_code + '@newsletters.brevisapp.com'); alert('Copied!'); }}>
+                                                {user.email_code}@newsletters.brevisapp.com
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Click to copy. Forward any newsletter here to add it to Brevis.</div>
+                                        </div>
+                                    )}
 
                                     <div className="form-group">
                                         <label className="form-label">{t('kindleEmail')}</label>
-                                        <input type="email" className="form-input" placeholder="email@kindle.com" />
+                                        <input type="email" className="form-input" defaultValue={(user && user.kindle_email) || ''} placeholder="your-name@kindle.com" />
                                     </div>
 
                                     <div className="form-group">
-                                        <label className="form-label">{t('password')}</label>
-                                        <button type="button" className="btn" style={{ width: '100%' }}>
-                                            Change Password
-                                        </button>
+                                        <label className="form-label">{t('language')}</label>
+                                        <select className="form-input" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                                            <option value="en">English</option>
+                                            <option value="es">Español</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label">Plan</label>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <div className="plan-badge" style={{ margin: 0 }}>{(user && user.plan) ? user.plan.toUpperCase() : 'FREE'}</div>
+                                            <button type="button" className="btn" onClick={() => setActiveModal('upgrade')} style={{ fontSize: '12px' }}>
+                                                Change Plan
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <button type="submit" className="btn btn-primary">
-                                        {t('save')}
+                                        {t('save') || 'Save'}
                                     </button>
                                 </form>
                             </div>
@@ -2277,16 +2456,31 @@
                                         <label className="form-label">By Tags</label>
                                         {tags.map(tag => (
                                             <label key={tag.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
-                                                <input type="checkbox" />
+                                                <input
+                                                    type="checkbox"
+                                                    checked={filterTags.includes(tag.name)}
+                                                    onChange={() => setFilterTags(prev =>
+                                                        prev.includes(tag.name)
+                                                            ? prev.filter(t => t !== tag.name)
+                                                            : [...prev, tag.name]
+                                                    )}
+                                                />
                                                 <div className="tag-dot" style={{ backgroundColor: tag.color, width: '10px', height: '10px' }}></div>
                                                 {tag.name}
                                             </label>
                                         ))}
                                     </div>
 
-                                    <button type="button" className="btn btn-primary" onClick={() => setActiveModal(null)}>
-                                        Apply Filters
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button type="button" className="btn btn-primary" onClick={() => setActiveModal(null)} style={{ flex: 1 }}>
+                                            Apply Filters
+                                        </button>
+                                        {filterTags.length > 0 && (
+                                            <button type="button" className="btn" onClick={() => { setFilterTags([]); setActiveModal(null); }}>
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
                                 </form>
                             </div>
                         </div>
