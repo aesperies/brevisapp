@@ -158,19 +158,34 @@ try {
 // Configure multer for SendGrid webhook
 const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } }); // 25MB max
 
+// HTTPS redirect — Railway terminates SSL at the load balancer and sets
+// x-forwarded-proto. This catches any direct HTTP requests that slip through.
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production' && req.header('x-forwarded-proto') !== 'https') {
+        return res.redirect(301, `https://${req.header('host')}${req.url}`);
+    }
+    next();
+});
+
 // Middleware
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://cdn.jsdelivr.net"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:", "https:"],
             connectSrc: ["'self'"],
             frameSrc: ["'self'", "blob:"],
         }
-    }
+    },
+    // HSTS: tell browsers to only use HTTPS for 1 year, include subdomains
+    strictTransportSecurity: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+    },
 }));
 app.use(cors({
     origin: [
@@ -651,7 +666,26 @@ app.patch('/api/auth/profile', authMiddleware, [
     });
 }));
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', asyncHandler(async (req, res) => {
+    // Extract user ID from JWT (if present) and bump token_version
+    // to invalidate ALL existing tokens for this user (including other devices).
+    const token = req.cookies?.token;
+    if (token) {
+        try {
+            const decoded = verifyToken(token);
+            if (decoded && decoded.id) {
+                const db = dbHelpers.getDb();
+                await db.query(
+                    'UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1',
+                    [decoded.id]
+                );
+                console.log('✅ Token version bumped for user:', decoded.id);
+            }
+        } catch (e) {
+            // Token may be expired/invalid — still clear the cookie
+            console.warn('⚠️ Could not bump token_version on logout:', e.message);
+        }
+    }
     res.clearCookie('token', {
         httpOnly: true,
         sameSite: 'lax',
@@ -660,7 +694,7 @@ app.post('/api/auth/logout', (req, res) => {
     });
     console.log('✅ User logged out');
     res.json({ success: true });
-});
+}));
 
 // ============= GOOGLE OAUTH =============
 

@@ -636,13 +636,7 @@
         }
         .newsletter-list .newsletter-card .newsletter-tags { flex: 0 0 auto; }
         .newsletter-list .newsletter-card .ai-summary-box {
-            display: block; margin: 0; padding: 0; border: none; background: none;
-        }
-        .newsletter-list .newsletter-card .ai-summary-label { display: none; }
-        .newsletter-list .newsletter-card .ai-summary-text {
-            font-size: 13px; color: var(--text-muted); line-height: 1.4;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-            overflow: hidden;
+            display: none;
         }
         .newsletter-list .newsletter-card .newsletter-actions {
             display: none;
@@ -700,6 +694,39 @@
 
         /* Active tag highlight */
         .tag-item.active-tag { background: var(--yellow); border-radius: 8px; font-weight: 700; }
+
+        /* Collapsible summary toggle */
+        .summary-toggle { width: 100%; }
+        .summary-toggle-btn {
+            display: flex; align-items: center; gap: 6px;
+            background: none; border: none; cursor: pointer; padding: 4px 0;
+            font-size: 12px; font-weight: 600; color: var(--text-muted);
+            font-family: inherit;
+        }
+        .summary-toggle-btn:hover { color: var(--ink); }
+        .summary-chevron {
+            display: inline-block; transition: transform 0.15s; font-size: 11px;
+        }
+        .summary-chevron.open { transform: rotate(90deg); }
+        .summary-toggle-label { letter-spacing: 0.02em; }
+        .summary-toggle-body {
+            padding: 10px 0 4px 2px;
+            font-size: 13px; line-height: 1.55; color: var(--text-muted);
+        }
+        .summary-toggle-body ul {
+            margin: 0; padding-left: 18px; list-style: disc;
+        }
+        .summary-toggle-body li {
+            margin-bottom: 4px;
+        }
+        .summary-toggle-body p {
+            margin: 0;
+        }
+        /* In card mode, summary toggle gets a subtle background */
+        .card-mode .summary-toggle-body {
+            background: rgba(26,26,26,0.03); border-radius: 10px;
+            padding: 12px; border: 1px solid rgba(26,26,26,0.06);
+        }
 
         .newsletter-header {
             display: flex;
@@ -1810,6 +1837,49 @@
             };
         }
 
+        // Format an AI summary: strip markdown bold/italic asterisks,
+        // split into bullet points on sentence boundaries or existing line breaks.
+        function formatSummaryHTML(raw) {
+            if (!raw) return '';
+            let s = raw
+                .replace(/\*\*([^*]+)\*\*/g, '$1')   // **bold** → plain
+                .replace(/\*([^*]+)\*/g, '$1')         // *italic* → plain
+                .replace(/__([^_]+)__/g, '$1')         // __bold__ → plain
+                .replace(/_([^_]+)_/g, '$1')           // _italic_ → plain
+                .trim();
+            // Split into bullet points: on existing newlines, or on ". " followed by uppercase
+            let parts = s.split(/\n+/).map(l => l.trim()).filter(Boolean);
+            if (parts.length <= 1) {
+                // Try splitting on sentence boundaries for long single-line summaries
+                parts = s.split(/(?<=\.)\s+(?=[A-Z])/).filter(p => p.trim().length > 10);
+            }
+            if (parts.length <= 1) return '<p>' + s + '</p>';
+            return '<ul>' + parts.map(p => '<li>' + p.replace(/^[-•]\s*/, '') + '</li>').join('') + '</ul>';
+        }
+
+        // Collapsible summary toggle component
+        function SummaryToggle({ summary }) {
+            const [open, setOpen] = useState(false);
+            if (!summary) return null;
+            return (
+                <div className="summary-toggle" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        className="summary-toggle-btn"
+                        onClick={(e) => { e.stopPropagation(); setOpen(prev => !prev); }}
+                    >
+                        <span className={`summary-chevron ${open ? 'open' : ''}`}>▸</span>
+                        <span className="summary-toggle-label">✦ AI Summary</span>
+                    </button>
+                    {open && (
+                        <div
+                            className="summary-toggle-body"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatSummaryHTML(summary)) }}
+                        />
+                    )}
+                </div>
+            );
+        }
+
         // MAIN APP COMPONENT
         function App() {
             const [currentView, setCurrentView] = useState('newsletters');
@@ -2179,14 +2249,7 @@
                                         ))}
                                     </div>
 
-                                    <div className="ai-summary-box">
-                                        <div className="ai-summary-label">
-                                            ✦ {t('aiSummary')}
-                                        </div>
-                                        <div className="ai-summary-text">
-                                            {newsletter.summary}
-                                        </div>
-                                    </div>
+                                    <SummaryToggle summary={newsletter.summary} />
 
                                     <div className="newsletter-actions">
                                         <button
@@ -2270,9 +2333,12 @@
                                         <div className="reader-summary-title">
                                             ✦ {t('aiSummary')}
                                         </div>
-                                        <div className="reader-text">
-                                            {selectedNewsletter.summary}
-                                        </div>
+                                        <div
+                                            className="reader-text"
+                                            dangerouslySetInnerHTML={{
+                                                __html: DOMPurify.sanitize(formatSummaryHTML(selectedNewsletter.summary))
+                                            }}
+                                        />
                                     </div>
 
                                     <div
