@@ -2728,7 +2728,11 @@
                 console.log('[brevis] React mounted');
             } catch (e) {
                 console.error('[brevis] React mount failed:', e);
-                rootEl.innerHTML = '<div style="padding:40px;font-family:sans-serif;background:#FFE5D4;min-height:100vh"><h1>brv.</h1><p>React failed to mount: ' + (e && e.message) + '</p></div>';
+                // Use textContent (not innerHTML) for error message to prevent XSS
+                // if e.message contains attacker-controlled HTML.
+                rootEl.innerHTML = '<div style="padding:40px;font-family:sans-serif;background:#FFE5D4;min-height:100vh"><h1>brv.</h1><p></p></div>';
+                const msgEl = rootEl.querySelector('p');
+                if (msgEl) msgEl.textContent = 'React failed to mount: ' + (e && e.message ? e.message : 'unknown error');
             }
         }
     </script>
