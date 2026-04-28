@@ -24,6 +24,7 @@ import mammoth from 'mammoth';
 import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers, getDb } from './database.js';
+import { recordAutoTagRemoval } from './lib/auto-tagger.js';
 import { generateToken, verifyToken, makeAuthMiddleware } from './auth.js';
 
 // DB-backed authMiddleware: validates JWT signature AND token_version (revoked on password change)
@@ -325,6 +326,18 @@ const webhookLimiter = rateLimit({
     legacyHeaders: false
 });
 
+// Rate limiter for newsletter↔tag mutations (POST /:id/tags/:tagId, DELETE /:id/tags/:tagId).
+// The DELETE path now writes to sender_tag_blocklist when the user removes an auto-tag, so
+// rapid add/remove cycles can train the blocklist. Bound is generous for normal usage
+// (a power user editing tags on dozens of newsletters in a session) but stops automation.
+const tagMutationLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message: { error: 'Too many tag changes, please slow down' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 // Knowledge Graph routes
 app.use('/api/graph', authMiddleware, createGraphRouter());
 
@@ -411,7 +424,8 @@ app.post('/api/auth/register', registerLimiter, [
             language: user.language,
             kindle_email: user.kindle_email,
             trial_end_date: user.trial_end_date,
-            email_verified: false
+            email_verified: false,
+            auto_tag_enabled: user.auto_tag_enabled !== false
         }
     });
 }));
@@ -467,7 +481,8 @@ app.post('/api/auth/login', authLimiter, [
             language: user.language,
             kindle_email: user.kindle_email,
             trial_end_date: user.trial_end_date,
-            email_verified: !!user.email_verified
+            email_verified: !!user.email_verified,
+            auto_tag_enabled: user.auto_tag_enabled !== false
         }
     });
 }));
@@ -597,7 +612,8 @@ app.get('/api/auth/me', authMiddleware, asyncHandler(async (req, res) => {
             language: user.language,
             kindle_email: user.kindle_email,
             trial_end_date: user.trial_end_date,
-            email_verified: !!user.email_verified
+            email_verified: !!user.email_verified,
+            auto_tag_enabled: user.auto_tag_enabled !== false
         }
     });
 }));
@@ -607,13 +623,14 @@ app.patch('/api/auth/profile', authMiddleware, [
     body('name').optional().trim().isLength({ min: 1, max: 255 }).withMessage('Name must be 1–255 characters'),
     body('kindle_email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Kindle email must be a valid email address'),
     body('language').optional().isIn(['es', 'en']).withMessage('Language must be es or en'),
-    body('password').optional({ checkFalsy: true }).isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    body('password').optional({ checkFalsy: true }).isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('auto_tag_enabled').optional().isBoolean().withMessage('auto_tag_enabled must be boolean')
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    const { name, kindle_email, language, password } = req.body;
+    const { name, kindle_email, language, password, auto_tag_enabled } = req.body;
     const db = dbHelpers.getDb();
 
     // Handle password change separately (uses its own hashing)
@@ -640,6 +657,10 @@ app.patch('/api/auth/profile', authMiddleware, [
         updates.push(`language = $${paramIndex++}`);
         values.push(language);
     }
+    if (auto_tag_enabled !== undefined) {
+        updates.push(`auto_tag_enabled = $${paramIndex++}`);
+        values.push(!!auto_tag_enabled);
+    }
 
     let user;
     if (updates.length > 0) {
@@ -661,7 +682,8 @@ app.patch('/api/auth/profile', authMiddleware, [
             email_code: user.email_code,
             plan: user.plan,
             language: user.language,
-            kindle_email: user.kindle_email
+            kindle_email: user.kindle_email,
+            auto_tag_enabled: user.auto_tag_enabled !== false
         }
     });
 }));
@@ -826,7 +848,8 @@ app.post('/api/newsletters', authMiddleware, [
         title,
         source,
         content,
-        url
+        url,
+        { source: 'manual' }
     );
     console.log('✅ Newsletter created:', title);
     // Knowledge Graph: extract entities in background
@@ -854,7 +877,7 @@ app.post('/api/newsletters/upload-pdf', authMiddleware, upload.single('file'), a
         return res.status(400).json({ error: 'Could not extract text from PDF' });
     }
     const newsletter = await dbHelpers.createNewsletter(
-        req.user.id, title, 'PDF Upload', content, ''
+        req.user.id, title, 'PDF Upload', content, '', { source: 'pdf' }
     );
     console.log('✅ PDF newsletter created:', title);
     // Knowledge Graph: extract entities in background
@@ -1136,7 +1159,8 @@ app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (r
                 title,
                 `@${authorHandle} (${authorName})`,
                 content,
-                url
+                url,
+                { source: 'twitter' }
             );
 
             console.log(`✅ Imported tweet (${thread.length} tweet${thread.length > 1 ? 's' : ''} in thread):`, title);
@@ -1158,7 +1182,8 @@ app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (r
                 genericContent.title,
                 genericContent.author,
                 genericContent.content,
-                url
+                url,
+                { source: 'url' }
             );
 
             console.log(`✅ Imported generic URL:`, genericContent.title);
@@ -1467,7 +1492,7 @@ app.delete('/api/tags/:id', authMiddleware, asyncHandler(async (req, res) => {
     res.json({ success: true });
 }));
 
-app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, asyncHandler(async (req, res) => {
+app.post('/api/newsletters/:id/tags/:tagId', tagMutationLimiter, authMiddleware, asyncHandler(async (req, res) => {
     const newsletterId = parseInt(req.params.id);
     const tagId = parseInt(req.params.tagId);
     if (isNaN(newsletterId) || isNaN(tagId)) {
@@ -1487,7 +1512,7 @@ app.post('/api/newsletters/:id/tags/:tagId', authMiddleware, asyncHandler(async 
     res.json(updatedNewsletter);
 }));
 
-app.delete('/api/newsletters/:id/tags/:tagId', authMiddleware, asyncHandler(async (req, res) => {
+app.delete('/api/newsletters/:id/tags/:tagId', tagMutationLimiter, authMiddleware, asyncHandler(async (req, res) => {
     const newsletterId = parseInt(req.params.id);
     const tagId = parseInt(req.params.tagId);
     if (isNaN(newsletterId) || isNaN(tagId)) {
@@ -1502,7 +1527,16 @@ app.delete('/api/newsletters/:id/tags/:tagId', authMiddleware, asyncHandler(asyn
     if (!tags.some(t => t.id === tagId)) {
         return res.status(404).json({ error: 'Tag not found' });
     }
-    await dbHelpers.removeTagFromNewsletter(newsletterId, tagId);
+    const removed = await dbHelpers.removeTagFromNewsletter(newsletterId, tagId);
+    // Learn from corrections: if the user removed a tag the auto-tagger had applied,
+    // bump the blocklist counter so we stop suggesting that tag for this sender.
+    if (removed && removed.auto_tagged && newsletter.sender_key) {
+        try {
+            await recordAutoTagRemoval(getDb(), req.user.id, newsletter.sender_key, tagId);
+        } catch (err) {
+            console.error('⚠️  [auto-tag] Failed to record removal:', err.message);
+        }
+    }
     const updatedNewsletter = await dbHelpers.getNewsletterWithTags(newsletterId, req.user.id);
     res.json(updatedNewsletter);
 }));
@@ -1808,7 +1842,8 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async
             subject,
             fromEmail,
             content,
-            urls[0] || null
+            urls[0] || null,
+            { source: 'email' }
         );
 
     console.log('✅ Newsletter added via email for:', maskEmail(user.email), '- content length:', newsletter.content?.length || 0);
@@ -1984,9 +2019,15 @@ async function fetchAllRSSFeeds() {
                         if (existing.rows.length > 0) continue;
                     }
 
-                    await db.query(
-                        'INSERT INTO newsletters (user_id, title, sender, content, url, is_read) VALUES ($1, $2, $3, $4, $5, 0)',
-                        [sub.user_id, item.title || 'Untitled', sender, item.content || item.contentSnippet || '', item.link || '']
+                    // Route through the helper so sender_key is derived and auto-tagging
+                    // runs on RSS items just like every other ingest path.
+                    await dbHelpers.createNewsletter(
+                        sub.user_id,
+                        item.title || 'Untitled',
+                        sender,
+                        item.content || item.contentSnippet || '',
+                        item.link || '',
+                        { source: 'rss', feedUrl: sub.url }
                     );
                 }
 

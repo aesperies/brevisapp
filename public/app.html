@@ -807,6 +807,19 @@
             text-transform: uppercase;
         }
 
+        /* Auto-tagged pill: subtle accent stripe + star indicator to signal
+           Brevis applied this automatically (learned from prior tags on same sender). */
+        .tag-pill--auto {
+            background-color: rgba(140, 90, 255, 0.12);
+            border-color: rgba(140, 90, 255, 0.55);
+        }
+        .tag-pill__auto-dot {
+            margin-right: 4px;
+            font-size: 10px;
+            line-height: 1;
+            color: rgba(140, 90, 255, 0.9);
+        }
+
         .ai-summary-box {
             background-color: rgba(255, 255, 255, 0.3);
             border: 2px solid var(--ink);
@@ -1428,6 +1441,9 @@
                 back: 'Back',
                 readMoreNewsletters: 'Continue reading',
                 deleteConfirm: 'Are you sure?',
+                autoTagLabel: 'Auto-tag newsletters by sender',
+                autoTagHelp: 'When on, a new newsletter inherits tags it has learned from your past tags on the same sender. You can remove any auto-tag and Brevis will stop suggesting it after a few removals.',
+                autoTagBadge: 'Auto-tagged by Brevis',
             },
             es: {
                 signIn: 'Iniciar Sesión',
@@ -1495,6 +1511,9 @@
                 back: 'Atrás',
                 readMoreNewsletters: 'Continuar leyendo',
                 deleteConfirm: '¿Está seguro?',
+                autoTagLabel: 'Etiquetar automáticamente por remitente',
+                autoTagHelp: 'Cuando está activado, cada boletín nuevo hereda las etiquetas que Brevis aprendió de tus etiquetas anteriores del mismo remitente. Puedes eliminar cualquier etiqueta automática y Brevis dejará de sugerirla tras algunas eliminaciones.',
+                autoTagBadge: 'Etiquetado automáticamente por Brevis',
             }
         };
 
@@ -1823,12 +1842,22 @@
                 else if (days < 30) date = days + 'd ago';
                 else date = d.toLocaleDateString();
             }
+            // Collect auto-tagged tag names so the UI can render a small badge
+            // on tags that Brevis applied automatically (vs. ones the user added).
+            const tagList = Array.isArray(n.tags) ? n.tags : [];
+            const autoTags = new Set(
+                tagList
+                    .filter(t => t && typeof t === 'object' && t.auto_tagged)
+                    .map(t => t.name || '')
+                    .filter(Boolean)
+            );
             return {
                 id: n.id,
                 sender: n.sender || '',
                 title: n.title || '',
                 date,
-                tags: Array.isArray(n.tags) ? n.tags.map(t => typeof t === 'string' ? t : (t && t.name) || '').filter(Boolean) : [],
+                tags: tagList.map(t => typeof t === 'string' ? t : (t && t.name) || '').filter(Boolean),
+                autoTags,
                 summary: n.summary || '',
                 content: n.content || '',
                 url: n.url || null,
@@ -2244,9 +2273,19 @@
                                     <h3 className="newsletter-title">{newsletter.title}</h3>
 
                                     <div className="newsletter-tags">
-                                        {newsletter.tags.map(tag => (
-                                            <span key={tag} className="tag-pill">{tag}</span>
-                                        ))}
+                                        {newsletter.tags.map(tag => {
+                                            const isAuto = newsletter.autoTags && newsletter.autoTags.has(tag);
+                                            return (
+                                                <span
+                                                    key={tag}
+                                                    className={'tag-pill' + (isAuto ? ' tag-pill--auto' : '')}
+                                                    title={isAuto ? t('autoTagBadge') : undefined}
+                                                >
+                                                    {isAuto && <span className="tag-pill__auto-dot" aria-hidden="true">✦</span>}
+                                                    {tag}
+                                                </span>
+                                            );
+                                        })}
                                     </div>
 
                                     <SummaryToggle summary={newsletter.summary} />
@@ -2496,12 +2535,58 @@
 
                                 <form className="modal-form" onSubmit={async (e) => {
                                     e.preventDefault();
-                                    // Could wire to PUT /api/auth/profile if it exists
+                                    // Collect changed fields and persist via PATCH /api/auth/profile.
+                                    // Dirty-check first: skip the network round-trip when nothing changed.
+                                    // The settings modal is opened from the avatar menu — a frequent path —
+                                    // so a no-op save on every visit was wasteful.
+                                    try {
+                                        const form = e.currentTarget;
+                                        const initialName = (user && user.name) || '';
+                                        const initialKindle = (user && user.kindle_email) || '';
+                                        const initialAutoTag = user ? user.auto_tag_enabled !== false : true;
+                                        const nextName = (form.elements['settings-name']?.value || '').trim();
+                                        const nextKindle = (form.elements['settings-kindle']?.value || '').trim();
+                                        const nextAutoTag = user ? user.auto_tag_enabled !== false : true;
+
+                                        const dirty =
+                                            nextName !== initialName ||
+                                            nextKindle !== initialKindle ||
+                                            nextAutoTag !== initialAutoTag;
+
+                                        if (!dirty) {
+                                            setActiveModal(null);
+                                            return;
+                                        }
+
+                                        const payload = {
+                                            name: nextName,
+                                            kindle_email: nextKindle || null,
+                                            auto_tag_enabled: nextAutoTag,
+                                        };
+                                        const res = await fetch('/api/auth/profile', {
+                                            method: 'PATCH',
+                                            credentials: 'include',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(payload),
+                                        });
+                                        if (res.ok) {
+                                            const j = await res.json();
+                                            if (j && j.user) setUser(j.user);
+                                        } else {
+                                            console.warn('[brevis] profile save failed:', res.status);
+                                            // Surface failure to the user instead of silently swallowing
+                                            // — they pressed Save expecting something to happen.
+                                            alert(t('error') || 'Save failed. Please try again.');
+                                        }
+                                    } catch (err) {
+                                        console.error('[brevis] profile save error:', err);
+                                        alert(t('error') || 'Save failed. Please try again.');
+                                    }
                                     setActiveModal(null);
                                 }}>
                                     <div className="form-group">
                                         <label className="form-label">{t('name')}</label>
-                                        <input type="text" className="form-input" defaultValue={(user && user.name) || ''} />
+                                        <input name="settings-name" type="text" className="form-input" defaultValue={(user && user.name) || ''} />
                                     </div>
 
                                     <div className="form-group">
@@ -2522,7 +2607,7 @@
 
                                     <div className="form-group">
                                         <label className="form-label">{t('kindleEmail')}</label>
-                                        <input type="email" className="form-input" defaultValue={(user && user.kindle_email) || ''} placeholder="your-name@kindle.com" />
+                                        <input name="settings-kindle" type="email" className="form-input" defaultValue={(user && user.kindle_email) || ''} placeholder="your-name@kindle.com" />
                                     </div>
 
                                     <div className="form-group">
@@ -2531,6 +2616,21 @@
                                             <option value="en">English</option>
                                             <option value="es">Español</option>
                                         </select>
+                                    </div>
+
+                                    {/* Auto-tagging toggle: controlled from user state and sent on save. */}
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={user ? user.auto_tag_enabled !== false : true}
+                                                onChange={(ev) => setUser(prev => prev ? { ...prev, auto_tag_enabled: ev.target.checked } : prev)}
+                                            />
+                                            <span>{t('autoTagLabel')}</span>
+                                        </label>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', marginLeft: '24px', lineHeight: 1.4 }}>
+                                            {t('autoTagHelp')}
+                                        </div>
                                     </div>
 
                                     <div className="form-group">

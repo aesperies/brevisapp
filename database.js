@@ -3,6 +3,8 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { setupGraphTables } from './graph-database.js';
 import { setupKBTables } from './kb-database.js';
+import { deriveSenderKey } from './lib/sender-key.js';
+import { suggestTagsForSender } from './lib/auto-tagger.js';
 
 const { Pool } = pg;
 
@@ -148,6 +150,88 @@ export async function setupDatabase() {
             );
             CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
         `);
+
+        // Auto-tagging by sender (feature/auto-tagging-by-sender)
+        // - sender_key: universal canonical sender identifier (email, @handle, domain, feed URL)
+        // - auto_tagged: marks tags applied by the auto-tagger vs. user
+        // - auto_tag_enabled: user-level toggle (default on)
+        // - sender_tag_blocklist: learns from user corrections (3 removals → stop suggesting)
+        await pool.query(`
+            ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS sender_key VARCHAR(255);
+            CREATE INDEX IF NOT EXISTS idx_newsletters_user_sender_key ON newsletters(user_id, sender_key);
+        `);
+        await pool.query(`
+            ALTER TABLE newsletter_tags ADD COLUMN IF NOT EXISTS auto_tagged BOOLEAN DEFAULT FALSE;
+        `);
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_tag_enabled BOOLEAN DEFAULT TRUE;
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS sender_tag_blocklist (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                sender_key VARCHAR(255) NOT NULL,
+                tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                removal_count INTEGER NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, sender_key, tag_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_blocklist_user_sender ON sender_tag_blocklist(user_id, sender_key);
+        `);
+
+        // One-shot backfill of sender_key on pre-existing newsletters.
+        // Idempotent: only touches rows where sender_key IS NULL, so reruns are no-ops once
+        // every classifiable row has been processed. Heuristic source detection from existing
+        // fields — we don't have an `ingest_source` column on historical rows:
+        //   - URL on twitter.com/x.com → twitter handle
+        //   - sender contains an email     → extracted email
+        //   - URL has a host               → domain
+        // Rows that fail all three stay NULL and will warm up via the next ≥ 3 ingestions
+        // (per MIN_PRIOR in lib/auto-tagger.js). This is acceptable: most legacy rows are
+        // email newsletters where the email path classifies cleanly.
+        try {
+            const BATCH = 500;
+            let cursor = 0;
+            let processed = 0;
+            // Hard upper bound on a single boot's backfill work to keep startup time predictable
+            // on very large datasets. The next boot will pick up where this one left off because
+            // the WHERE filter is `sender_key IS NULL`.
+            const MAX_PER_BOOT = 50000;
+            while (processed < MAX_PER_BOOT) {
+                const { rows } = await pool.query(
+                    `SELECT id, sender, url FROM newsletters
+                     WHERE sender_key IS NULL AND id > $1
+                     ORDER BY id ASC
+                     LIMIT $2`,
+                    [cursor, BATCH]
+                );
+                if (rows.length === 0) break;
+                for (const r of rows) {
+                    cursor = r.id;
+                    let derived = null;
+                    if (r.url && /twitter\.com|x\.com/i.test(r.url)) {
+                        derived = deriveSenderKey({ source: 'twitter', rawSender: r.sender, url: r.url });
+                    } else if (r.sender && /@/.test(r.sender)) {
+                        derived = deriveSenderKey({ source: 'email', rawSender: r.sender });
+                    } else if (r.url) {
+                        derived = deriveSenderKey({ source: 'url', url: r.url });
+                    }
+                    if (derived) {
+                        await pool.query(
+                            'UPDATE newsletters SET sender_key = $1 WHERE id = $2',
+                            [derived, r.id]
+                        );
+                        processed++;
+                    }
+                }
+                if (rows.length < BATCH) break;
+            }
+            if (processed > 0) {
+                console.log(`✅ Backfilled sender_key for ${processed} existing newsletters`);
+            }
+        } catch (err) {
+            // Backfill is best-effort. Never block server startup on it.
+            console.error('⚠️  [migration] sender_key backfill failed (non-fatal):', err.message);
+        }
 
         // Knowledge Graph tables
         await setupGraphTables(pool);
@@ -319,7 +403,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             SELECT n.*,
                 COALESCE(
-                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color))
+                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color, 'auto_tagged', nt.auto_tagged))
                     FILTER (WHERE t.id IS NOT NULL),
                     '[]'::json
                 ) AS tags
@@ -337,7 +421,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             SELECT n.*,
                 COALESCE(
-                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color))
+                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color, 'auto_tagged', nt.auto_tagged))
                     FILTER (WHERE t.id IS NOT NULL),
                     '[]'::json
                 ) AS tags
@@ -356,7 +440,7 @@ export const dbHelpers = {
         const result = await pool.query(`
             SELECT n.*,
                 COALESCE(
-                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color))
+                    json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color, 'auto_tagged', nt.auto_tagged))
                     FILTER (WHERE t.id IS NOT NULL),
                     '[]'::json
                 ) AS tags
@@ -369,13 +453,56 @@ export const dbHelpers = {
         return result.rows;
     },
 
-    createNewsletter: async (userId, title, sender, content, url) => {
-        const result = await pool.query(`
-            INSERT INTO newsletters (user_id, title, sender, content, url, is_read)
-            VALUES ($1, $2, $3, $4, $5, 0)
-            RETURNING *
-        `, [userId, title, sender, content, url || null]);
-        return result.rows[0];
+    // Create a newsletter and (optionally) auto-apply tags based on the sender's tag history.
+    //
+    // ingestCtx: { source, feedUrl? }  — identifies which ingest path called us so we can
+    // derive a stable `sender_key` (email address, @handle, domain, feed URL).
+    // When ingestCtx is omitted, sender_key falls back to best-effort email extraction
+    // from `sender` and no auto-tagging is attempted (legacy-safe default).
+    createNewsletter: async (userId, title, sender, content, url, ingestCtx = null) => {
+        const senderKey = ingestCtx
+            ? deriveSenderKey({
+                  source: ingestCtx.source,
+                  rawSender: sender,
+                  url,
+                  feedUrl: ingestCtx.feedUrl,
+              })
+            : null;
+
+        const insert = await pool.query(
+            `INSERT INTO newsletters (user_id, title, sender, content, url, sender_key, is_read)
+             VALUES ($1, $2, $3, $4, $5, $6, 0)
+             RETURNING *`,
+            [userId, title, sender, content, url || null, senderKey]
+        );
+        const newsletter = insert.rows[0];
+
+        // Auto-tagging — only if the user has it enabled AND we resolved a sender_key.
+        // Intentionally silent on failure: a misbehaving auto-tagger must never block ingest.
+        if (senderKey) {
+            try {
+                const userRow = await pool.query(
+                    'SELECT auto_tag_enabled FROM users WHERE id = $1',
+                    [userId]
+                );
+                const enabled = userRow.rows[0]?.auto_tag_enabled !== false;
+                if (enabled) {
+                    const tagIds = await suggestTagsForSender(pool, userId, senderKey);
+                    for (const tagId of tagIds) {
+                        await pool.query(
+                            `INSERT INTO newsletter_tags (newsletter_id, tag_id, auto_tagged)
+                             VALUES ($1, $2, TRUE)
+                             ON CONFLICT (newsletter_id, tag_id) DO NOTHING`,
+                            [newsletter.id, tagId]
+                        );
+                    }
+                }
+            } catch (err) {
+                console.error('⚠️  [auto-tag] Skipped for newsletter', newsletter.id, ':', err.message);
+            }
+        }
+
+        return newsletter;
     },
 
     updateNewsletter: async (id, updates) => {
@@ -423,27 +550,36 @@ export const dbHelpers = {
     },
 
     // Newsletter Tags
-    addTagToNewsletter: async (newsletterId, tagId) => {
+    // `autoTagged` defaults to false because this helper is called from the manual-apply
+    // route in the UI. The auto-tagger writes junction rows directly from createNewsletter
+    // so it can set auto_tagged=TRUE atomically with the insert.
+    addTagToNewsletter: async (newsletterId, tagId, autoTagged = false) => {
         try {
             await pool.query(`
-                INSERT INTO newsletter_tags (newsletter_id, tag_id) VALUES ($1, $2)
+                INSERT INTO newsletter_tags (newsletter_id, tag_id, auto_tagged)
+                VALUES ($1, $2, $3)
                 ON CONFLICT (newsletter_id, tag_id) DO NOTHING
-            `, [newsletterId, tagId]);
+            `, [newsletterId, tagId, autoTagged]);
         } catch (error) {
             // Ignore duplicate key errors
             if (error.code !== '23505') throw error;
         }
     },
 
+    // Returns the deleted junction row (with auto_tagged) or null if nothing was removed.
+    // Callers use this to decide whether to log the removal in sender_tag_blocklist.
     removeTagFromNewsletter: async (newsletterId, tagId) => {
-        await pool.query(`
+        const result = await pool.query(`
             DELETE FROM newsletter_tags WHERE newsletter_id = $1 AND tag_id = $2
+            RETURNING newsletter_id, tag_id, auto_tagged
         `, [newsletterId, tagId]);
+        return result.rows[0] || null;
     },
 
     getNewsletterTags: async (newsletterId) => {
         const result = await pool.query(`
-            SELECT t.* FROM tags t
+            SELECT t.id, t.user_id, t.name, t.color, nt.auto_tagged
+            FROM tags t
             INNER JOIN newsletter_tags nt ON t.id = nt.tag_id
             WHERE nt.newsletter_id = $1
         `, [newsletterId]);
