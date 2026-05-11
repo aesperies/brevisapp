@@ -9,9 +9,13 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "migrate": "node migrations/run-migrations.js",
+    "agents:hello": "node agents/runtime/cli.js hello",
+    "agents:editor:dryrun": "node agents/runtime/cli.js editor:dryrun"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.6",
@@ -34,6 +38,7 @@
     "stripe": "^14.10.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.5",
     "nodemon": "^3.1.14"
   }
 }

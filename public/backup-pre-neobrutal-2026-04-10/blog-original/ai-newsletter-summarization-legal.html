@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Newsletter Summarization for Legal Professionals: What Actually Works in 2026</title>
+    <meta name="description" content="How AI is transforming legal research and newsletter consumption for in-house counsel.">
+
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Article */
+        article {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 100px 32px 80px;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author {
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
+
+        h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-top: 40px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--accent-dark);
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        em {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 20px;
+            margin: 30px 0;
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: var(--surface);
+            padding: 16px;
+            text-align: left;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .cta-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 32px 28px;
+            margin: 50px 0;
+            text-align: center;
+        }
+
+        .cta-box h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .cta-box p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .cta-button {
+            background: var(--primary);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .cta-button:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 48px 32px 32px;
+            margin-top: 80px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 48px;
+        }
+
+        .footer-brand {
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.6;
+        }
+
+        .footer-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .footer-section a {
+            display: block;
+            font-size: 14px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 900px) {
+            .nav-links { display: none; }
+            h1 { font-size: 32px; }
+            h2 { font-size: 24px; }
+            article { padding: 100px 24px 60px; }
+            .footer-container { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+
+        @media (max-width: 480px) {
+            article { padding: 100px 20px 60px; }
+            .footer-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a class="logo" href="/"><img src="/logo-v2-3-light.svg" alt="BREVIS" style="height:36px;"></a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/blog/">Blog</a>
+                <a href="/#precios">Pricing</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Log in</a>
+                <a href="/app.html" class="btn btn-primary">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <article>
+        <div class="article-header">
+                <h1>AI Newsletter Summarization for Legal Professionals: What Actually Works in 2026</h1>
+                <div class="article-meta">
+                    <span>By Antonio | Brevis</span>
+                    <span>April 2026</span>
+                    <span>13 min read</span>
+                </div>
+            </div>
+
+            
+                <p>
+                    Last month, an in-house counsel at a mid-market tech company used a popular AI summarization tool on a regulatory newsletter. The AI extracted: "SEC updates guidance on disclosure requirements." She reviewed it briefly and moved on. Three weeks later, the company's VP of Finance realized the guidance change affected revenue recognition under ASC 606 and required immediate financial restatement.
+                </p>
+
+                <p>
+                    The newsletter article was comprehensive. The AI extraction was accurate. But the summarization missed the critical dimension: jurisdiction-specific timing implications, precedent shifts, and practical impact to cap tables and compliance workflows.
+                </p>
+
+                <p>
+                    This is the central problem with generic AI summarization for legal professionals. It's not that the tools are broken. It's that they're trained on general text, not legal language—and legal language isn't general text. Nuance matters. Context matters. And in law, the difference between "update" and "material change" can cost months of remediation.
+                </p>
+
+                <h2>Why Generic AI Fails for Legal Content</h2>
+
+                <p>
+                    Modern large language models are excellent at extracting key points from articles, summarizing business news, and flagging main topics. But legal content operates by different rules, and generic AI doesn't learn those rules unless explicitly trained on legal material.
+                </p>
+
+                <h3>The Three Core Problems</h3>
+
+                <h3>1. Regulatory Language Has Hidden Layers</h3>
+                <p>
+                    A regulatory update newsletter might state: "The FDA modified the approval pathway for combination devices." To a general AI summarizer, this is a straightforward announcement. But a medical device lawyer reading the same sentence immediately asks:
+                </p>
+
+                <ul>
+                    <li>Does this apply to 510(k) or PMA pathways specifically?</li>
+                    <li>Are there grandfathering provisions for already-pending applications?</li>
+                    <li>What's the effective date and transition period?</li>
+                    <li>How does this interact with existing guidance documents?</li>
+                    <li>Are there jurisdictional variations (US-only, or global)?</li>
+                </ul>
+
+                <p>
+                    Generic AI extraction misses all of this. It flags "FDA approval pathway change" as the key point. A domain-aware AI catches the implicit: that products in development now have a different pathway than those submitted six months ago, triggering cap table implications and timeline recalculations.
+                </p>
+
+                <h3>2. Legal Precedent Signals Are Invisible to General Models</h3>
+                <p>
+                    A corporate law newsletter might report: "Court rules on software licensing." To a general AI, it's a court decision. To an intellectual property attorney, it could signal a shift in how licenses are interpreted, triggering review of every existing license agreement the company has. It could affect valuation methodology. It might require disclosure amendments in pending M&A transactions.
+                </p>
+
+                <p>
+                    Generic summarization extracts the headline fact. Domain-aware AI understands the ripple effects across practice areas and client implications.
+                </p>
+
+                <h3>3. Jurisdiction-Specific Implications Require Mapping</h3>
+                <p>
+                    A UK employment law newsletter reports on a ruling. A US attorney might skip it entirely (generic AI would too). But if that attorney's company employs people in the UK, or is considering UK expansion, or uses employment templates adapted from UK law, the ruling has implications. Generic AI doesn't make these connections.
+                </p>
+
+                <p>
+                    Domain-aware AI understands jurisdictional mapping. It flags "this ruling affects UK employers" and can assess whether your organization has exposure.
+                </p>
+
+                <h2>Generic vs. Domain-Aware Summarization: Side-by-Side</h2>
+
+                <p>
+                    Here's how the two approaches differ on the same regulatory newsletter article:
+                </p>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Newsletter Article</th>
+                            <th>Generic AI Approach</th>
+                            <th>Domain-Aware AI Approach</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Content:</strong> "SEC proposes amendments to proxy access rules, affecting shareholder proposals under Rule 14a-8"</td>
+                            <td>"SEC updates proxy rules. Shareholder proposals affected. Changes include new timing requirements."</td>
+                            <td>"SEC proposes narrowing shareholder proposal access. Public companies with <$100M market cap exempt. Effective 2026. Implications: (1) ISS voting recommendations may shift, (2) activist fund strategies require reassessment, (3) governance committees should review current proposals in pipeline. Compliance deadline: [date]. Action: engage proxy advisor."</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Content:</strong> "State attorney general issues guidance on AI liability under consumer protection statutes"</td>
+                            <td>"AG updates AI liability rules. Consumer protection emphasis."</td>
+                            <td>"[State] AG clarifies AI liability under Section [X] of consumer protection law. Key interpretation: companies liable for algorithmic output. Carveout: good-faith audit procedures exempt from liability. Implications: (1) product liability insurance may not cover, (2) audit procedures now legally defensible, (3) disclose AI use in ToS immediately. Applies to B2C only—B2B exempt per prior guidance."</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Content:</strong> "Major court rules that data residency requirements don't conflict with GDPR Article 7 rights"</td>
+                            <td>"Court ruling on data residency and GDPR."</td>
+                            <td>"[Court] holds data residency requirements compatible with GDPR. Reverses [prior case]. Implications: (1) EU companies can enforce data residency clauses, (2) conflicts with [competing guidance]—monitor for appeals, (3) affected agreements: data processing addendums, cloud contracts, subsidiary arrangements. Action: legal ops should audit current contracts. Practical effect: tightens data locality in EU—consider architecture changes."</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    The generic approach extracts facts. The domain-aware approach extracts facts AND converts them to actionable intelligence. For busy attorneys and in-house counsel, the difference is the difference between reading a newsletter and actually understanding it.
+                </p>
+
+                <h2>How Claude Handles Legal Nuance Differently</h2>
+
+                <p>
+                    Large language models built with instruction-following in mind—like Claude—can be guided to understand legal context. When Claude processes a regulatory newsletter, it can be instructed to:
+                </p>
+
+                <ul>
+                    <li><strong>Identify jurisdictional scope:</strong> Does this apply to the US only, or globally? Which specific states/regions?</li>
+                    <li><strong>Extract effective dates and compliance timelines:</strong> When does this come into effect? How long do companies have to comply?</li>
+                    <li><strong>Flag regulatory hierarchy:</strong> Is this binding guidance, non-binding interpretation, or aspirational? Who issues it?</li>
+                    <li><strong>Connect to adjacent regulations:</strong> How does this interact with existing rules? Does it supersede, clarify, or conflict with prior guidance?</li>
+                    <li><strong>Assess practical impact:</strong> What operational changes does this trigger? What agreements need amendment?</li>
+                    <li><strong>Identify precedent shifts:</strong> Does this reverse, expand, or narrow prior interpretations? What's the directional change?</li>
+                </ul>
+
+                <p>
+                    Critically, Claude is also good at flagging uncertainty. When the newsletter is ambiguous, domain-aware AI says so: "The guidance uses 'may' rather than 'shall'—regulatory intent is unclear. Monitor for enforcement guidance or follow-up rulemaking." Generic AI either extracts false certainty or misses the qualification entirely.
+                </p>
+
+                <h2>Specific Pitfalls of Bad Legal Summarization</h2>
+
+                <div class="pitfall-box">
+                    <div class="pitfall-label">Pitfall 1: Missed Compliance Deadlines</div>
+                    <p>Generic AI extracts the regulatory change but not the compliance date. You're supposed to implement by July 1, but the summarization only flags the regulation, not the timeline. Result: you miss the deadline and face penalties.</p>
+                </div>
+
+                <div class="pitfall-box">
+                    <div class="pitfall-label">Pitfall 2: Wrong Jurisdiction Interpretation</div>
+                    <p>A guideline applies to state-chartered institutions, but your company is federally chartered. Generic AI flags it as relevant; domain-aware AI clarifies it doesn't apply. Without that distinction, your team wastes hours on unnecessary compliance work.</p>
+                </div>
+
+                <div class="pitfall-box">
+                    <div class="pitfall-label">Pitfall 3: Ignored Precedent Shifts</div>
+                    <p>A court rules on contract interpretation in a way that reverses prior precedent. Generic AI summarizes the ruling. Domain-aware AI flags that all your existing contracts with similar language are now vulnerable to challenge and should be reviewed.</p>
+                </div>
+
+                <div class="pitfall-box">
+                    <div class="pitfall-label">Pitfall 4: Disconnected Liability Implications</div>
+                    <p>A newsletter reports on a regulatory change that affects how your company discloses information. Generic AI flags it as a regulatory update. Domain-aware AI connects it to your existing disclosures, securities law implications, shareholder notification requirements, and potential indemnification obligations.</p>
+                </div>
+
+                <div class="pitfall-box">
+                    <div class="pitfall-label">Pitfall 5: Missing Adjacent Practice Area Impacts</div>
+                    <p>An employment law ruling affects remote work arrangements. Generic AI flags it as an HR matter. But domain-aware AI recognizes it also affects tax treatment of remote workers, immigration status implications for visa holders, and insurance coverage classifications.</p>
+                </div>
+
+                <h2>Building a Legal Newsletter System That Actually Works</h2>
+
+                <p>
+                    If you're managing legal newsletters for your organization, the right approach combines structure and domain-aware AI:
+                </p>
+
+                <h3>Step 1: Audit Your Newsletter Subscriptions</h3>
+                <p>
+                    What are you actually reading?
+                </p>
+                <ul>
+                    <li>Regulatory alerts (regulatory agency emails, practice area-specific services)</li>
+                    <li>Case law summaries (law firm newsletters, practice area databases)</li>
+                    <li>Industry-specific compliance (your sector's specific regulatory publications)</li>
+                    <li>Entity-specific alerts (court filings affecting your company, regulator guidance affecting your licenses)</li>
+                    <li>Practice area depth (specialized newsletters for internal expertise development)</li>
+                </ul>
+
+                <h3>Step 2: Route by Impact Level</h3>
+                <p>
+                    Not all legal newsletters have equal urgency:
+                </p>
+                <ul>
+                    <li><strong>Immediate action required:</strong> Compliance deadlines, enforcement actions, litigation involving your company</li>
+                    <li><strong>Team review needed:</strong> Regulatory guidance affecting your operations, practice area updates</li>
+                    <li><strong>Monitoring/background:</strong> General market trends, adjacent practice areas, thought leadership</li>
+                </ul>
+
+                <h3>Step 3: Implement Domain-Aware Summarization</h3>
+                <p>
+                    Use AI that understands legal context. For each newsletter, generate a summary that explicitly captures:
+                </p>
+                <ul>
+                    <li>Jurisdictional scope and applicability to your organization</li>
+                    <li>Compliance deadlines and effective dates</li>
+                    <li>Practical implications and required actions</li>
+                    <li>Connections to existing contracts, policies, or litigation</li>
+                    <li>Level of certainty and areas requiring additional legal research</li>
+                </ul>
+
+                <h3>Step 4: Create Filtered Daily Digests</h3>
+                <p>
+                    Consolidate your newsletters into a structured daily digest that separates by urgency level and practice area. Instead of reading 10 separate emails, you review one carefully-organized digest that flags what needs immediate attention and organizes the rest by category.
+                </p>
+
+                <h3>Step 5: Preserve Deep-Dive Capability</h3>
+                <p>
+                    Summarization should always link back to the full article. When a summary flags something important, you need one-click access to the complete source material and any relevant prior coverage or related articles.
+                </p>
+
+                <h2>Real Impact: Why This Matters</h2>
+
+                <p>
+                    For in-house counsel and legal teams, the right newsletter management system saves time and reduces risk:
+                </p>
+
+                <ul>
+                    <li><strong>Time savings:</strong> Reading 10 newsletters individually takes 2-3 hours. A well-organized, AI-filtered digest takes 30 minutes and actually catches more relevant items.</li>
+                    <li><strong>Compliance improvement:</strong> Explicit deadline tracking and applicability assessment means fewer missed deadlines and better-prepared compliance programs.</li>
+                    <li><strong>Reduced litigation risk:</strong> Domain-aware AI flags implications your team might miss, giving you time to act preemptively rather than reactively.</li>
+                    <li><strong>Better decision-making:</strong> When you actually understand the regulatory landscape, you advise the business better and reduce unexpected surprises.</li>
+                </ul>
+
+                <h2>The Bottom Line</h2>
+
+                <p>
+                    Generic AI summarization is free and fast, but it's designed for general text. Legal content requires legal understanding. It's the difference between "the FDA announced something about medical devices" and "your product's approval pathway changed, it costs $500K more to comply with, and you have eight weeks to implement."
+                </p>
+
+                <p>
+                    If you're relying on a generic summarization tool for legal newsletters, you're leaving risk on the table and wasting time on irrelevant items while missing critical signals. The right approach is domain-aware AI that understands legal language, regulatory context, and practical implications.
+                </p>
+
+                <p>
+                    For in-house counsel managing legal newsletters, that difference is the difference between staying ahead of compliance and constantly catching up.
+                </p>
+            </div>
+
+            <div class="cta-section">
+                <h3>Stop Missing Legal Signals</h3>
+                <p>Brevis is built by in-house counsel who understand legal newsletter complexity. We process regulatory language, flag jurisdictional implications, and extract actionable intelligence—not just summaries.</p>
+                <a href="https://brevisapp.com/try-free" class="btn-cta">Start Your Free Trial</a>
+    </article>
+
+    <footer>
+        <div class="footer-container">
+            <div>
+                <div class="footer-brand">BREVIS</div>
+                <p class="footer-tagline">Read smarter. Summarize everything. Stay current on what matters.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Product</h3>
+                <a href="/">Home</a>
+                <a href="/features">Features</a>
+                <a href="/#precios">Pricing</a>
+                <a href="/blog/">Blog</a>
+            </div>
+            <div class="footer-section">
+                <h3>Company</h3>
+                <a href="/about">About</a>
+                <a href="/careers">Careers</a>
+                <a href="/press">Press</a>
+                <a href="mailto:hello@brevisapp.com">Contact</a>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+                <a href="/security">Security</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Brevis. All rights reserved. Made for professionals who read.</p>
+        </div>
+    </footer>
+</body>
+</html>

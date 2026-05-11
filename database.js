@@ -290,6 +290,40 @@ export async function createInitialUser() {
 // Safe user columns (excludes password_hash)
 const USER_COLUMNS = 'id, email, name, email_code, plan, stripe_customer_id, stripe_subscription_id, kindle_email, language, created_at, is_active, trial_end_date, email_verified, token_version';
 
+// In-memory cache for the per-user `auto_tag_enabled` flag.
+//
+// Why: createNewsletter is on every ingest path (RSS cron pulls many newsletters per user
+// per cycle). Reading auto_tag_enabled with a SELECT on every insert is N extra queries
+// per user per cycle for a value that almost never changes. With a 5-minute TTL plus
+// explicit invalidation on PATCH /api/auth/profile, we drop those queries to one per
+// user every 5 minutes.
+//
+// Map<userId:number, { value: boolean, expiresAt: number }>
+const autoTagEnabledCache = new Map();
+const AUTO_TAG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export async function getUserAutoTagEnabled(userId) {
+    const now = Date.now();
+    const cached = autoTagEnabledCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+        return cached.value;
+    }
+    const { rows } = await pool.query(
+        'SELECT auto_tag_enabled FROM users WHERE id = $1',
+        [userId]
+    );
+    // Default-on: matches schema default. A missing row (race with deletion)
+    // returns true so a stray ingest doesn't suddenly start auto-tagging,
+    // because suggestTagsForSender requires existing rows to find tags from.
+    const value = rows[0] ? rows[0].auto_tag_enabled !== false : true;
+    autoTagEnabledCache.set(userId, { value, expiresAt: now + AUTO_TAG_CACHE_TTL_MS });
+    return value;
+}
+
+export function invalidateUserAutoTagCache(userId) {
+    autoTagEnabledCache.delete(userId);
+}
+
 // Helper functions - same interface as before for compatibility with server.js
 export const dbHelpers = {
     // Database pool access
@@ -481,11 +515,10 @@ export const dbHelpers = {
         // Intentionally silent on failure: a misbehaving auto-tagger must never block ingest.
         if (senderKey) {
             try {
-                const userRow = await pool.query(
-                    'SELECT auto_tag_enabled FROM users WHERE id = $1',
-                    [userId]
-                );
-                const enabled = userRow.rows[0]?.auto_tag_enabled !== false;
+                // Cached read (5-minute TTL). Avoids one DB round-trip per ingest under
+                // RSS cron load. Invalidated explicitly when PATCH /api/auth/profile
+                // writes a new auto_tag_enabled value.
+                const enabled = await getUserAutoTagEnabled(userId);
                 if (enabled) {
                     const tagIds = await suggestTagsForSender(pool, userId, senderKey);
                     for (const tagId of tagIds) {

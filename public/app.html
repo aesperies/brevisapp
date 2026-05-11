@@ -1361,14 +1361,29 @@
 
     <!-- React from unpkg (canonical). Fallback to jsdelivr if unpkg fails.
          DO NOT move back to cdnjs.cloudflare.com/ajax/libs/react/* — those
-         paths returned 503 on 2026-04-10 and broke the entire app. -->
-    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
-    <script>window.React || document.write('<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"><\/script>')</script>
-    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-    <script>window.ReactDOM || document.write('<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"><\/script>')</script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+         paths returned 503 on 2026-04-10 and broke the entire app.
+         Subresource Integrity (SRI) hashes pin the exact bytes — if a CDN is
+         compromised or the upstream package is republished under the same
+         version, the browser refuses to execute the script. unpkg and jsdelivr
+         serve byte-identical files for the same NPM version, so one hash
+         covers both canonical and fallback. -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"
+            integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8"
+            crossorigin="anonymous"></script>
+    <script>window.React || document.write('<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js" integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8" crossorigin="anonymous"><\/script>')</script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"
+            integrity="sha384-bm7MnzvK++ykSwVJ2tynSE5TRdN+xL418osEVF2DE/L/gfWHj91J2Sphe582B1Bh"
+            crossorigin="anonymous"></script>
+    <script>window.ReactDOM || document.write('<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js" integrity="sha384-bm7MnzvK++ykSwVJ2tynSE5TRdN+xL418osEVF2DE/L/gfWHj91J2Sphe582B1Bh" crossorigin="anonymous"><\/script>')</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"
+            integrity="sha384-1qlE7MZPM2pHD/pBZCU/yB8UCP52RYL8bge/qNdfNBCWToySp8/M+JL2waXU4hjJ"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"
+            integrity="sha384-cwS6YdhLI7XS60eoDiC+egV0qHp8zI+Cms46R0nbn8JrmoAzV9uFL60etMZhAnSu"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"
+            integrity="sha384-2SbSbzJpoRtEf9BFT5KZAulTQs1JBK0XiQr38Mh0w8+wH0Ubuam+p5csoi5zCV7T"
+            crossorigin="anonymous"></script>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
@@ -1930,6 +1945,38 @@
             const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
             const [activeModal, setActiveModal] = useState(null);
             const [sidebarOpen, setSidebarOpen] = useState(false);
+            const [importing, setImporting] = useState(false);
+            const [importError, setImportError] = useState(null);
+
+            // Snapshot of the user's settings at the moment the settings modal opens.
+            // Used to dirty-check on save: the auto-tag toggle is a controlled checkbox
+            // that mutates `user` immediately, so without this snapshot the dirty check
+            // (initialAutoTag vs nextAutoTag both reading from `user`) would always say
+            // "not dirty" and the toggle would silently never persist.
+            // We snapshot once per modal opening and clear on close.
+            const initialSettingsRef = useRef(null);
+            useEffect(() => {
+                if (activeModal === 'settings') {
+                    if (!initialSettingsRef.current && user) {
+                        initialSettingsRef.current = {
+                            name: user.name || '',
+                            kindle_email: user.kindle_email || '',
+                            auto_tag_enabled: user.auto_tag_enabled !== false,
+                        };
+                    }
+                } else if (initialSettingsRef.current) {
+                    initialSettingsRef.current = null;
+                }
+            }, [activeModal, user]);
+
+            // Reset import-modal transient state whenever the modal closes
+            // so reopening starts fresh.
+            useEffect(() => {
+                if (activeModal !== 'import') {
+                    setImporting(false);
+                    setImportError(null);
+                }
+            }, [activeModal]);
 
             // Fetch newsletters, tags, subscriptions, user profile on mount.
             useEffect(() => {
@@ -2404,12 +2451,56 @@
                                     <button className="modal-tab">{t('manual')}</button>
                                 </div>
 
-                                <form className="modal-form" onSubmit={(e) => { e.preventDefault(); setActiveModal(null); }}>
+                                <form className="modal-form" onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    if (importing) return;
+                                    const url = (e.target.elements.url.value || '').trim();
+                                    if (!url) return;
+                                    // Defense-in-depth: server validates too, but a 1-line
+                                    // guard saves a round-trip on the most common typo.
+                                    if (!/^https?:\/\//i.test(url)) {
+                                        setImportError('URL must start with http:// or https://');
+                                        return;
+                                    }
+                                    setImporting(true);
+                                    setImportError(null);
+                                    try {
+                                        const res = await fetch('/api/import/url', {
+                                            method: 'POST',
+                                            credentials: 'include',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ url }),
+                                        });
+                                        if (!res.ok) {
+                                            const errBody = await res.json().catch(() => ({}));
+                                            throw new Error(errBody.error || `Import failed (${res.status})`);
+                                        }
+                                        const created = await res.json();
+                                        const normalized = normalizeNewsletter(created.newsletter || created);
+                                        // De-dupe by id: if a background refetch already pulled this
+                                        // newsletter into the list while the request was in-flight, the
+                                        // second copy would warn about duplicate keys in React.
+                                        setNewsletters(prev => [normalized, ...prev.filter(n => n.id !== normalized.id)]);
+                                        setActiveModal(null);
+                                    } catch (err) {
+                                        console.error('[brevis] import failed:', err);
+                                        setImportError(err.message || 'Import failed');
+                                    } finally {
+                                        setImporting(false);
+                                    }
+                                }}>
                                     <div className="form-group">
                                         <label className="form-label">{t('url')}</label>
-                                        <input type="url" className="form-input" placeholder="https://..." required />
+                                        <input name="url" type="url" className="form-input" placeholder="https://..." required disabled={importing} />
                                     </div>
-                                    <button type="submit" className="btn btn-primary">Import</button>
+                                    {importError && (
+                                        <div className="form-error" style={{ color: 'var(--accent-red, #c0392b)', fontSize: '13px', marginBottom: '12px', padding: '8px 12px', background: 'rgba(192,57,43,0.08)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: '8px' }}>
+                                            {importError}
+                                        </div>
+                                    )}
+                                    <button type="submit" className="btn btn-primary" disabled={importing}>
+                                        {importing ? 'Importing…' : 'Import'}
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -2541,11 +2632,20 @@
                                     // so a no-op save on every visit was wasteful.
                                     try {
                                         const form = e.currentTarget;
-                                        const initialName = (user && user.name) || '';
-                                        const initialKindle = (user && user.kindle_email) || '';
-                                        const initialAutoTag = user ? user.auto_tag_enabled !== false : true;
+                                        // initialSettingsRef was captured when the modal opened;
+                                        // fall back to current user only on the first-render edge case
+                                        // (e.g., user logged in mid-modal, very rare).
+                                        const initial = initialSettingsRef.current || {
+                                            name: (user && user.name) || '',
+                                            kindle_email: (user && user.kindle_email) || '',
+                                            auto_tag_enabled: user ? user.auto_tag_enabled !== false : true,
+                                        };
+                                        const initialName = initial.name;
+                                        const initialKindle = initial.kindle_email;
+                                        const initialAutoTag = initial.auto_tag_enabled;
                                         const nextName = (form.elements['settings-name']?.value || '').trim();
                                         const nextKindle = (form.elements['settings-kindle']?.value || '').trim();
+                                        // Read the live (post-toggle) value from `user`.
                                         const nextAutoTag = user ? user.auto_tag_enabled !== false : true;
 
                                         const dirty =

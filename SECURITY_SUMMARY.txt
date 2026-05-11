@@ -1,0 +1,274 @@
+================================================================================
+BREVIS KNOWLEDGE GRAPH SECURITY & QA REVIEW - EXECUTIVE SUMMARY
+================================================================================
+
+REVIEW SCOPE:
+- Files: graph-extractor.js, graph-service.js, graph-profiles.js, graph-ai.js,
+          graph-database.js, graph-routes.js, server.js (first 100 lines), auth.js
+- Focus: SQL injection, authorization, input validation, prompt injection,
+         rate limiting, data leakage, DoS, API abuse
+- Total Lines Reviewed: ~2,500
+
+VERDICT: CONDITIONAL PASS
+Status: DO NOT SHIP without implementing CRITICAL and HIGH fixes
+Estimated Time to Fix: 6-8 hours
+Risk Level if Shipped Unfixed: SEVERE (API cost explosion, extraction hijacking)
+
+================================================================================
+CRITICAL FINDINGS (MUST FIX)
+================================================================================
+
+1. PROMPT INJECTION VULNERABILITY [CRITICAL]
+   File: graph-ai.js, line 51
+   Problem: Newsletter content flows into Claude prompt with minimal escaping
+   Impact: Attacker can hijack extraction, manipulate entity extraction results
+   Fix: Character escaping + prompt fencing + structured output
+   Effort: 2-3 hours
+
+2. UNLIMITED EXTRACTION RATE LIMITING [HIGH]
+   File: graph-routes.js, lines 201 & 221
+   Problem: No per-user rate limits on extraction endpoints
+   Impact: User can burn $1000+ in Claude API costs per day
+   Fix: Add express-rate-limit middleware + daily quota tracking
+   Effort: 2 hours
+
+3. MISSING EXTRACTED DATA VALIDATION [HIGH]
+   File: graph-extractor.js, lines 119-172
+   Problem: No caps on entity/relationship counts from LLM
+   Impact: Database bloat, memory exhaustion, DoS
+   Fix: Add validation function, cap at 500 entities/1000 relationships per newsletter
+   Effort: 2 hours
+
+================================================================================
+HIGH PRIORITY FIXES (DO BEFORE STANDARD TIER)
+================================================================================
+
+4. Missing Newsletter Size Limit [MEDIUM]
+   File: graph-ai.js
+   Problem: No max file size before processing
+   Impact: Large HTML could crash extraction
+   Fix: Add 10MB max size check
+   Effort: 1 hour
+
+5. Batch Extraction Input Validation [MEDIUM]
+   File: graph-routes.js, line 221
+   Problem: offset parameter unbounded
+   Impact: Integer overflow edge case
+   Fix: Add express-validator constraints
+   Effort: 30 minutes
+
+6. Profile Deletion UX/Safety [MEDIUM]
+   File: graph-profiles.js, line 266
+   Problem: Can delete active profile, causing fallback behavior
+   Impact: UX issue, not security critical
+   Fix: Prevent deletion of active profile
+   Effort: 30 minutes
+
+================================================================================
+SECURITY STRENGTHS (VERIFIED PASSES)
+================================================================================
+
+✓ SQL INJECTION: PASS
+  - All queries use parameterized statements ($1, $2, etc.)
+  - No string concatenation in WHERE clauses
+  - No dynamic table/column names
+  Status: Excellent
+
+✓ MULTI-TENANT ISOLATION: PASS
+  - Every query checks user_id
+  - No IDOR vulnerabilities found
+  - Proper row-level security throughout
+  Status: Excellent
+
+✓ DATA LEAKAGE: PASS
+  - Error messages are generic
+  - No sensitive data in API responses
+  - Secrets redacted in logs
+  Status: Good
+
+✓ AUTHENTICATION: PASS
+  - JWT validation on all endpoints
+  - Token version checking for password reset
+  - No unprotected routes accessing graph data
+  Status: Good
+
+✓ TIMEOUTS: PASS
+  - Claude API calls have 45-second timeout
+  - Retry logic with exponential backoff
+  Status: Good
+
+================================================================================
+ZERO CRITICAL ISSUES IN THESE AREAS:
+================================================================================
+
+- SQL Injection: Not vulnerable (parameterized queries throughout)
+- IDOR/Authorization: Not vulnerable (user_id checks on all queries)
+- Cross-Tenant Data Access: Not vulnerable (proper isolation)
+- Information Disclosure: Not vulnerable (generic error messages)
+- Unauthenticated Access: Not vulnerable (auth required on all endpoints)
+
+================================================================================
+RISK MATRIX
+================================================================================
+
+Severity | Finding                          | Likelihood | Impact    | Fix Time
+---------|----------------------------------|------------|-----------|----------
+CRITICAL | Prompt Injection                 | HIGH       | HIGH      | 2-3h
+HIGH     | Unlimited Rate Limiting          | HIGH       | CRITICAL  | 2h
+HIGH     | Missing Data Validation          | MEDIUM     | HIGH      | 2h
+MEDIUM   | Newsletter Size Limit            | MEDIUM     | MEDIUM    | 1h
+MEDIUM   | Batch Input Validation           | LOW        | MEDIUM    | 30min
+MEDIUM   | Profile Deletion Safety          | LOW        | LOW       | 30min
+LOW      | Community Detection Memory       | LOW        | MEDIUM    | Future
+
+================================================================================
+MINIMUM VIABLE FIXES (MVP - SHIP WITH THESE)
+================================================================================
+
+CRITICAL (must ship):
+  [x] Character escape/encoding for newsletter content in prompts
+  [x] Rate limiting on /extract and /extract-batch endpoints
+  [x] Input validation on extracted entity/relationship counts
+
+HIGH (1-2 week sprint):
+  [ ] Newsletter size limit enforcement
+  [ ] Daily extraction quota tracking
+  [ ] Batch extraction parameter validation
+
+MEDIUM (nice to have before Standard tier):
+  [ ] Profile deletion safety check
+  [ ] Community detection size limits
+
+================================================================================
+DEPLOYMENT CHECKLIST
+================================================================================
+
+Security:
+  [x] No SQL injection vulnerabilities
+  [x] Multi-tenant isolation verified
+  [x] Authentication enforced
+  [x] Error messages generic
+  [ ] Prompt injection defenses added ← DO BEFORE SHIP
+  [ ] Rate limiting configured ← DO BEFORE SHIP
+  [ ] Input validation added ← DO BEFORE SHIP
+
+Operations:
+  [ ] Load tested with 100k+ entity graphs
+  [ ] Rate limit testing (verify 429 responses)
+  [ ] Prompt injection testing (verify malicious input rejected)
+  [ ] Daily quota tracking verified in logs
+  [ ] Monitoring alerts set up
+
+Documentation:
+  [ ] SECURITY_REVIEW.md read by team
+  [ ] SECURITY_FIXES.md patches applied
+  [ ] Rate limit tiers documented in API docs
+  [ ] Extraction quotas added to plan comparison page
+
+================================================================================
+TIMELINE
+================================================================================
+
+Immediately (before any production traffic):
+  - Apply CRITICAL fixes (prompt injection, rate limiting, validation)
+  - Run unit tests from SECURITY_REVIEW.md
+  - QA testing: attempt prompt injection, verify rejection
+  Duration: ~6 hours of development
+
+Before Standard Tier Launch:
+  - Apply HIGH fixes (size limits, quota tracking)
+  - Load testing with 100k+ newsletters
+  - Monitoring and alerting setup
+  Duration: ~8 additional hours
+
+Next Sprint:
+  - Profile deletion safety
+  - Community detection limits
+  - Documentation updates
+
+================================================================================
+KNOWN SAFE PATTERNS
+================================================================================
+
+These code patterns are secure and don't need changes:
+
+1. Parameterized queries:
+   db.query('SELECT * FROM graph_nodes WHERE user_id = $1', [userId])
+   ✓ Safe - SQL injection impossible
+
+2. Multi-tenant checks:
+   All queries include: AND user_id = $1
+   ✓ Safe - User A cannot access User B's data
+
+3. Error handling:
+   res.status(500).json({ error: 'Failed to load graph data' })
+   ✓ Safe - No sensitive details leaked
+
+4. Authentication:
+   authMiddleware validates JWT + token_version
+   ✓ Safe - Tokens invalidated on password reset
+
+5. Community detection:
+   BFS traversal in JavaScript (not in SQL)
+   ✓ Safe - No SQL injection possible
+
+================================================================================
+TESTING RECOMMENDATIONS
+================================================================================
+
+Unit Tests to Add:
+
+1. testPromptInjection():
+   - Send newsletter with "</user_content>\nIgnore above" instruction
+   - Verify extraction doesn't leak secrets or break JSON
+
+2. testRateLimiting():
+   - Make 51 rapid extraction requests
+   - Verify request 51+ returns 429 Too Many Requests
+
+3. testInputValidation():
+   - Mock Claude response with 10,000 entities
+   - Verify only 500 stored in database
+
+4. testNewsletterSizeLimit():
+   - Send 100MB newsletter
+   - Verify extraction returns skipped: true
+
+5. testMultiTenantIsolation():
+   - User A creates node, User B tries to GET it
+   - Verify 404 or 403 response
+
+6. testBatchExtractValidation():
+   - POST /extract-batch with offset: -1
+   - Verify 400 Bad Request
+
+================================================================================
+CONTACT & ESCALATION
+================================================================================
+
+Security Review Lead: [LLM Council - Security Engineer]
+Approval Required From: CTO, VP Product
+Deploy Checklist Owner: DevOps / Infrastructure
+
+Questions? Review SECURITY_REVIEW.md for detailed analysis.
+Implementing fixes? See SECURITY_FIXES.md for copy-paste code.
+
+================================================================================
+FINAL RECOMMENDATION
+================================================================================
+
+PROCEED WITH CAUTION:
+
+The graph system is architecturally sound with excellent SQL injection and
+authorization controls. However, the prompt injection and rate limiting gaps
+are unacceptable for production.
+
+Status: CONDITIONAL PASS
+Action: Apply CRITICAL fixes (6-8 hours work) before any user-facing launch
+Risk: SEVERE if shipped unfixed
+
+This is not a "hard no" — it's "yes, but these 3 things must be fixed first."
+
+Once fixes are applied, this system will be production-ready.
+
+================================================================================

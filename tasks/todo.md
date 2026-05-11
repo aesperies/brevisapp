@@ -1,5 +1,134 @@
 # Brevis - Production Readiness Roadmap
 
+---
+
+## ACTIVE SPRINT — Agent Stack v1 (May 4 → May 10, 2026)
+
+**Mission:** Brevis run by 6 agents in 7 days. Editor + Growth drive MRR; Sales + Support raise conversion + cut Antonio's inbox time; Engineer ships code; Ops watches everything. All on a single Node-native runtime, MCP-style tool layer, Postgres event bus.
+
+### BLUF
+- Inspired by Google Cloud's ADK + MCP + A2A + Vertex Agent Engine pattern, but stays inside the Brevis Node/Postgres stack — no Python sidecar, no Vertex.
+- Antonio overrode the safer "3 agents in week 1" plan; full 6 in 7 days is the target. Safety rails (kill-switch, per-agent budget, fabrication-check, dry-run gate) are non-negotiable even under time pressure.
+- Revenue sequencing kept: Editor + Growth go live first (Day 3), Sales/Support next (Day 4), Engineer/Orchestrator last (Day 5).
+
+### Architecture (4 layers, all in this repo)
+1. **Runtime** (`/agents/runtime/`) — Node/TS service. Loads agent defs, manages sessions, runs the loop, writes every step to `agent_runs`. Mirrors ADK's LLM-Agent + Runner + Session split. ~250 LOC target.
+2. **Tools** (`/agents/tools/`) — Each Brevis capability wrapped as a callable tool: `db.query`, `newsletter.send`, `social.post_x`, `social.post_linkedin`, `email.send`, `metrics.read`, `verify_metric`, `gh.open_pr`, `tests.run`. Reuses existing scripts; no rewrites.
+3. **Comms** (Postgres `agent_events` + LISTEN/NOTIFY) — Agents publish events (`signup.created`, `trial.day_5`, `metric.spike`, `ticket.received`, `pr.failed`); other agents subscribe. No Redis needed at current scale.
+4. **Orchestrator** (`/agents/orchestrator/`) — Single LLM agent. Reads new events, picks specialist agent, hands off. Same pattern as the video's birthday/calendar router.
+
+### The 6 Agents
+
+| Agent | Goal | Key tools | Autonomy gate | Metric |
+|---|---|---|---|---|
+| **Editor** | Generate each subscriber's daily/weekly newsletter, EN/ES | `sources.fetch`, `llm.summarize`, `verify_metric`, `newsletter.send` | Full. `verify_metric` blocks any unverified number from sending. | Open ≥35%, unsub ≤1%/wk |
+| **Growth** | Drive signups via daily X/LinkedIn + SEO content | `social.post_x`, `social.post_linkedin`, `content.draft`, `seo.publish` | Full for daily posts (existing approval). Human gate for any numeric claim. | Signups/wk, follower growth |
+| **Sales** | Convert trialists to paid via day-3/7/13 outreach | `db.query`, `email.send`, `billing.read` | Tier-1 templates auto-send; bespoke email above $29 plan pings Antonio. | Trial→paid ≥8% |
+| **Support** | Triage inbound email + in-app messages | `email.read`, `email.send`, `kb.search`, `escalate.to_antonio` | Answers FAQ-class; escalates billing disputes / refunds / legal. | Median 1st response <2hr, escalation rate <20% |
+| **Engineer** | Pick top item from `tasks/todo.md`, open PR, merge if green | `gh.open_pr`, `git.commit`, `tests.run`, `claude_code.invoke` | Merges only for non-schema, non-billing, non-auth changes with all CI green. Else PR for Antonio. | PRs merged/wk, regression rate |
+| **Ops** | Observe everything, page on failures | `metrics.read`, `agent_runs.query`, `email.send_digest`, `cost.read` | Full. Pages on: error rate >5%, daily cost > ceiling, MRR drop >5%. | Zero silent failures |
+
+### Safety Rails (non-negotiable)
+- [ ] `agent_kill_switch` table — runtime checks every loop iteration; `enabled=false` halts that agent immediately.
+- [ ] `agent_budget` table — per-agent daily $ cap; runtime auto-pauses + pages Ops on breach.
+- [ ] `verify_metric()` tool — every numeric claim Editor/Growth wants to publish must pass through it (checks against source-of-truth row in DB).
+- [ ] Editor dry-run mode for first 24hrs — writes to `newsletter_drafts`, does NOT send. Antonio reviews ~10 outputs before flip-to-live.
+- [ ] Engineer path-pattern allowlist — hard-block merge on `migrations/`, `billing/`, `auth/`. Antonio always reviews those.
+- [ ] Sales/Support content-policy guard + rate-limit for first 24hrs of live mode.
+
+### Day-by-Day
+
+#### Day 1 (Mon May 4) — Schema + runtime + tool base
+- [ ] Create `migrations/` directory + first migration runner (idempotent, tracked in `schema_migrations` table)
+- [ ] `migrations/001_agent_stack.sql` — tables: `agent_runs`, `agent_events`, `agent_kill_switch`, `agent_budget`, `newsletter_drafts`
+- [ ] `/agents/runtime/index.ts` — agent loader, session manager, loop, kill-switch + budget checks
+- [ ] `/agents/runtime/anthropic.ts` — Claude SDK wrapper with cost tracking
+- [ ] `/agents/tools/registry.ts` — tool definition + dispatch
+- [ ] Smoke-test "hello" agent that runs and logs to `agent_runs`
+- [ ] Verify: hello agent runs, kill-switch halts it, budget breach pauses it
+
+#### Day 2 (Tue May 5) — Tools + Editor (dry-run all day)
+- [ ] Wrap tools: `db.query`, `newsletter.send`, `metrics.read`, `verify_metric`, `email.send`, `sources.fetch`, `llm.summarize`
+- [ ] `/agents/editor/` — agent definition, prompt, dry-run mode flag
+- [ ] Editor runs against 10 sample subscribers, writes drafts to `newsletter_drafts` (NO sending)
+- [ ] Antonio review of 10 dry-run drafts end of day — approve / iterate
+- [ ] Verify: `verify_metric` blocks a fabricated number in a test draft
+
+#### Day 3 (Wed May 6) — Editor live + Growth migrates + Ops
+- [ ] Editor flips live for paid subscribers (smaller blast radius, ~50 users)
+- [ ] If clean for 4hrs → Editor live for free tier
+- [ ] Port `content-engine/` and `brevis-growth/` scripts onto runtime; behavior unchanged but now logged + event-emitting
+- [ ] `/agents/ops/` — reads `agent_runs`, sends daily email digest, pages on thresholds
+- [ ] Verify: trigger a forced Editor failure, Ops pages within 5 min
+
+#### Day 4 (Thu May 7) — Sales + Support
+- [ ] `/agents/sales/` — funnel watcher, trial day-3/7/13 outreach, tier-1 template send
+- [ ] `/agents/support/` — inbound email/in-app triage, FAQ-answer, escalation
+- [ ] Both run with rate-limit (max 20 sends/hr each) for first 24hrs
+- [ ] `support_kb` table seeded from existing FAQ + last 90 days of resolved tickets (manual seed)
+- [ ] Verify: send a test trial-day-3 user through pipeline, Sales drafts + sends; send a test FAQ-class email, Support answers
+
+#### Day 5 (Fri May 8) — Engineer + Orchestrator
+- [ ] `/agents/engineer/` — picks top item from `tasks/todo.md`, opens PR via `gh` CLI, runs tests, merges if green AND path is allowed
+- [ ] Path allowlist: `public/`, `lib/`, `tasks/`, docs (.md). Hard-block: `migrations/`, `auth.js`, `server.js` (Stripe/auth code paths), `database.js`
+- [ ] `/agents/orchestrator/` — listens on `agent_events`, routes to specialists
+- [ ] Verify: drop a `tasks/todo.md` line "Add a copyright footer year update"; Engineer ships PR, tests pass, merges. Drop a `migrations/` task; Engineer opens PR but does NOT merge.
+
+#### Day 6 (Sat May 9) — Replay + hardening + cost view
+- [ ] Replay last 24hrs of events through runtime in staging — diff outputs against prod
+- [ ] Add SQL view `v_agent_costs_daily` (per-agent $ + token totals)
+- [ ] Add SQL view `v_agent_health_24h` (success rate, p50/p95 latency per agent)
+- [ ] Fix any drift / bugs surfaced by replay
+- [ ] Verify each safety rail: kill-switch, budget, fabrication-check, dry-run, path allowlist — write results to `tasks/agent-stack-verification.md`
+
+#### Day 7 (Sun May 10) — Full go-live + writeup
+- [ ] All 6 agents running on full subscriber base
+- [ ] Antonio receives Ops digest at 9am — review numbers
+- [ ] Write `tasks/lessons.md` entries for what went wrong/right
+- [ ] Draft Week 2 plan: eval harness, React admin page, Editor A/B testing, Slack paging for Ops
+- [ ] Tag git commit `agent-stack-v1`
+
+### Risk Ratings
+
+| Risk | Severity | Mitigation |
+|---|---|---|
+| Editor ships hallucinated numbers | [Medium] | `verify_metric` tool + Day-2 dry-run + Antonio reviews 10 drafts |
+| Cost runaway from agents in loops | [Low] with budget guard / [High] without | `agent_budget` per-agent daily cap, runtime checks every iteration |
+| Engineer merges a regression | [Low] for allowed paths / [High] for billing/auth | Path allowlist hard-blocks risky merges; Antonio reviews those PRs |
+| Sales burns email domain reputation | [Medium] | Rate-limit + content-policy + warm-up week with Antonio reviewing first 50 sends |
+| Support sends wrong refund/legal answer | [Medium] | Hard-escalate keywords: "refund", "GDPR", "lawyer", "cancel my subscription" |
+| Bugs from rushed runtime | [Medium] | Day-6 replay + Day-7 buffer + safety rails act as backstops |
+| Orchestrator routes to wrong agent | [Low] | Specialists are idempotent; misroute = no-op (specialist returns "not for me") |
+| Runtime regression takes down all agents | [Medium] | Per-agent isolation; one agent's crash doesn't propagate to others (verified Day 1) |
+
+### Verification (rolls into Day 6)
+- Each safety rail tested explicitly with a forcing function (kill-switch flip, $ ceiling breach, fabricated metric in draft, disallowed path PR).
+- Each agent has at least one happy-path E2E test with a seeded fixture.
+- Cost view shows real numbers within 24hrs of Day 1.
+- Ops digest confirmed deliverable to Antonio's inbox (test on Day 3).
+
+### What I Will Drop If a Day Slips (in order, no asking)
+1. SQL cost dashboard (you can write your own query)
+2. Day-6 replay harness (do spot-checks instead)
+3. Free-tier Editor rollout (paid subs only for week 1)
+4. Engineer agent (defer to Week 2 — least-revenue, highest-risk)
+
+### What I Will NOT Drop
+- `verify_metric` fabrication guard
+- `agent_kill_switch` and `agent_budget`
+- Editor dry-run day
+- Engineer path allowlist (only relevant if Engineer ships)
+
+### Cross-references / Self-audit
+- Maps to existing repo dirs: `content-engine/` → Growth tool; `daily-metrics/` → Ops; `brevis-ops/` → reused as tools; `brevis-competitive-monitor/` → fed into Editor as a source.
+- Per "Integrate Brevis = use Brevis": runtime + tools live IN the Brevis repo, no parallel orchestration tool.
+- Per "Never fabricate metrics": `verify_metric` is wired into Editor + Growth before any send.
+- Per "Auto-post social": Growth keeps current autonomy.
+- Per "$10k MRR ASAP": Editor + Growth (revenue-driving) ship Day 3, before Engineer (Day 5).
+- Tools and tables named here are all things to be created — no broken references to imagined existing functions.
+
+---
+
 ## Completed
 
 ### Error Handling & Edge Cases (Feb 2026)

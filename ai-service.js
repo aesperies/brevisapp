@@ -4,7 +4,53 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
+// Pre-flight input bound. Claude Sonnet 4 supports a 200K-token context, but
+// uncapped user content is a real cost lever — a single malicious or accidental
+// upload could burn through budget. Cap at ~80K tokens (~320K chars at the
+// standard 4-chars-per-token heuristic) which comfortably covers any single
+// newsletter and reasonable batch jobs while leaving margin under the model's
+// limit and bounding worst-case spend.
+const MAX_INPUT_CHARS = 320_000;
+// Per-message char ceiling (used as a safety net inside batch builders so a
+// single oversized item can be skipped/truncated rather than blowing the batch).
+export const MAX_PER_MESSAGE_CHARS = 200_000;
+
+function estimateInputChars(body) {
+    let total = (body.system || '').length;
+    for (const m of body.messages || []) {
+        if (typeof m.content === 'string') {
+            total += m.content.length;
+        } else if (Array.isArray(m.content)) {
+            for (const part of m.content) {
+                if (typeof part === 'string') total += part.length;
+                else if (part && typeof part.text === 'string') total += part.text.length;
+            }
+        }
+    }
+    return total;
+}
+
+export class InputTooLargeError extends Error {
+    constructor(charCount) {
+        super(`AI input too large (${charCount} chars > ${MAX_INPUT_CHARS} cap). Reduce content or split into smaller batches.`);
+        this.name = 'InputTooLargeError';
+        this.code = 'INPUT_TOO_LARGE';
+        this.charCount = charCount;
+        // Picked up by server.js global error handler:
+        // 413 Payload Too Large + the message above is forwarded to the client.
+        this.statusCode = 413;
+        this.isOperational = true;
+    }
+}
+
 async function anthropicRequest(body, timeoutMs = 30000) {
+    // Pre-flight bound: refuse oversized inputs before paying the API tokens.
+    // The route layer should surface this as 413 / 400; here we just throw.
+    const inputChars = estimateInputChars(body);
+    if (inputChars > MAX_INPUT_CHARS) {
+        console.warn(`⚠️  AI request rejected: input ${inputChars} chars exceeds cap ${MAX_INPUT_CHARS}`);
+        throw new InputTooLargeError(inputChars);
+    }
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         const controller = new AbortController();

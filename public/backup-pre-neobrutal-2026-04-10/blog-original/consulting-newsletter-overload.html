@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulting Firm Newsletter Overload: A 5-Step System to Reclaim 10 Hours Weekly</title>
+    <meta name="description" content="A practical framework for managing dozens of industry newsletters while staying focused on client work.">
+
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Article */
+        article {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 100px 32px 80px;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author {
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
+
+        h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-top: 40px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--accent-dark);
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        em {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 20px;
+            margin: 30px 0;
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: var(--surface);
+            padding: 16px;
+            text-align: left;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .cta-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 32px 28px;
+            margin: 50px 0;
+            text-align: center;
+        }
+
+        .cta-box h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .cta-box p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .cta-button {
+            background: var(--primary);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .cta-button:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 48px 32px 32px;
+            margin-top: 80px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 48px;
+        }
+
+        .footer-brand {
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.6;
+        }
+
+        .footer-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .footer-section a {
+            display: block;
+            font-size: 14px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 900px) {
+            .nav-links { display: none; }
+            h1 { font-size: 32px; }
+            h2 { font-size: 24px; }
+            article { padding: 100px 24px 60px; }
+            .footer-container { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+
+        @media (max-width: 480px) {
+            article { padding: 100px 20px 60px; }
+            .footer-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a class="logo" href="/"><img src="/logo-v2-3-light.svg" alt="BREVIS" style="height:36px;"></a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/blog/">Blog</a>
+                <a href="/#precios">Pricing</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Log in</a>
+                <a href="/app.html" class="btn btn-primary">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <article>
+        <div class="article-header">
+                <h1>Consulting Firm Newsletter Overload: A 5-Step System to Reclaim 10 Hours Weekly</h1>
+                <div class="article-meta">
+                    <span>By Antonio | Brevis</span>
+                    <span>April 2026</span>
+                    <span>12 min read</span>
+                </div>
+            </div>
+
+            
+                <p>
+                    A manager at a top management consulting firm walked into my office last month with a familiar complaint: "I'm drowning in newsletters." She subscribed to McKinsey, BCG, Bain, and Deloitte research emails. Plus industry newsletters covering her three core practices: technology, healthcare, and financial services. Plus geography-specific alerts for her client base. Plus role-specific research. Plus founder networks and startup updates for her firm's innovation practice.
+                </p>
+
+                <p>
+                    When I asked how many newsletters she received daily, she laughed. "I don't know. I stopped counting at 40."
+                </p>
+
+                <p>
+                    She's not alone. Management consultants live in an information-rich environment. Your credibility depends on knowing the market. Your client work requires understanding sector trends, competitor moves, regulatory shifts, and emerging risks. The problem is that the information density is unsustainable. Reading 40 newsletters daily takes 3-4 hours—time that should go to client work, proposal development, or business development.
+                </p>
+
+                <p>
+                    The problem isn't the newsletters. The problem is that no system exists to process them at scale without sacrificing your entire morning.
+                </p>
+
+                <h2>Why Newsletters Matter (But Overwhelm You)</h2>
+
+                <p>
+                    Before diving into the solution, let's clarify why consultants subscribe to so many newsletters in the first place.
+                </p>
+
+                <h3>You Need Market Intelligence for Client Work</h3>
+                <p>
+                    When you're advising a client on digital transformation, you need to know:
+                </p>
+                <ul>
+                    <li>What competing firms are doing</li>
+                    <li>Emerging technology trends and implementation patterns</li>
+                    <li>Market disruption signals</li>
+                    <li>Regulatory shifts affecting their industry</li>
+                    <li>Peer company moves (funding, M&A, strategy shifts)</li>
+                </ul>
+
+                <p>
+                    That information lives in 15-20 different newsletters. You can't unsubscribe—you'd be flying blind.
+                </p>
+
+                <h3>You Need Proprietary Research to Defend Rates</h3>
+                <p>
+                    Clients push back on consulting fees. Your response is: "Here's what McKinsey sees happening in your sector. Here's what we're seeing across our client base. Here's what leading companies are doing." That knowledge comes from research—published, synthesized, and filtered for your context.
+                </p>
+
+                <h3>You Need Your Own POV to Differentiate</h3>
+                <p>
+                    Generic advice isn't worth consulting rates. You differentiate by having informed, contrarian, or proprietary perspectives. That comes from reading more than your clients do, seeing patterns across industries, and synthesizing emerging trends before they're obvious.
+                </p>
+
+                <p>
+                    All of that requires newsletters. Lots of them. But processing them manually is insane.
+                </p>
+
+                <h2>The Cost of the Current Approach</h2>
+
+                <p>
+                    Assume you receive 40 newsletters daily. Assume you skim them in 5 minutes each (being fast). That's 3.3 hours daily, or 16.5 hours weekly. But that's just skimming. To actually absorb the information and synthesize it, you need 5-7 hours weekly just on reading.
+                </p>
+
+                <p>
+                    For a consultant billing 2,000 hours annually at $300+/hour, that's roughly $35,000 in billable time lost to newsletter processing.
+                </p>
+
+                <p>
+                    The hidden cost is worse: attention fragmentation. By the time you finish reading 40 newsletters, your brain is scattered. You've lost the deep focus needed for client strategy work or proposal development. You're operating in reactive mode, not generative mode.
+                </p>
+
+                <h2>The 5-Step System</h2>
+
+                <p>
+                    Here's a practical system to manage newsletter overload without sacrificing market intelligence.
+                </p>
+
+                <div class="step-box">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Audit Your Subscriptions (Do This Once)</div>
+                    <div class="step-content">
+                        <p>Open your email. Search for all newsletters. Create a spreadsheet with columns: Newsletter Name, Frequency, Relevance (High/Medium/Low), Category.</p>
+                        <p><strong>Categories to use:</strong></p>
+                        <ul>
+                            <li><strong>Flagship research:</strong> McKinsey Quarterly, BCG Insights, Bain reports</li>
+                            <li><strong>Sector intelligence:</strong> Industry-specific research (healthcare, tech, finance newsletters)</li>
+                            <li><strong>Competitor monitoring:</strong> Consulting firm research in your verticals</li>
+                            <li><strong>Emerging trends:</strong> Startup updates, innovation newsletters, future-of-work publications</li>
+                            <li><strong>Economic/macro:</strong> Fed updates, economic trend emails, geopolitical alerts</li>
+                            <li><strong>Regulatory:</strong> Compliance and regulatory guidance affecting your industries</li>
+                            <li><strong>Client-specific:</strong> Newsletters covering your active client sectors</li>
+                        </ul>
+                        <p>
+                            Be honest about relevance. If you haven't read a newsletter in 6 months, it's not high-relevance. Unsubscribe from low-relevance items that haven't informed client work.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-box">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Categorize by Value and Urgency</div>
+                    <div class="step-content">
+                        <p>Segment newsletters into three tiers:</p>
+                        <ul>
+                            <li><strong>Tier 1 (Read Carefully):</strong> Flagship research (McKinsey, BCG, Bain), active client sector intelligence, regulatory alerts. These inform your client work directly. Read them fully or at minimum skim with care.</li>
+                            <li><strong>Tier 2 (Scan for Signals):</strong> Emerging trends, competitive monitoring, adjacent sector intelligence. You need to know if something major happens, but you don't need to read every item. A good digest flags major items only.</li>
+                            <li><strong>Tier 3 (Background/Archive):</strong> Thought leadership, founder interviews, deep-dive analyses you'll read later. These are valuable but not urgent. Digest them weekly or reference them when relevant.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-box">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Set Up AI-Powered Digests</div>
+                    <div class="step-content">
+                        <p>Use AI summarization to condense Tier 2 and Tier 3 newsletters into a single daily digest. Instead of reading 15 separate emails, you get one digest that says:</p>
+                        <ul>
+                            <li><strong>Major signals:</strong> "McKinsey published on healthcare consolidation trends—3 key shifts noted"</li>
+                            <li><strong>Sector alerts:</strong> "Tech sector: AWS announced new AI pricing—affects your 3 tech clients"</li>
+                            <li><strong>Emerging signals:</strong> "Fintech: 5 funding announcements this week—trend toward embedded lending"</li>
+                        </ul>
+                        <p>
+                            AI digests are particularly useful for managing volume. You don't read 20 newsletters; you read one structured summary of the 20, with links to full articles for deep dives.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-box">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Schedule Digest Delivery Around Your Workflow</div>
+                    <div class="step-content">
+                        <p>
+                            Don't get newsletters throughout the day. That creates constant context-switching. Instead:
+                        </p>
+                        <ul>
+                            <li><strong>Tier 1 (Flagship Research):</strong> Daily, first thing in the morning. 30-45 minutes.</li>
+                            <li><strong>Tier 2 + 3 (Consolidated Digest):</strong> Delivered at a set time (e.g., 4pm) so you can batch-review them. 20-30 minutes, or defer to end-of-week.</li>
+                        </ul>
+                        <p>
+                            This eliminates context-switching and lets you control when you process information instead of newsletters controlling your day.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-box">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Use Saved Time for Client-Facing Work</div>
+                    <div class="step-content">
+                        <p>
+                            If you recover 5-7 hours weekly from newsletter management, allocate it intentionally:
+                        </p>
+                        <ul>
+                            <li><strong>2 hours:</strong> Client-focused research (going deep on items relevant to active engagements)</li>
+                            <li><strong>2 hours:</strong> Proposal/pitch development or BD strategy</li>
+                            <li><strong>2 hours:</strong> Internal knowledge-sharing (sharing insights with your team, mentoring junior consultants)</li>
+                        </ul>
+                        <p>
+                            This turns newsletter processing from a cost-center activity into a value-generating workflow.
+                        </p>
+                    </div>
+                </div>
+
+                <h2>Practical Implementation</h2>
+
+                <p>
+                    You don't need to build a custom system. Here's what actually works:
+                </p>
+
+                <h3>For Tier 1 (Direct Reading)</h3>
+                <p>
+                    Keep receiving directly. Set aside 30-45 minutes in the morning (before client calls) to read them. Treat this as non-negotiable focus time.
+                </p>
+
+                <h3>For Tier 2 + Tier 3 (Bulk Processing)</h3>
+                <p>
+                    Use an email aggregator or AI summarization tool (there are several options; Brevis is one) to consolidate your 20-30 lower-priority newsletters into a single digest. You read one email instead of 30.
+                </p>
+
+                <p>
+                    The digest should organize by category (sector, trend type, etc.) and flag "major signal" items that warrant full article reading. Everything else is available if you want to dive deeper.
+                </p>
+
+                <h3>For Long-Form Deep Dives</h3>
+                <p>
+                    Some newsletters publish long-form research (McKinsey articles, HBR pieces, industry reports). Set up a "read later" system (Pocket, Readwise, Notion) to save these for dedicated reading time—maybe 1-2 hours weekly on Friday afternoon or over the weekend.
+                </p>
+
+                <div class="time-savings">
+                    <div class="time-savings-label">Time Savings Realistic</div>
+                    <p>
+                        <strong>Before:</strong> 5-7 hours weekly on newsletter processing. Scattered throughout the day. Attention fragmented.<br><br>
+                        <strong>After:</strong> 2-3 hours weekly (30-45 min flagship research + 20-30 min digest review). Batched. Clear time blocks. Better retention and signal detection because you're focused, not skimming.<br><br>
+                        <strong>Net gain:</strong> 3-4 billable hours weekly (or deep focus time for non-billable client strategy work).
+                    </p>
+                </div>
+
+                <h2>What Makes This Work</h2>
+
+                <p>
+                    This system works because it respects three constraints:
+                </p>
+
+                <ul>
+                    <li><strong>You still have market intelligence.</strong> You're not cutting newsletters to zero. You're triaging them so you read what matters most carefully and skim the rest for signals.</li>
+                    <li><strong>It preserves deep-dive capability.</strong> If a summary flags something important, you can instantly access the full article. You're not losing information; you're filtering it.</li>
+                    <li><strong>It fixes attention fragmentation.</strong> Instead of 40 separate emails scattered through your day, you get one digest at a set time. Your focus improves immediately.</li>
+                </ul>
+
+                <h2>The Competitive Advantage</h2>
+
+                <p>
+                    Most consultants are drowning in newsletters. They're reading reactively, catching maybe 70% of what's relevant, and their client advice is slower to incorporate emerging trends because they're overwhelmed.
+                </p>
+
+                <p>
+                    Consultants who systematize newsletter management have an edge. They:
+                </p>
+
+                <ul>
+                    <li>See market signals faster (through curated digests, not scattered reading)</li>
+                    <li>Have more time for deep client work (recovered hours redirect to strategy, not admin)</li>
+                    <li>Develop more informed perspectives (better signal detection improves synthesis)</li>
+                    <li>Mentor more effectively (recovered time goes to team development)</li>
+                </ul>
+
+                <p>
+                    It's not about reading fewer newsletters. It's about reading them smarter.
+                </p>
+
+                <h2>Getting Started This Week</h2>
+
+                <p>
+                    Week 1: Audit your newsletters (1-2 hours). Categorize them into tiers.
+                </p>
+
+                <p>
+                    Week 2: Set up your digest system. Route Tier 2 + 3 newsletters to an aggregator or summarization tool. Set delivery time to a fixed slot.
+                </p>
+
+                <p>
+                    Week 3: Run the new system. Track your reading time. Adjust based on what you actually need.
+                </p>
+
+                <p>
+                    By the end of Month 1, you'll have recovered 10+ hours weekly and eliminated the attention fragmentation that kills deep work.
+                </p>
+
+                <p>
+                    For consulting firms, that time multiplied across your team is significant. A team of 20 recovering 5 hours weekly is 5,200 billable hours annually, or $1.5M+ in recovered consulting capacity.
+                </p>
+            </div>
+
+            <div class="cta-section">
+                <h3>Reclaim Your Focus</h3>
+                <p>This system works better when you have a good digest tool. Brevis consolidates your newsletters and surfaces signals without the noise. Try it free—many consulting firms see the difference in the first week.</p>
+                <a href="https://brevisapp.com/try-free" class="btn-cta">Try Free, No Card Required</a>
+    </article>
+
+    <footer>
+        <div class="footer-container">
+            <div>
+                <div class="footer-brand">BREVIS</div>
+                <p class="footer-tagline">Read smarter. Summarize everything. Stay current on what matters.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Product</h3>
+                <a href="/">Home</a>
+                <a href="/features">Features</a>
+                <a href="/#precios">Pricing</a>
+                <a href="/blog/">Blog</a>
+            </div>
+            <div class="footer-section">
+                <h3>Company</h3>
+                <a href="/about">About</a>
+                <a href="/careers">Careers</a>
+                <a href="/press">Press</a>
+                <a href="mailto:hello@brevisapp.com">Contact</a>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+                <a href="/security">Security</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Brevis. All rights reserved. Made for professionals who read.</p>
+        </div>
+    </footer>
+</body>
+</html>

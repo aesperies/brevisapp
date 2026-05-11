@@ -53,9 +53,13 @@ export function makeAuthMiddleware(getUserData) {
             } else {
                 req.user = decoded;
             }
-        } catch {
-            // If DB check fails, allow the request through (fail-open to avoid total outage)
-            req.user = decoded;
+        } catch (err) {
+            // Fail closed: if we can't verify token_version against the DB we cannot
+            // honor the request safely (revoked JWTs would silently re-validate during
+            // any DB hiccup, including post-password-reset). Return 503 so clients
+            // retry rather than acting on stale auth.
+            console.error('[auth] DB check failed, refusing request:', err?.message || err);
+            return res.status(503).json({ error: 'Service temporarily unavailable, please retry' });
         }
 
         next();

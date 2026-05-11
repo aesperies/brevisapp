@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import dns from 'dns';
+import http from 'http';
+import https from 'https';
+import net from 'net';
 import { promisify } from 'util';
 import express from 'express';
 import path from 'path';
@@ -23,7 +26,7 @@ const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 import Parser from 'rss-parser';
 
-import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers, getDb } from './database.js';
+import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers, getDb, invalidateUserAutoTagCache } from './database.js';
 import { recordAutoTagRemoval } from './lib/auto-tagger.js';
 import { generateToken, verifyToken, makeAuthMiddleware } from './auth.js';
 
@@ -334,6 +337,38 @@ const tagMutationLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100,
     message: { error: 'Too many tag changes, please slow down' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Per-user limiter for Kindle send (the endpoint dispatches mail to a user-controlled
+// kindle_email address; throttle to prevent abuse / mailcost runaway).
+const kindleLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // 10 sends/hour
+    message: { error: 'Too many Kindle sends, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => (req.user?.id ? `kindle:${req.user.id}` : req.ip)
+});
+
+// Light limiter for newsletter CRUD reads (GET list, GET item) and DELETE.
+// Intent is to stop scrapers, not to bother power users.
+const newsletterCrudLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 600, // ~40/min — well above any human pattern
+    message: { error: 'Too many newsletter requests, please slow down' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => (req.user?.id ? `nlcrud:${req.user.id}` : req.ip)
+});
+
+// Waitlist limiter — keyed by IP since the user is unauthenticated.
+// 5 signups/hour per IP is plenty for a real human and stops fill-the-table spam.
+const waitlistLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    message: { error: 'Too many waitlist signups from this network, please try again later' },
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -660,6 +695,9 @@ app.patch('/api/auth/profile', authMiddleware, [
     if (auto_tag_enabled !== undefined) {
         updates.push(`auto_tag_enabled = $${paramIndex++}`);
         values.push(!!auto_tag_enabled);
+        // Invalidate the in-memory cache so the next ingest immediately sees the new value
+        // instead of waiting for the 5-minute TTL.
+        invalidateUserAutoTagCache(req.user.id);
     }
 
     let user;
@@ -819,12 +857,12 @@ app.get('/api/auth/google/callback', asyncHandler(async (req, res) => {
 
 // ============= NEWSLETTER ROUTES =============
 
-app.get('/api/newsletters', authMiddleware, asyncHandler(async (req, res) => {
+app.get('/api/newsletters', authMiddleware, newsletterCrudLimiter, asyncHandler(async (req, res) => {
     const newsletters = await dbHelpers.getNewsletters(req.user.id);
     res.json(newsletters);
 }));
 
-app.get('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) => {
+app.get('/api/newsletters/:id', authMiddleware, newsletterCrudLimiter, asyncHandler(async (req, res) => {
     const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
     if (!newsletter) {
         return res.status(404).json({ error: 'Newsletter not found' });
@@ -967,21 +1005,44 @@ app.post('/api/news-builder/upload-file', importLimiter, authMiddleware, upload.
 
 // === URL Import & Bookmarklet ===
 
-const dnsResolve = promisify(dns.resolve);
+const dnsLookup = promisify(dns.lookup);
 
 function isPrivateIP(ip) {
-    const parts = ip.split('.').map(Number);
-    if (parts.length !== 4) return ip === '::1' || ip === '0:0:0:0:0:0:0:1';
-    return (
-        parts[0] === 127 ||
-        parts[0] === 10 ||
-        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-        (parts[0] === 192 && parts[1] === 168) ||
-        (parts[0] === 169 && parts[1] === 254) ||
-        parts[0] === 0
-    );
+    if (typeof ip !== 'string') return true;
+    const family = net.isIP(ip);
+    if (family === 4) {
+        const parts = ip.split('.').map(Number);
+        return (
+            parts[0] === 127 ||
+            parts[0] === 10 ||
+            (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+            (parts[0] === 192 && parts[1] === 168) ||
+            (parts[0] === 169 && parts[1] === 254) || // link-local incl. AWS/GCP metadata 169.254.169.254
+            (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) || // CGNAT
+            parts[0] === 0
+        );
+    }
+    if (family === 6) {
+        const lower = ip.toLowerCase();
+        // ::1, unspecified, link-local fe80::/10, unique-local fc00::/7,
+        // and IPv4-mapped (::ffff:0:0/96) — also treat any '::ffff:'-mapped private v4 as private.
+        if (lower === '::1' || lower === '::') return true;
+        if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true;
+        if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
+        if (lower.startsWith('::ffff:')) {
+            const v4 = lower.slice(7);
+            return isPrivateIP(v4);
+        }
+        return false;
+    }
+    return true; // unknown family → treat as private
 }
 
+/**
+ * Validate a URL is safe to fetch from the server.
+ * Returns the resolved IP so the caller can pin DNS to it during fetch
+ * (closing the DNS-rebinding window between validation and use).
+ */
 async function validateUrlForFetch(urlString) {
     let parsed;
     try {
@@ -995,22 +1056,62 @@ async function validateUrlForFetch(urlString) {
     }
 
     const hostname = parsed.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    if (hostname === 'localhost') {
         return { safe: false, reason: 'Local addresses are not allowed' };
+    }
+    // Direct-IP hostnames bypass DNS — validate them immediately.
+    if (net.isIP(hostname)) {
+        if (isPrivateIP(hostname)) {
+            return { safe: false, reason: 'URL targets a private IP address' };
+        }
+        return { safe: true, ip: hostname, family: net.isIP(hostname), parsed };
     }
 
     try {
-        const addresses = await dnsResolve(hostname);
-        for (const addr of addresses) {
-            if (isPrivateIP(addr)) {
+        // Resolve all addresses, validate every one (defense against round-robin DNS
+        // returning a mix of public and private IPs), then pin to the first.
+        const addresses = await dnsLookup(hostname, { all: true });
+        if (!addresses.length) {
+            return { safe: false, reason: 'Hostname did not resolve' };
+        }
+        for (const { address } of addresses) {
+            if (isPrivateIP(address)) {
                 return { safe: false, reason: 'URL resolves to a private IP address' };
             }
         }
+        const pinned = addresses[0];
+        return { safe: true, ip: pinned.address, family: pinned.family, parsed };
     } catch {
         return { safe: false, reason: 'Could not resolve hostname' };
     }
+}
 
-    return { safe: true };
+/**
+ * Fetch a URL with DNS pinned to the IP that was validated.
+ * Closes the DNS-rebinding window: between `validateUrlForFetch` resolving
+ * and the actual TCP connect, an attacker-controlled DNS server cannot
+ * flip the answer to an internal IP. The pin uses a custom `lookup` on
+ * the http(s).Agent so SNI / Host header behavior is unchanged.
+ *
+ * Throws an Error with code 'URL_BLOCKED' when validation fails.
+ */
+async function safeFetch(urlString, options = {}) {
+    const validation = await validateUrlForFetch(urlString);
+    if (!validation.safe) {
+        const err = new Error(`URL blocked: ${validation.reason}`);
+        err.code = 'URL_BLOCKED';
+        err.reason = validation.reason;
+        throw err;
+    }
+    const { ip, family, parsed } = validation;
+    const AgentCtor = parsed.protocol === 'https:' ? https.Agent : http.Agent;
+    const agent = new AgentCtor({
+        keepAlive: false,
+        // Pin DNS to the validated IP for this connection. `lookup` is the only
+        // resolution that runs after this point.
+        lookup: (_hostname, _opts, cb) => cb(null, ip, family || 4),
+    });
+    return fetch(urlString, { ...options, agent });
 }
 
 function detectPlatform(url) {
@@ -1021,21 +1122,24 @@ function detectPlatform(url) {
 
 async function fetchGenericContent(url) {
     try {
-        const validation = await validateUrlForFetch(url);
-        if (!validation.safe) {
-            console.error('URL blocked:', url, validation.reason);
-            return null;
-        }
-
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
         let response;
         try {
-            response = await fetch(url, {
+            // safeFetch validates the URL and pins DNS to the validated IP
+            // so the connect cannot be redirected to an internal address by
+            // an attacker-controlled DNS server between validation and fetch.
+            response = await safeFetch(url, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
                 redirect: 'manual',
                 signal: controller.signal
             });
+        } catch (err) {
+            if (err?.code === 'URL_BLOCKED') {
+                console.error('URL blocked:', url, err.reason);
+                return null;
+            }
+            throw err;
         } finally {
             clearTimeout(timeoutId);
         }
@@ -1199,7 +1303,14 @@ app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (r
 // Bookmarklet saves now go through the regular /api/newsletters endpoint
 // via the /bookmarklet-save page (same origin, uses httpOnly cookies)
 
-app.patch('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) => {
+app.patch('/api/newsletters/:id', authMiddleware, newsletterCrudLimiter, [
+    body('is_read').optional().isBoolean().toBoolean(),
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'is_read must be a boolean' });
+    }
+
     const newsletter = await dbHelpers.getNewsletter(parseInt(req.params.id), req.user.id);
     if (!newsletter) {
         return res.status(404).json({ error: 'Newsletter not found' });
@@ -1215,7 +1326,7 @@ app.patch('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) 
     res.json(updated);
 }));
 
-app.delete('/api/newsletters/:id', authMiddleware, asyncHandler(async (req, res) => {
+app.delete('/api/newsletters/:id', authMiddleware, newsletterCrudLimiter, asyncHandler(async (req, res) => {
     await dbHelpers.deleteNewsletter(parseInt(req.params.id), req.user.id);
     console.log('✅ Newsletter deleted:', req.params.id);
     res.json({ success: true });
@@ -1245,7 +1356,7 @@ app.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, asyncHandler
 }));
 
 // Send newsletter to Kindle
-app.post('/api/newsletters/:id/kindle', authMiddleware, asyncHandler(async (req, res) => {
+app.post('/api/newsletters/:id/kindle', authMiddleware, kindleLimiter, asyncHandler(async (req, res) => {
     if (!emailEnabled) {
         return res.status(503).json({ error: 'Email service not configured' });
     }
@@ -1419,20 +1530,21 @@ app.post('/api/news-builder/generate-from-project', aiLimiter, authMiddleware, a
         if (urls?.length) {
             for (const url of urls) {
                 try {
-                    const validation = await validateUrlForFetch(url);
-                    if (!validation.safe) {
-                        console.error('URL blocked in news builder:', url, validation.reason);
-                        continue;
-                    }
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
                     let response;
                     try {
-                        response = await fetch(url, {
+                        response = await safeFetch(url, {
                             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
                             redirect: 'manual',
                             signal: controller.signal
                         });
+                    } catch (err) {
+                        if (err?.code === 'URL_BLOCKED') {
+                            console.error('URL blocked in news builder:', url, err.reason);
+                            continue;
+                        }
+                        throw err;
                     } finally {
                         clearTimeout(timeoutId);
                     }
@@ -1740,6 +1852,14 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
                 }
                 break;
             }
+
+            default: {
+                // Stripe sends ~100+ event types; we only care about the subset above.
+                // Log unhandled types so we notice when Stripe ships something new
+                // we should react to (e.g., 'invoice.upcoming' for dunning UX).
+                console.warn('[stripe-webhook] unhandled event type:', event.type);
+                break;
+            }
         }
 
     res.json({ received: true });
@@ -1858,7 +1978,7 @@ app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async
 // Health check
 // ============= WAITLIST =============
 
-app.post('/api/waitlist', [
+app.post('/api/waitlist', waitlistLimiter, [
     body('email').isEmail().normalizeEmail()
 ], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -1887,6 +2007,37 @@ app.get('/health', async (req, res) => {
 
 const rssParser = new Parser();
 
+/**
+ * SSRF-safe wrapper around rssParser.parseURL.
+ * `rssParser.parseURL` does its own DNS lookup, which would re-open the
+ * rebinding window we close in safeFetch. Fetch the body via safeFetch
+ * (DNS pinned to validated IP) and feed it to parseString instead.
+ */
+async function safeParseRssUrl(url, { timeoutMs = 20000 } = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await safeFetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0; +https://brevisapp.com)',
+                'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+            },
+            redirect: 'manual',
+            signal: controller.signal,
+        });
+        if (response.status >= 300 && response.status < 400) {
+            throw new Error(`RSS feed redirected (status ${response.status}); refusing to follow`);
+        }
+        if (!response.ok) {
+            throw new Error(`RSS feed returned status ${response.status}`);
+        }
+        const body = await response.text();
+        return await rssParser.parseString(body);
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 app.get('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => {
     const db = dbHelpers.getDb();
     const result = await db.query('SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
@@ -1904,18 +2055,16 @@ app.post('/api/subscriptions', subscriptionLimiter, authMiddleware, asyncHandler
     }
     if (!url.startsWith('http')) url = 'https://' + url;
 
-    // SSRF protection: validate the URL before fetching
-    const urlValidation = await validateUrlForFetch(url);
-    if (!urlValidation.safe) {
-        return res.status(400).json({ error: `Invalid feed URL: ${urlValidation.reason}` });
-    }
-
-    // Validate it's a working RSS feed
+    // Validate it's a working RSS feed (safeParseRssUrl performs SSRF validation
+    // and DNS pinning internally — no separate validateUrlForFetch needed).
     let feedName;
     try {
-        const feed = await rssParser.parseURL(url);
+        const feed = await safeParseRssUrl(url);
         feedName = feed.title || url.replace(/https?:\/\//, '').split('/')[0];
     } catch (e) {
+        if (e?.code === 'URL_BLOCKED') {
+            return res.status(400).json({ error: `Invalid feed URL: ${e.reason}` });
+        }
         return res.status(400).json({ error: 'Could not read RSS feed. Make sure the URL is correct.' });
     }
 
@@ -1946,21 +2095,22 @@ app.post('/api/subscriptions/import-opml', subscriptionLimiter, authMiddleware, 
     let added = 0;
     for (const url of urls) {
         try {
-            // SSRF protection: skip URLs that resolve to private IPs
-            const urlValidation = await validateUrlForFetch(url);
-            if (!urlValidation.safe) {
-                console.warn('⚠️  OPML import: blocked URL:', url, urlValidation.reason);
-                continue;
-            }
-
             const existing = await db.query('SELECT id FROM subscriptions WHERE user_id = $1 AND url = $2', [req.user.id, url]);
             if (existing.rows.length > 0) continue;
 
             let feedName = url.replace(/https?:\/\//, '').split('/')[0];
             try {
-                const feed = await rssParser.parseURL(url);
+                // safeParseRssUrl performs SSRF validation + DNS pinning;
+                // URL_BLOCKED errors fall through to the catch and skip the feed.
+                const feed = await safeParseRssUrl(url);
                 if (feed.title) feedName = feed.title;
-            } catch (e) { /* use URL as name */ }
+            } catch (e) {
+                if (e?.code === 'URL_BLOCKED') {
+                    console.warn('⚠️  OPML import: blocked URL:', url, e.reason);
+                    continue;
+                }
+                /* use URL as name on benign parse failures */
+            }
 
             await db.query('INSERT INTO subscriptions (user_id, url, name) VALUES ($1, $2, $3)', [req.user.id, url, feedName]);
             added++;
@@ -1993,12 +2143,10 @@ async function fetchAllRSSFeeds() {
 
         for (const sub of subs.rows) {
             try {
-                // Per-feed timeout: abort if the feed takes more than 20 seconds
-                const feedPromise = rssParser.parseURL(sub.url);
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('RSS feed timeout')), 20000)
-                );
-                const feed = await Promise.race([feedPromise, timeoutPromise]);
+                // safeParseRssUrl re-validates the URL on every cron run (preventing
+                // DNS rebinding via subscriptions that were valid at signup but later
+                // pointed to internal IPs) and pins DNS to the validated IP.
+                const feed = await safeParseRssUrl(sub.url, { timeoutMs: 20000 });
                 const sender = feed.title || sub.name || 'RSS Feed';
 
                 for (const item of (feed.items || []).slice(0, 10)) {

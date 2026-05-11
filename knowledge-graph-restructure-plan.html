@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brevis Knowledge Graph — Restructuring Plan</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --green: #00b894;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --blue: #74b9ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--accent-light), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { color: var(--text-dim); font-size: 1rem; margin-bottom: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+  h2 { font-size: 1.4rem; font-weight: 600; color: var(--accent-light); margin: 2.5rem 0 1rem; }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 1.5rem 0 0.75rem; }
+  p { margin-bottom: 1rem; color: var(--text); }
+  .bluf { background: var(--surface); border-left: 4px solid var(--accent); padding: 1.25rem 1.5rem; border-radius: 0 8px 8px 0; margin-bottom: 2rem; }
+  .bluf ul { list-style: none; padding: 0; }
+  .bluf li { padding: 0.4rem 0; padding-left: 1.2rem; position: relative; }
+  .bluf li::before { content: "→"; position: absolute; left: 0; color: var(--accent-light); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .badge { font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .badge-new { background: var(--green); color: #000; }
+  .badge-modify { background: var(--orange); color: #000; }
+  .badge-high { background: var(--red); color: #fff; }
+  .badge-medium { background: var(--orange); color: #000; }
+  .badge-phase { background: var(--accent); color: #fff; }
+  .badge-week { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+  code { background: var(--surface-2); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9em; color: var(--blue); }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1rem 0; font-size: 0.85rem; line-height: 1.6; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .comparison { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: start; margin: 1.5rem 0; }
+  .comparison .arrow { color: var(--accent-light); font-size: 1.5rem; align-self: center; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .flow { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+  .flow-step { background: var(--surface-2); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; }
+  .flow-arrow { color: var(--accent-light); font-weight: bold; }
+  .risk { display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+  .risk:last-child { border-bottom: none; }
+  .timeline { position: relative; padding-left: 2rem; }
+  .timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .timeline-item { position: relative; margin-bottom: 1.5rem; }
+  .timeline-item::before { content: ''; position: absolute; left: -1.65rem; top: 0.5rem; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+  .file-tree { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.8; }
+  .file-tree .new { color: var(--green); }
+  .file-tree .modify { color: var(--orange); }
+  .dim { color: var(--text-dim); }
+  ul { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.4rem; }
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+</style>
+</head>
+<body>
+
+<h1>Brevis → Knowledge Graph Platform</h1>
+<p class="subtitle">Restructuring Plan — April 2026 | Inspired by Graphify (safishamsi/graphify)</p>
+
+<div class="bluf">
+  <strong style="color: var(--accent-light);">EXECUTIVE SUMMARY</strong>
+  <ul>
+    <li><strong>What:</strong> Transform Brevis from a newsletter reader into a <strong>personal knowledge graph platform</strong> — users forward newsletters, Brevis extracts entities &amp; relationships, and builds an interactive, queryable graph that grows smarter over time</li>
+    <li><strong>How:</strong> Adapt Graphify's two-pass extraction model (deterministic + LLM) for newsletter content, store graph data in PostgreSQL with JSONB (no new infra), visualize with vis.js, and make entity profiles configurable per user (VC/Legal vs. General)</li>
+    <li><strong>Impact:</strong> This is a category-defining pivot — no competitor in the $2.53B newsletter tool market offers knowledge graph features. Estimated 3-week build to MVP.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. What Graphify Does (& What We're Adapting)</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <h3>Graphify's Architecture</h3>
+  <p>Graphify is a Claude Code skill (3.6K+ GitHub stars) that turns any folder of code, docs, PDFs, or images into a queryable knowledge graph. Its core innovation is a <strong>two-pass extraction model</strong>:</p>
+
+  <table>
+    <tr><th>Pass</th><th>What It Does</th><th>Our Adaptation for Newsletters</th></tr>
+    <tr>
+      <td><strong>Pass 1: Deterministic</strong></td>
+      <td>AST parsing extracts code structure (classes, functions, imports) — no LLM needed</td>
+      <td>Regex/NLP extraction of emails, URLs, dates, monetary amounts, company names from newsletter HTML</td>
+    </tr>
+    <tr>
+      <td><strong>Pass 2: LLM Semantic</strong></td>
+      <td>Claude subagents extract concepts, relationships, and design rationale from docs/images in parallel</td>
+      <td>Claude extracts entities (People, Companies, Deals, Topics) and relationships from newsletter content</td>
+    </tr>
+  </table>
+
+  <p style="margin-top: 1rem;"><strong>Graphify's tech stack:</strong> NetworkX + Leiden community detection (graspologic) + tree-sitter + vis.js for visualization. Outputs: <code>graph.html</code> (interactive), <code>graph.json</code> (queryable), <code>GRAPH_REPORT.md</code> (audit).</p>
+
+  <p><strong>Key insight we're borrowing:</strong> Graphify proves you don't need Neo4j or a vector database — PostgreSQL + JSONB + Leiden community detection gives you 90% of the value at 10% of the complexity. The graph topology itself is the similarity signal.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Architecture: Before &amp; After</h2>
+<!-- ============================================================ -->
+
+<div class="comparison">
+  <div class="card">
+    <h3 style="color: var(--text-dim);">Current Brevis</h3>
+    <div class="flow">
+      <span class="flow-step">Email/URL/RSS</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">Store in PostgreSQL</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">AI Summary</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">Read/Tag</span>
+    </div>
+    <p class="dim" style="font-size: 0.85rem;">Newsletters are isolated documents. No connections between them. Tags are manual. No entity awareness.</p>
+  </div>
+  <div class="arrow">→</div>
+  <div class="card">
+    <h3 style="color: var(--green);">Brevis + Knowledge Graph</h3>
+    <div class="flow">
+      <span class="flow-step">Email/URL/RSS</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step" style="border-color: var(--green);">Extract Entities</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step" style="border-color: var(--green);">Build Graph</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step" style="border-color: var(--green);">Visualize & Query</span>
+    </div>
+    <p class="dim" style="font-size: 0.85rem;">Newsletters become <strong>nodes in a living knowledge graph</strong>. Entities connect across newsletters. Clusters emerge automatically. Users see patterns they'd never find manually.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. New Database Schema</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <h3>New Tables (added to existing PostgreSQL)</h3>
+  <pre><code>-- Graph nodes: entities extracted from newsletters
+CREATE TABLE IF NOT EXISTS graph_nodes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+
+    -- Core identity
+    name VARCHAR(500) NOT NULL,            -- "Andreessen Horowitz", "Marc Andreessen"
+    node_type VARCHAR(50) NOT NULL,        -- person, company, fund, deal, technology,
+                                           -- regulation, topic, event, location
+    canonical_name VARCHAR(500),           -- Deduplicated name ("a16z" → "Andreessen Horowitz")
+
+    -- Rich metadata (schema-free, varies by node_type)
+    metadata JSONB DEFAULT '{}',           -- { role: "GP", sector: "gaming", url: "..." }
+
+    -- Graph metrics (updated by clustering job)
+    community_id INTEGER,                  -- Leiden community cluster
+    centrality FLOAT DEFAULT 0,            -- PageRank or betweenness centrality
+    mention_count INTEGER DEFAULT 1,       -- How many newsletters mention this entity
+
+    -- Timestamps
+    first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_user ON graph_nodes(user_id);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_type ON graph_nodes(user_id, node_type);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_community ON graph_nodes(user_id, community_id);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_name ON graph_nodes(user_id, canonical_name);
+
+-- Graph edges: relationships between entities
+CREATE TABLE IF NOT EXISTS graph_edges (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+
+    source_id INTEGER REFERENCES graph_nodes(id) ON DELETE CASCADE,
+    target_id INTEGER REFERENCES graph_nodes(id) ON DELETE CASCADE,
+
+    -- Relationship
+    relationship VARCHAR(100) NOT NULL,    -- "invested_in", "founded", "competes_with",
+                                           -- "regulates", "acquired", "partnered_with"
+    weight FLOAT DEFAULT 1.0,              -- Strength (incremented on repeated mentions)
+
+    -- Provenance
+    evidence JSONB DEFAULT '[]',           -- [{ newsletter_id: 123, excerpt: "..." }]
+    is_inferred BOOLEAN DEFAULT false,     -- true = LLM-inferred, false = explicitly stated
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_graph_edges_user ON graph_edges(user_id);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_id);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_id);
+
+-- Link newsletters to the entities they mention
+CREATE TABLE IF NOT EXISTS newsletter_entities (
+    newsletter_id INTEGER REFERENCES newsletters(id) ON DELETE CASCADE,
+    node_id INTEGER REFERENCES graph_nodes(id) ON DELETE CASCADE,
+
+    -- Context
+    excerpt TEXT,                           -- The sentence(s) where entity was mentioned
+    sentiment VARCHAR(20),                 -- positive, negative, neutral
+    relevance FLOAT DEFAULT 0.5,           -- 0-1 how central this entity is to the newsletter
+
+    PRIMARY KEY (newsletter_id, node_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ne_newsletter ON newsletter_entities(newsletter_id);
+CREATE INDEX IF NOT EXISTS idx_ne_node ON newsletter_entities(node_id);
+
+-- User's entity extraction preferences
+CREATE TABLE IF NOT EXISTS graph_profiles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+
+    profile_name VARCHAR(100) NOT NULL,     -- "VC/Legal", "General", "Crypto", custom
+    entity_types JSONB NOT NULL,            -- ["person","company","deal","fund","technology"]
+    relationship_types JSONB NOT NULL,      -- ["invested_in","founded","competes_with"]
+    extraction_prompt TEXT,                 -- Custom system prompt for Claude extraction
+    is_active BOOLEAN DEFAULT true,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_graph_profiles_user ON graph_profiles(user_id);</code></pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Entity Extraction Pipeline</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <h3>Two-Pass Extraction (Graphify-inspired)</h3>
+
+  <p><strong>Triggered:</strong> Every time a newsletter is saved (email webhook, URL import, RSS fetch, file upload).</p>
+
+  <h3>Pass 1: Deterministic Extraction <span class="badge badge-new">No LLM Cost</span></h3>
+  <p>Fast regex/pattern matching to extract structured data before sending to Claude:</p>
+  <pre><code>// New file: graph-extractor.js
+
+function deterministicExtract(content, title, sender) {
+  return {
+    // Email addresses
+    emails: content.match(/[\w.-]+@[\w.-]+\.\w+/g) || [],
+
+    // URLs with domain extraction
+    urls: content.match(/https?:\/\/[^\s<>"]+/g) || [],
+
+    // Monetary amounts ("$5M", "$100 million", "€2.5B")
+    amounts: content.match(/[\$€£]\s?\d+[\d,.]*\s?(million|billion|M|B|K|mn|bn)?/gi) || [],
+
+    // Dates
+    dates: content.match(/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s+\d{4}/gi) || [],
+
+    // Potential company indicators (Inc, LLC, Corp, Ltd, etc.)
+    companies: content.match(/[A-Z][\w&.'-]+(?:\s+(?:Inc|LLC|Corp|Ltd|GmbH|SA|AG|LP|Ventures|Capital|Partners|Labs|Studios|Games|Protocol|Foundation|Network|DAO)\.?)/g) || [],
+
+    // Crypto tokens ($BTC, $ETH, etc.)
+    tokens: content.match(/\$[A-Z]{2,10}\b/g) || [],
+
+    // Sender domain (newsletter source)
+    senderDomain: sender?.match(/@([\w.-]+)/)?.[1]
+  };
+}</code></pre>
+
+  <h3>Pass 2: LLM Semantic Extraction <span class="badge badge-modify">Claude API</span></h3>
+  <p>Claude extracts entities, relationships, and sentiment in a single structured call:</p>
+  <pre><code>// Added to ai-service.js
+
+async function extractKnowledgeGraph(newsletter, profile, deterministicHints) {
+  const systemPrompt = profile.extraction_prompt || DEFAULT_EXTRACTION_PROMPT;
+
+  const result = await anthropicRequest({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{
+      role: 'user',
+      content: `Extract entities and relationships from this newsletter.
+
+ENTITY TYPES TO EXTRACT: ${profile.entity_types.join(', ')}
+RELATIONSHIP TYPES: ${profile.relationship_types.join(', ')}
+
+DETERMINISTIC HINTS (pre-extracted):
+${JSON.stringify(deterministicHints, null, 2)}
+
+NEWSLETTER:
+Title: ${newsletter.title}
+Source: ${newsletter.sender}
+&lt;content&gt;${newsletter.content.slice(0, 15000)}&lt;/content&gt;
+
+Return JSON:
+{
+  "entities": [
+    { "name": "...", "type": "person|company|...", "aliases": [],
+      "metadata": {}, "sentiment": "positive|negative|neutral",
+      "relevance": 0.0-1.0, "excerpt": "..." }
+  ],
+  "relationships": [
+    { "source": "Entity Name", "target": "Entity Name",
+      "relationship": "invested_in|...", "is_inferred": false,
+      "excerpt": "..." }
+  ]
+}`
+    }]
+  }, 45000);
+
+  return JSON.parse(result);
+}</code></pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Graph Processing &amp; Clustering</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <h3>Entity Deduplication</h3>
+  <p>Critical for graph quality — "a16z", "Andreessen Horowitz", and "A16Z Crypto" should all be the same node:</p>
+  <pre><code>// Entity resolution pipeline:
+// 1. Exact match on canonical_name
+// 2. Alias matching (stored in metadata.aliases)
+// 3. Fuzzy match (Levenshtein distance < 3 for short names)
+// 4. LLM disambiguation for ambiguous cases (batch, async)
+
+async function resolveEntity(userId, entity) {
+  // Try exact match first
+  let node = await db.query(
+    `SELECT * FROM graph_nodes
+     WHERE user_id = $1 AND (canonical_name = $2 OR name = $2)`,
+    [userId, entity.name]
+  );
+
+  // Try alias match
+  if (!node.rows.length) {
+    node = await db.query(
+      `SELECT * FROM graph_nodes
+       WHERE user_id = $1 AND metadata->'aliases' ? $2`,
+      [userId, entity.name]
+    );
+  }
+
+  // Create or update
+  if (node.rows.length) {
+    // Update: increment mention_count, update last_seen, merge metadata
+    return await mergeEntity(node.rows[0], entity);
+  } else {
+    // Create new node
+    return await createEntity(userId, entity);
+  }
+}</code></pre>
+
+  <h3>Community Detection (Leiden Algorithm)</h3>
+  <p>Following Graphify's approach — run Leiden clustering on the graph to find topic communities. Since we're in Node.js (not Python/NetworkX), we'll use a lightweight JS implementation:</p>
+  <pre><code>// Option A: Port Leiden to JS (simple version for MVP)
+// Option B: Call Python subprocess with NetworkX + graspologic
+// Option C: Use SQL-based community detection (connected components via recursive CTE)
+
+// MVP approach: SQL-based connected components + edge density scoring
+// Runs as a scheduled job every hour (or after N new newsletters)
+
+async function updateCommunities(userId) {
+  // 1. Build adjacency from graph_edges
+  // 2. Find connected components
+  // 3. Within each component, score density
+  // 4. Assign community_id to each node
+  // 5. Update centrality scores (simplified PageRank via edge weights)
+}</code></pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Frontend: Interactive Graph Visualization</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <h3>vis.js Network Graph (same as Graphify)</h3>
+  <p>New tab/view in <code>app.html</code> — an interactive, force-directed graph visualization:</p>
+
+  <pre><code>&lt;!-- Add to app.html: vis-network from CDN --&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/vis-network.min.js"&gt;&lt;/script&gt;
+
+// Key features:
+// 1. Nodes colored by type (company=blue, person=green, deal=gold, etc.)
+// 2. Node size = mention_count (more mentioned = bigger)
+// 3. Edge thickness = relationship weight
+// 4. Community clusters shown as colored backgrounds
+// 5. Click node → see all newsletters mentioning that entity
+// 6. Click edge → see evidence (excerpts from newsletters)
+// 7. Search/filter by entity type, date range, community
+// 8. Zoom into a community to see sub-graph
+// 9. Timeline slider to see graph evolution over time</code></pre>
+
+  <h3>Graph UI Wireframe</h3>
+  <pre><code>┌─────────────────────────────────────────────────────────┐
+│  [Newsletters]  [Knowledge Graph*]  [News Builder]      │
+├──────────┬──────────────────────────────────────────────┤
+│ FILTERS  │                                              │
+│          │     ◉ Anthropic ─── invested_in ──── ◉ AI   │
+│ ☑ People │         │                            │      │
+│ ☑ Company│    partnered     competes_with       │      │
+│ ☑ Deals  │         │                            │      │
+│ ☐ Topics │     ◉ Google ──── acquired ──── ◉ DeepMind  │
+│          │         │                                    │
+│ DATE     │    founded_by                                │
+│ [══●═══] │         │                                    │
+│          │     ◉ S. Pichai                              │
+│ SEARCH   │                                              │
+│ [______] │  ┌─────────────────────────────────┐         │
+│          │  │ Entity: Anthropic               │         │
+│ CLUSTERS │  │ Type: Company | Mentions: 47    │         │
+│ • AI/ML  │  │ First seen: Jan 2026            │         │
+│ • Gaming │  │ Related: Dario Amodei, Claude,  │         │
+│ • Crypto │  │   Amazon, Google, AI Safety     │         │
+│ • Legal  │  │ [View 47 newsletters →]         │         │
+│          │  └─────────────────────────────────┘         │
+└──────────┴──────────────────────────────────────────────┘</code></pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. New API Endpoints</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Purpose</th><th>Plan Gate</th></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/nodes</code></td><td>List all entities (filterable by type, community, search)</td><td>Standard+</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/nodes/:id</code></td><td>Entity detail + connected entities + newsletters</td><td>Standard+</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/edges</code></td><td>List relationships (filterable)</td><td>Standard+</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/data</code></td><td>Full graph export (vis.js format: nodes + edges)</td><td>Standard+</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/communities</code></td><td>List detected communities with member counts</td><td>Standard+</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/stats</code></td><td>Graph metrics (total nodes, edges, communities, top entities)</td><td>Free (teaser)</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/graph/query</code></td><td>Natural language graph query ("Who invested in AI gaming?")</td><td>Premium</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/graph/extract/:newsletterId</code></td><td>Manually trigger extraction for a newsletter</td><td>Standard+</td></tr>
+    <tr><td><code>DELETE</code></td><td><code>/api/graph/nodes/:id</code></td><td>Remove entity from graph</td><td>Standard+</td></tr>
+    <tr><td><code>PATCH</code></td><td><code>/api/graph/nodes/:id</code></td><td>Edit entity (rename, merge, reclassify)</td><td>Standard+</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/graph/profiles</code></td><td>List user's extraction profiles</td><td>Standard+</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/graph/profiles</code></td><td>Create extraction profile (VC, General, Custom)</td><td>Premium</td></tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<h2>8. File Changes Map</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <div class="file-tree">
+    brevis/<br>
+    ├── server.js <span class="modify">[MODIFY]</span> — add graph routes, hook extraction into newsletter creation<br>
+    ├── database.js <span class="modify">[MODIFY]</span> — add graph tables to setupDatabase()<br>
+    ├── ai-service.js <span class="modify">[MODIFY]</span> — add extractKnowledgeGraph(), default prompts<br>
+    ├── <span class="new">graph-extractor.js [NEW]</span> — deterministic extraction + entity resolution<br>
+    ├── <span class="new">graph-service.js [NEW]</span> — graph CRUD, community detection, centrality<br>
+    ├── <span class="new">graph-profiles.js [NEW]</span> — preset profiles (VC/Legal, General, Crypto) + custom<br>
+    ├── public/<br>
+    │   ├── app.html <span class="modify">[MODIFY]</span> — add Knowledge Graph tab, vis.js visualization<br>
+    │   └── index.html <span class="modify">[MODIFY]</span> — update landing page with KG feature<br>
+    └── <span class="new">extraction-prompts/ [NEW]</span><br>
+        ├── <span class="new">vc-legal.txt</span> — VC/Legal entity extraction prompt<br>
+        ├── <span class="new">general.txt</span> — General knowledge extraction prompt<br>
+        └── <span class="new">crypto-web3.txt</span> — Crypto/Web3 specific prompt<br>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>9. Implementation Timeline</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <div class="timeline">
+    <div class="timeline-item">
+      <h3><span class="badge badge-phase">Phase 1</span> <span class="badge badge-week">Week 1</span> Backend: Extraction Pipeline</h3>
+      <ul>
+        <li>Add graph tables to <code>database.js</code> (setupDatabase migration)</li>
+        <li>Build <code>graph-extractor.js</code> — deterministic Pass 1</li>
+        <li>Add <code>extractKnowledgeGraph()</code> to <code>ai-service.js</code> — LLM Pass 2</li>
+        <li>Build <code>graph-service.js</code> — entity resolution, deduplication, CRUD</li>
+        <li>Create default extraction profiles (VC/Legal + General)</li>
+        <li>Hook extraction into newsletter creation flow (webhook, URL import, RSS)</li>
+        <li>Add all graph API endpoints to <code>server.js</code></li>
+      </ul>
+    </div>
+    <div class="timeline-item">
+      <h3><span class="badge badge-phase">Phase 2</span> <span class="badge badge-week">Week 2</span> Frontend: Graph Visualization</h3>
+      <ul>
+        <li>Add "Knowledge Graph" tab to <code>app.html</code></li>
+        <li>Integrate vis.js network visualization</li>
+        <li>Build entity detail panel (click node → sidebar with details)</li>
+        <li>Add filters: entity type, date range, community, search</li>
+        <li>Build edge evidence viewer (click edge → see newsletter excerpts)</li>
+        <li>Add graph stats dashboard (top entities, growth metrics)</li>
+        <li>Connect newsletter detail view to entities (show extracted entities)</li>
+      </ul>
+    </div>
+    <div class="timeline-item">
+      <h3><span class="badge badge-phase">Phase 3</span> <span class="badge badge-week">Week 3</span> Intelligence Layer</h3>
+      <ul>
+        <li>Community detection algorithm (SQL-based for MVP)</li>
+        <li>Centrality scoring (PageRank approximation)</li>
+        <li>Natural language graph queries (Premium feature)</li>
+        <li>Configurable extraction profiles UI</li>
+        <li>Graph evolution timeline (animated slider)</li>
+        <li>Backfill existing newsletters (batch extraction job)</li>
+        <li>Landing page update with KG feature showcase</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>10. Extraction Profile System</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <h3>Pre-built Profiles (User Selects on Signup or Settings)</h3>
+
+  <div class="grid-2">
+    <div class="card" style="border-color: var(--accent);">
+      <h3>VC / Legal Profile</h3>
+      <p><strong>Entity Types:</strong> Person, Company, Fund, Deal/Round, Technology, Regulation, Legal Concept, Token/Protocol</p>
+      <p><strong>Relationships:</strong> invested_in, founded, acquired, competes_with, regulates, partnered_with, advises, raised_from, licensed_to, sued_by</p>
+      <p><strong>Special Extraction:</strong> Deal sizes, valuations, round types (Seed/A/B), token allocations, regulatory jurisdictions</p>
+    </div>
+    <div class="card" style="border-color: var(--blue);">
+      <h3>General Knowledge Profile</h3>
+      <p><strong>Entity Types:</strong> Person, Organization, Topic, Event, Location, Technology, Product</p>
+      <p><strong>Relationships:</strong> works_at, founded, located_in, related_to, caused, produced, competes_with, partnered_with</p>
+      <p><strong>Special Extraction:</strong> Broad topic categorization, event detection, trend identification</p>
+    </div>
+  </div>
+
+  <p style="margin-top: 1rem;"><strong>Premium Feature:</strong> Custom profiles — users can define their own entity types, relationship types, and even provide custom extraction prompts. This is the moat — power users will build extraction profiles tailored to their exact domain.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>11. Risk Assessment</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <div class="risk">
+    <span class="badge badge-high">High</span>
+    <div>
+      <strong>LLM Cost per Newsletter</strong> — Each extraction call uses ~2K output tokens (~$0.03/newsletter on Sonnet). At 100 newsletters/user/month × 1000 users = $3,000/mo in API costs. <strong>Mitigation:</strong> Gate behind Standard+ plan, cache extraction results, batch similar newsletters, use deterministic pass to reduce LLM load.
+    </div>
+  </div>
+  <div class="risk">
+    <span class="badge badge-high">High</span>
+    <div>
+      <strong>Entity Deduplication Quality</strong> — "a16z" vs "Andreessen Horowitz" vs "a]6z Crypto Fund III" — messy real-world data will create duplicate nodes. <strong>Mitigation:</strong> Alias system, periodic LLM-based dedup batch job, user-facing merge tool.
+    </div>
+  </div>
+  <div class="risk">
+    <span class="badge badge-medium">Medium</span>
+    <div>
+      <strong>Graph Scaling in PostgreSQL</strong> — Graph queries (multi-hop traversals) are slower in SQL than graph DBs. <strong>Mitigation:</strong> For MVP, users will have <10K nodes — PostgreSQL handles this fine. Materialized views for common queries. Migrate to Neo4j/AGE only if we see performance issues at scale.
+    </div>
+  </div>
+  <div class="risk">
+    <span class="badge badge-medium">Medium</span>
+    <div>
+      <strong>Extraction Quality Variance</strong> — Short newsletters may yield few entities; marketing newsletters may yield noise. <strong>Mitigation:</strong> Relevance scoring, minimum quality threshold, user feedback loop to improve extraction.
+    </div>
+  </div>
+  <div class="risk">
+    <span class="badge badge-medium">Medium</span>
+    <div>
+      <strong>Frontend Complexity</strong> — vis.js graph + existing newsletter UI in one 7600-line HTML file. <strong>Mitigation:</strong> Keep graph as a separate tab/component. Consider extracting to a separate HTML file that loads in an iframe if it gets unwieldy.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>12. Pricing Impact</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <table>
+    <tr><th>Feature</th><th>Free</th><th>Standard ($12/mo)</th><th>Premium ($29/mo)</th></tr>
+    <tr><td>Newsletter storage</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
+    <tr><td>AI Summaries</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Knowledge Graph (view)</td><td>Stats only (teaser)</td><td>✓ Full interactive</td><td>✓ Full interactive</td></tr>
+    <tr><td>Entity extraction</td><td>—</td><td>✓ Auto-extract</td><td>✓ Auto-extract</td></tr>
+    <tr><td>Extraction profiles</td><td>—</td><td>2 presets</td><td>Unlimited + Custom</td></tr>
+    <tr><td>Natural language queries</td><td>—</td><td>—</td><td>✓ "Who invested in AI gaming?"</td></tr>
+    <tr><td>Graph reports</td><td>—</td><td>—</td><td>✓ AI-generated graph insights</td></tr>
+    <tr><td>API access to graph</td><td>—</td><td>—</td><td>✓ JSON export</td></tr>
+  </table>
+  <p style="margin-top: 1rem;"><strong>Revenue impact:</strong> Knowledge graph is the killer upgrade reason. Free users see a tantalizing graph stats teaser ("You have 47 entities across 12 topics — upgrade to explore your knowledge graph"). This is the conversion engine.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>13. Competitive Moat</h2>
+<!-- ============================================================ -->
+
+<div class="card">
+  <p>No newsletter tool in the market offers knowledge graph features. Here's why this matters:</p>
+  <table>
+    <tr><th>Competitor</th><th>Has KG?</th><th>Closest Feature</th></tr>
+    <tr><td>Stoop</td><td>No</td><td>Basic categorization</td></tr>
+    <tr><td>Meco</td><td>No</td><td>Tags, folders</td></tr>
+    <tr><td>Readwise Reader</td><td>No</td><td>Highlights + notes</td></tr>
+    <tr><td>Omnivore</td><td>No</td><td>Labels, search</td></tr>
+    <tr><td>Feedly</td><td>Partial</td><td>"Leo AI" topic tracking (no graph viz)</td></tr>
+    <tr><td><strong>Brevis</strong></td><td><strong>Yes</strong></td><td><strong>Full interactive knowledge graph with entity extraction, community detection, and natural language queries</strong></td></tr>
+  </table>
+  <p style="margin-top: 1rem;"><strong>The configurable profiles are the second moat.</strong> A VC sees deals, funds, and portfolio companies. A developer sees technologies, APIs, and frameworks. A journalist sees people, organizations, and events. Same product, personalized intelligence.</p>
+</div>
+
+<hr class="section-divider">
+
+<p style="text-align: center; color: var(--text-dim); font-size: 0.85rem; padding: 2rem 0;">
+  Brevis Knowledge Graph Restructuring Plan — Generated April 7, 2026<br>
+  Inspired by <a href="https://github.com/safishamsi/graphify" style="color: var(--accent-light);">safishamsi/graphify</a> (3.6K+ stars)
+</p>
+
+</body>
+</html>

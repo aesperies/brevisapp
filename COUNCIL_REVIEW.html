@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Review — Brevis Knowledge Graph</title>
+<style>
+  :root { --bg:#0a0a0a; --s:#141414; --s2:#1e1e1e; --b:#2a2a2a; --t:#e8e8e8; --td:#888; --a:#6c5ce7; --al:#a29bfe; --g:#00b894; --o:#fdcb6e; --r:#e17055; --bl:#74b9ff; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--t);line-height:1.7;padding:2rem;max-width:1100px;margin:0 auto}
+  h1{font-size:2rem;font-weight:700;margin-bottom:0.25rem;background:linear-gradient(135deg,var(--al),var(--bl));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--td);font-size:0.9rem;margin-bottom:2rem;border-bottom:1px solid var(--b);padding-bottom:1rem}
+  h2{font-size:1.3rem;font-weight:600;color:var(--al);margin:2rem 0 0.75rem}
+  h3{font-size:1.05rem;font-weight:600;color:var(--t);margin:1.25rem 0 0.5rem}
+  p{margin-bottom:0.75rem}
+  .verdict-box{background:var(--s);border:2px solid var(--o);border-radius:12px;padding:1.5rem;margin:1.5rem 0;text-align:center}
+  .verdict-box .label{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--td)}
+  .verdict-box .verdict{font-size:1.8rem;font-weight:700;color:var(--o);margin:0.25rem 0}
+  .verdict-box .note{font-size:0.85rem;color:var(--td)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1.5rem 0}
+  .agent-card{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:1rem;text-align:center}
+  .agent-card .role{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--td);margin-bottom:0.25rem}
+  .agent-card .name{font-weight:600;font-size:0.95rem;margin-bottom:0.5rem}
+  .agent-card .score{font-size:1.4rem;font-weight:700}
+  .pass{color:var(--g)} .cpass{color:var(--o)} .fail{color:var(--r)}
+  .card{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+  .badge{font-size:0.65rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:3px;text-transform:uppercase;letter-spacing:0.05em;display:inline-block;margin-right:0.4rem}
+  .b-crit{background:#d63031;color:#fff} .b-high{background:var(--r);color:#fff} .b-med{background:var(--o);color:#000} .b-low{background:var(--s2);color:var(--td);border:1px solid var(--b)}
+  .b-product{background:#6c5ce7;color:#fff} .b-eng{background:#0984e3;color:#fff} .b-sec{background:#d63031;color:#fff} .b-dx{background:#00b894;color:#000}
+  table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:0.9rem}
+  th,td{padding:0.5rem 0.75rem;text-align:left;border-bottom:1px solid var(--b)}
+  th{color:var(--td);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}
+  code{background:var(--s2);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.85em;color:var(--bl)}
+  ul{padding-left:1.25rem;margin:0.5rem 0}
+  li{margin-bottom:0.35rem;font-size:0.9rem}
+  .fix-item{display:flex;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--b);align-items:start}
+  .fix-item:last-child{border:none}
+  .fix-num{background:var(--s2);border:1px solid var(--b);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;flex-shrink:0;margin-top:2px}
+  .consensus{background:var(--s);border:1px solid var(--al);border-radius:10px;padding:1rem 1.25rem;margin:0.75rem 0}
+  .consensus-label{font-size:0.7rem;text-transform:uppercase;color:var(--al);letter-spacing:0.08em;margin-bottom:0.25rem}
+  hr{border:none;border-top:1px solid var(--b);margin:2rem 0}
+</style>
+</head>
+<body>
+
+<h1>LLM Council Review</h1>
+<p class="sub">Brevis Knowledge Graph Backend — 4 Independent Reviewers, Synthesized Verdict<br>
+Methodology: <a href="https://github.com/karpathy/llm-council" style="color:var(--al)">Karpathy's LLM Council</a> — Stage 1: Independent Opinions → Stage 2: Cross-Review → Stage 3: Chairman Synthesis</p>
+
+<!-- VERDICT -->
+<div class="verdict-box">
+  <div class="label">Council Unanimous Verdict</div>
+  <div class="verdict">CONDITIONAL PASS</div>
+  <div class="note">All 4 reviewers independently reached the same verdict — ship to MVP/early access after fixing 6 critical items</div>
+</div>
+
+<!-- AGENT SCORES -->
+<div class="grid">
+  <div class="agent-card">
+    <div class="role">CEO / Product</div>
+    <div class="name">Market Fit & Revenue</div>
+    <div class="score cpass">COND. PASS</div>
+    <p style="font-size:0.8rem;color:var(--td);margin-top:0.25rem">Strong moat, weak free tier conversion</p>
+  </div>
+  <div class="agent-card">
+    <div class="role">Eng Manager</div>
+    <div class="name">Architecture & Code</div>
+    <div class="score cpass">COND. PASS</div>
+    <p style="font-size:0.8rem;color:var(--td);margin-top:0.25rem">Clean modules, needs transaction safety</p>
+  </div>
+  <div class="agent-card">
+    <div class="role">Security / QA</div>
+    <div class="name">Vulnerabilities & Risk</div>
+    <div class="score cpass">COND. PASS</div>
+    <p style="font-size:0.8rem;color:var(--td);margin-top:0.25rem">SQL injection safe, prompt injection risk</p>
+  </div>
+  <div class="agent-card">
+    <div class="role">DX / Frontend</div>
+    <div class="name">API & Integration</div>
+    <div class="score cpass">COND. PASS</div>
+    <p style="font-size:0.8rem;color:var(--td);margin-top:0.25rem">Vis.js perfect, needs async extraction</p>
+  </div>
+</div>
+
+<!-- WHAT EVERYONE AGREED ON -->
+<h2>Consensus: What All 4 Reviewers Agreed On</h2>
+
+<div class="consensus">
+  <div class="consensus-label">Unanimous Strengths</div>
+  <ul>
+    <li><strong>Two-pass extraction is the right architecture</strong> — deterministic hints reduce hallucination and cost. All 4 reviewers praised this.</li>
+    <li><strong>Configurable profiles create real differentiation</strong> — VC/Legal, General, and Crypto presets serve distinct markets. Nobody in the newsletter space does this.</li>
+    <li><strong>Module separation is clean</strong> — 6 new files, zero existing files modified. Integration is surgical. Easy to roll back.</li>
+  </ul>
+</div>
+
+<div class="consensus">
+  <div class="consensus-label">Unanimous Concerns</div>
+  <ul>
+    <li><strong>No extraction rate limiting / quotas</strong> — Users can trigger unlimited Claude API calls. Cost explosion risk + DoS vector. (Flagged by CEO, Eng, Security, DX)</li>
+    <li><strong>Extraction blocks on long newsletters</strong> — 30+ second API calls with no progress feedback. Frontend will timeout. (Flagged by Eng, DX)</li>
+    <li><strong>Free tier won't drive conversion</strong> — Stats-only teaser shows volume, not value. Users won't feel compelled to upgrade. (Flagged by CEO, DX)</li>
+  </ul>
+</div>
+
+<!-- PRIORITY FIXES -->
+<h2>Chairman's Synthesis: Priority Fixes Before Ship</h2>
+
+<div class="card">
+  <h3><span class="badge b-crit">CRITICAL</span> Fix Before Any Users Touch This</h3>
+
+  <div class="fix-item">
+    <div class="fix-num">1</div>
+    <div>
+      <strong>Prompt Injection Protection</strong> <span class="badge b-sec">Security</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Newsletter content flows into Claude prompts. A malicious newsletter can inject <code>&lt;/user_content&gt;</code> to hijack extraction. Escape angle brackets and add a secondary fence.</span><br>
+      <span style="color:var(--td);font-size:0.8rem"><strong>File:</strong> graph-ai.js line 51 · <strong>Effort:</strong> 2 hours</span>
+    </div>
+  </div>
+
+  <div class="fix-item">
+    <div class="fix-num">2</div>
+    <div>
+      <strong>Extraction Rate Limits + Quotas</strong> <span class="badge b-sec">Security</span> <span class="badge b-product">Product</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Add per-user monthly extraction limits: Free=0, Standard=20/mo, Premium=unlimited. Prevents cost explosion AND drives upgrades.</span><br>
+      <span style="color:var(--td);font-size:0.8rem"><strong>File:</strong> graph-routes.js · <strong>Effort:</strong> 3 hours</span>
+    </div>
+  </div>
+
+  <div class="fix-item">
+    <div class="fix-num">3</div>
+    <div>
+      <strong>Transaction Safety for Merge/Delete</strong> <span class="badge b-eng">Eng</span><br>
+      <span style="color:var(--td);font-size:0.85rem"><code>mergeNodes()</code> runs 6 DB operations without a transaction. Server crash mid-merge = corrupted graph. Wrap in BEGIN/COMMIT.</span><br>
+      <span style="color:var(--td);font-size:0.8rem"><strong>File:</strong> graph-service.js lines 475-540 · <strong>Effort:</strong> 1 hour</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3><span class="badge b-high">HIGH</span> Fix Before Public Launch</h3>
+
+  <div class="fix-item">
+    <div class="fix-num">4</div>
+    <div>
+      <strong>Async Extraction with Progress</strong> <span class="badge b-dx">DX</span> <span class="badge b-eng">Eng</span><br>
+      <span style="color:var(--td);font-size:0.85rem">POST /extract blocks for 30+ seconds. Return a task ID immediately, let frontend poll for progress. Otherwise the UI will feel broken.</span><br>
+      <span style="color:var(--td);font-size:0.8rem"><strong>Files:</strong> graph-routes.js, graph-extractor.js · <strong>Effort:</strong> 4 hours</span>
+    </div>
+  </div>
+
+  <div class="fix-item">
+    <div class="fix-num">5</div>
+    <div>
+      <strong>Entity Resolution Race Condition</strong> <span class="badge b-eng">Eng</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Between SELECT and INSERT in <code>resolveEntity()</code>, another process can create the same entity → duplicates. Use <code>ON CONFLICT DO UPDATE</code>.</span><br>
+      <span style="color:var(--td);font-size:0.8rem"><strong>File:</strong> graph-service.js lines 23-87 · <strong>Effort:</strong> 2 hours</span>
+    </div>
+  </div>
+
+  <div class="fix-item">
+    <div class="fix-num">6</div>
+    <div>
+      <strong>Free Tier: Sample Entity Detail (not just stats)</strong> <span class="badge b-product">Product</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Let free users click into ONE entity and see full connections. "Sequoia Capital → 12 companies, 8 people." Then lock the rest behind Standard. This is the conversion hook.</span><br>
+      <span style="color:var(--td);font-size:0.8rem"><strong>File:</strong> graph-routes.js (new endpoint) · <strong>Effort:</strong> 2 hours</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3><span class="badge b-med">MEDIUM</span> Fix Before Scale (100+ users)</h3>
+
+  <div class="fix-item">
+    <div class="fix-num">7</div>
+    <div>
+      <strong>Batch Entity Resolution (N+1 fix)</strong> <span class="badge b-eng">Eng</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Entity loop does 3 DB queries per entity × 100 entities = 300 queries per newsletter. Batch into single SELECT.</span>
+    </div>
+  </div>
+  <div class="fix-item">
+    <div class="fix-num">8</div>
+    <div>
+      <strong>Extraction Retry Queue</strong> <span class="badge b-eng">Eng</span><br>
+      <span style="color:var(--td);font-size:0.85rem">When Claude API fails, extraction silently returns empty. Add an <code>extraction_queue</code> table to retry failed jobs.</span>
+    </div>
+  </div>
+  <div class="fix-item">
+    <div class="fix-num">9</div>
+    <div>
+      <strong>Community Detection Chunking</strong> <span class="badge b-eng">Eng</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Current algorithm loads ALL nodes. Add a 10K node limit and run as background job for large graphs.</span>
+    </div>
+  </div>
+  <div class="fix-item">
+    <div class="fix-num">10</div>
+    <div>
+      <strong>Confidence Scoring</strong> <span class="badge b-product">Product</span><br>
+      <span style="color:var(--td);font-size:0.85rem">Add confidence field to entities. Show users "82% certain" vs graying out low-confidence entities. Builds trust for legal/VC users.</span>
+    </div>
+  </div>
+  <div class="fix-item">
+    <div class="fix-num">11</div>
+    <div>
+      <strong>Relationship Type Filtering</strong> <span class="badge b-dx">DX</span><br>
+      <span style="color:var(--td);font-size:0.85rem">API can't filter by relationship type or hide inferred edges. Add <code>?relationships=invested_in&includeInferred=false</code> params.</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCORECARD -->
+<h2>Detailed Scorecard</h2>
+
+<table>
+  <tr>
+    <th>Criterion</th>
+    <th>CEO</th>
+    <th>Eng</th>
+    <th>Security</th>
+    <th>DX</th>
+    <th>Avg</th>
+  </tr>
+  <tr><td>Architecture / Module Design</td><td>—</td><td>4/5</td><td>—</td><td>4/5</td><td><strong>4.0</strong></td></tr>
+  <tr><td>Code Quality / Error Handling</td><td>—</td><td>3.5/5</td><td>3/5</td><td>3/5</td><td><strong>3.2</strong></td></tr>
+  <tr><td>Database Schema</td><td>—</td><td>4/5</td><td>4/5</td><td>—</td><td><strong>4.0</strong></td></tr>
+  <tr><td>SQL Injection / Parameterization</td><td>—</td><td>—</td><td>5/5</td><td>—</td><td style="color:var(--g)"><strong>5.0 ✓</strong></td></tr>
+  <tr><td>Multi-tenant Isolation</td><td>—</td><td>—</td><td>5/5</td><td>—</td><td style="color:var(--g)"><strong>5.0 ✓</strong></td></tr>
+  <tr><td>Vis.js Compatibility</td><td>—</td><td>—</td><td>—</td><td>5/5</td><td style="color:var(--g)"><strong>5.0 ✓</strong></td></tr>
+  <tr><td>Market Differentiation</td><td>4/5</td><td>—</td><td>—</td><td>—</td><td><strong>4.0</strong></td></tr>
+  <tr><td>Performance at Scale</td><td>—</td><td>3/5</td><td>—</td><td>—</td><td><strong>3.0</strong></td></tr>
+  <tr><td>Prompt Injection Defense</td><td>—</td><td>—</td><td>2/5</td><td>—</td><td style="color:var(--r)"><strong>2.0 ✗</strong></td></tr>
+  <tr><td>Conversion / Free Tier Strategy</td><td>2/5</td><td>—</td><td>—</td><td>2/5</td><td style="color:var(--r)"><strong>2.0 ✗</strong></td></tr>
+  <tr><td>Async / Progress UX</td><td>—</td><td>—</td><td>—</td><td>2/5</td><td style="color:var(--r)"><strong>2.0 ✗</strong></td></tr>
+</table>
+
+<!-- REVENUE -->
+<h2>Revenue Impact (CEO Agent Projection)</h2>
+
+<div class="card">
+  <table>
+    <tr><th>Month</th><th>Free Users</th><th>Standard ($12)</th><th>Premium ($29)</th><th>MRR</th></tr>
+    <tr><td>Month 3</td><td>500</td><td>50</td><td>10</td><td>$890</td></tr>
+    <tr><td>Month 6</td><td>2,000</td><td>300</td><td>40</td><td>$4,760</td></tr>
+    <tr><td>Month 9</td><td>5,000</td><td>700</td><td>150</td><td><strong style="color:var(--g)">$12,750</strong></td></tr>
+    <tr><td>Month 12</td><td>8,000</td><td>1,200</td><td>200</td><td><strong style="color:var(--g)">$20,200</strong></td></tr>
+  </table>
+  <p style="font-size:0.85rem;color:var(--td);margin-top:0.75rem"><strong>$10K/mo target hit at ~Month 8</strong> — requires fixing free tier conversion + extraction quotas to drive Standard→Premium upgrades. API cost at scale: ~$450/mo for 5K Standard users (12.5% of extraction revenue).</p>
+</div>
+
+<!-- BOTTOM LINE -->
+<hr>
+
+<h2>Chairman's Final Recommendation</h2>
+
+<div class="card" style="border-color:var(--al)">
+  <p><strong>The architecture is sound. The product vision is right. The code needs hardening.</strong></p>
+
+  <p>This council reached an unusual unanimous verdict — all 4 independent reviewers said CONDITIONAL PASS without seeing each other's work. That's a strong signal that the fundamentals are solid.</p>
+
+  <p><strong>Ship plan:</strong></p>
+  <ul>
+    <li><strong>Day 1-2:</strong> Fix items #1-3 (prompt injection, rate limits, transactions) — these are non-negotiable security and data integrity</li>
+    <li><strong>Day 3-4:</strong> Fix items #4-6 (async extraction, race condition, free tier) — these directly impact UX and conversion</li>
+    <li><strong>Day 5-7:</strong> Build Phase 2 frontend (vis.js graph visualization)</li>
+    <li><strong>Week 2:</strong> Private beta with 10-20 users, collecting extraction quality feedback</li>
+    <li><strong>Week 3:</strong> Fix items #7-11 based on real usage patterns, then public launch</li>
+  </ul>
+
+  <p style="color:var(--td);font-size:0.85rem;margin-top:1rem">The knowledge graph feature is the single biggest differentiator Brevis can ship. No competitor has it. The question isn't whether to build it — it's whether to ship it hardened or soft. This council recommends: harden first, ship second. 6 fixes, 4 days.</p>
+</div>
+
+<p style="text-align:center;color:var(--td);font-size:0.8rem;padding:2rem 0">
+  LLM Council Review — Generated April 7, 2026<br>
+  Methodology: <a href="https://github.com/karpathy/llm-council" style="color:var(--al)">karpathy/llm-council</a> · 4 agents · Independent review + chairman synthesis
+</p>
+
+</body>
+</html>

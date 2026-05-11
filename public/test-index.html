@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Organize, summarize, and extract insights from your newsletters with AI. Designed for professionals.">
+  <meta name="og:title" content="BREVIS — Read less. Know more.">
+  <meta name="og:description" content="Organize, summarize, and extract insights from your newsletters with AI. Designed for professionals.">
+  <meta name="og:image" content="/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BREVIS — Read less. Know more.">
+  <meta name="twitter:description" content="Organize, summarize, and extract insights from your newsletters with AI. Designed for professionals.">
+  <link rel="canonical" href="https://brevis.io">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <title>BREVIS — Read less. Know more.</title>
+
+  <style>
+    /* ===== RESET & BASE ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-main: #FFE5D4;
+      --bg-cream: #FFF6E0;
+      --bg-mint: #B5EAD7;
+      --bg-pink: #FFCED1;
+      --bg-blue: #C5DEFF;
+      --bg-yellow: #FFD23F;
+      --bg-lilac: #E4D4FC;
+      --ink: #1A1A1A;
+      --red: #E63946;
+
+      --border-thin: 2px;
+      --border-normal: 3px;
+      --border-thick: 4px;
+      --shadow-small: 4px 4px 0 var(--ink);
+      --shadow-medium: 6px 6px 0 var(--ink);
+      --shadow-large: 8px 8px 0 var(--ink);
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: var(--ink);
+      background-color: var(--bg-main);
+      line-height: 1.6;
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    /* ===== NAVIGATION ===== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--bg-main);
+      border-bottom: var(--border-normal) solid var(--ink);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-container svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    .logo-text {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: var(--ink);
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 40px;
+    }
+
+    .nav-center a {
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      padding: 8px 12px;
+      border: var(--border-normal) solid transparent;
+    }
+
+    .nav-center a:hover {
+      background-color: var(--bg-mint);
+      border-color: var(--ink);
+      box-shadow: var(--shadow-small);
+      transform: translate(-2px, -2px);
+    }
+
+    .nav-right {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .lang-toggle {
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-btn {
+      padding: 8px 14px;
+      border: var(--border-normal) solid var(--ink);
+      background-color: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 600;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn.active {
+      background-color: var(--ink);
+      color: var(--bg-main);
+    }
+
+    .lang-btn:hover {
+      box-shadow: var(--shadow-small);
+      transform: translate(-1px, -1px);
+    }
+
+    .nav-login {
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-login:hover {
+      opacity: 0.7;
+    }
+
+    .btn-cta {
+      background-color: var(--bg-yellow);
+      color: var(--ink);
+      padding: 10px 20px;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-small);
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-cta:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-medium);
+    }
+
+    /* ===== HERO SECTION ===== */
+    .hero {
+      padding: 140px 40px 100px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 80px;
+      align-items: center;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .hero-label {
+      display: inline-block;
+      background-color: var(--bg-mint);
+      border: var(--border-normal) solid var(--ink);
+      border-radius: 20px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      width: fit-content;
+      box-shadow: var(--shadow-small);
+    }
+
+    .hero-headline {
+      font-size: 84px;
+      line-height: 0.95;
+      color: var(--ink);
+    }
+
+    .highlight {
+      background-color: var(--bg-yellow);
+      border: var(--border-normal) solid var(--ink);
+      padding: 0 8px;
+      display: inline-block;
+      transform: rotate(-1deg);
+      box-shadow: var(--shadow-medium);
+      border-radius: 4px;
+    }
+
+    .hero-subheadline {
+      font-size: 20px;
+      line-height: 1.6;
+      color: var(--ink);
+      max-width: 500px;
+      font-weight: 500;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background-color: var(--ink);
+      color: var(--bg-yellow);
+      padding: 14px 28px;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      box-shadow: 5px 5px 0 var(--red);
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 7px 7px 0 var(--red);
+    }
+
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: var(--ink);
+      padding: 14px 28px;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-medium);
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-secondary:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-large);
+    }
+
+    .hero-tagline {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+      margin-top: -10px;
+    }
+
+    .hero-right {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .inbox-card {
+      background-color: var(--bg-cream);
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: var(--shadow-large);
+    }
+
+    .inbox-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: var(--border-normal) solid var(--ink);
+    }
+
+    .inbox-title {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .inbox-badge {
+      background-color: var(--bg-yellow);
+      border: var(--border-normal) solid var(--ink);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .inbox-item {
+      border: var(--border-thin) solid var(--ink);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .inbox-item.pink {
+      background-color: var(--bg-pink);
+    }
+
+    .inbox-item.blue {
+      background-color: var(--bg-blue);
+    }
+
+    .inbox-item.cream {
+      background-color: var(--bg-cream);
+    }
+
+    .inbox-item-title {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .inbox-item-meta {
+      font-size: 11px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .inbox-item-summary {
+      font-size: 12px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .inbox-item-tag {
+      background-color: var(--ink);
+      color: var(--bg-yellow);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'Space Mono', monospace;
+      width: fit-content;
+      margin-top: 4px;
+    }
+
+    /* ===== STATS STRIP ===== */
+    .stats {
+      background-color: var(--bg-mint);
+      border-top: var(--border-normal) solid var(--ink);
+      border-bottom: var(--border-normal) solid var(--ink);
+      padding: 60px 40px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      text-align: center;
+    }
+
+    .stats > div:not(:last-child) {
+      border-right: var(--border-normal) solid var(--ink);
+    }
+
+    .stat-number {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 64px;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-top: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== HOW IT WORKS ===== */
+    .how-it-works {
+      padding: 80px 40px;
+      background-color: var(--bg-main);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      display: inline-block;
+      background-color: var(--ink);
+      color: var(--bg-yellow);
+      padding: 8px 16px;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .section-headline {
+      font-size: 56px;
+      margin-bottom: 60px;
+      color: var(--ink);
+    }
+
+    .how-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    .how-card {
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-md);
+      padding: 40px 32px;
+      box-shadow: var(--shadow-medium);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .how-card:nth-child(1) {
+      background-color: var(--bg-pink);
+      transform: rotate(-1deg);
+    }
+
+    .how-card:nth-child(2) {
+      background-color: var(--bg-blue);
+      transform: rotate(1deg);
+    }
+
+    .how-card:nth-child(3) {
+      background-color: var(--bg-yellow);
+      transform: rotate(-0.5deg);
+    }
+
+    .how-card:hover {
+      transform: translate(-2px, -2px) rotate(0deg);
+      box-shadow: var(--shadow-large);
+    }
+
+    .how-number {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1;
+    }
+
+    .how-title {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .how-description {
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    /* ===== FEATURES GRID ===== */
+    .features {
+      padding: 80px 40px;
+      background-color: var(--bg-cream);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .features-headline {
+      font-size: 56px;
+      margin-bottom: 60px;
+      color: var(--ink);
+      max-width: 600px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      grid-auto-rows: auto;
+    }
+
+    .feature-card {
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--shadow-medium);
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-large);
+    }
+
+    .feature-card.card-1 {
+      grid-column: span 2;
+      grid-row: span 2;
+      background-color: var(--bg-mint);
+      padding: 40px;
+    }
+
+    .feature-card.card-2 {
+      background-color: var(--bg-pink);
+    }
+
+    .feature-card.card-3 {
+      background-color: var(--bg-blue);
+    }
+
+    .feature-card.card-4 {
+      grid-column: span 2;
+      grid-row: span 2;
+      background-color: var(--bg-lilac);
+      padding: 40px;
+    }
+
+    .feature-card.card-5 {
+      background-color: var(--bg-yellow);
+    }
+
+    .feature-card.card-6 {
+      background-color: var(--bg-cream);
+      border: var(--border-normal) solid #ddd;
+    }
+
+    .feature-icon {
+      font-size: 40px;
+      line-height: 1;
+    }
+
+    .feature-title {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .card-1 .feature-title,
+    .card-4 .feature-title {
+      font-size: 28px;
+    }
+
+    .feature-description {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+
+    .feature-tag {
+      display: inline-block;
+      background-color: var(--ink);
+      color: var(--bg-yellow);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      width: fit-content;
+      margin-top: auto;
+    }
+
+    /* ===== PRICING ===== */
+    .pricing {
+      padding: 80px 40px;
+      background-color: var(--bg-main);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .pricing-headline {
+      font-size: 56px;
+      margin-bottom: 40px;
+      color: var(--ink);
+      max-width: 500px;
+    }
+
+    .pricing-toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 60px;
+    }
+
+    .toggle-label {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .toggle-switch {
+      display: flex;
+      background-color: #FFFFFF;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: 20px;
+      padding: 4px;
+      gap: 0;
+      position: relative;
+    }
+
+    .toggle-switch button {
+      padding: 8px 20px;
+      border: none;
+      background-color: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 600;
+      font-family: 'Inter', -apple-system, sans-serif;
+      border-radius: 16px;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+
+    .toggle-switch button.active {
+      background-color: var(--ink);
+      color: #FFFFFF;
+    }
+
+    .pricing-badge {
+      display: inline-block;
+      background-color: var(--bg-mint);
+      border: var(--border-normal) solid var(--ink);
+      color: var(--ink);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-left: 12px;
+    }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+      max-width: 800px;
+    }
+
+    .price-card {
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      box-shadow: var(--shadow-medium);
+      transition: all 0.2s ease;
+      background-color: var(--bg-cream);
+    }
+
+    .price-card.featured {
+      background-color: var(--bg-yellow);
+      box-shadow: var(--shadow-large);
+      transform: rotate(-1deg);
+      position: relative;
+      padding-top: 80px;
+    }
+
+    .price-card.featured:hover {
+      transform: translate(-2px, -2px) rotate(0deg);
+      box-shadow: 10px 10px 0 var(--ink);
+    }
+
+    .price-sticker {
+      position: absolute;
+      top: -20px;
+      left: 20px;
+      background-color: var(--bg-pink);
+      border: var(--border-normal) solid var(--ink);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      transform: rotate(3deg);
+      box-shadow: var(--shadow-small);
+    }
+
+    .price-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--ink);
+    }
+
+    .price-amount {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 0.9;
+    }
+
+    .price-period {
+      font-size: 14px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .price-description {
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .price-features {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .price-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .price-checkmark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: 50%;
+      background-color: var(--bg-mint);
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .price-card .btn-primary {
+      width: 100%;
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .price-card.featured .btn-primary {
+      background-color: var(--red);
+      color: #FFFFFF;
+      box-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .pricing-footer {
+      margin-top: 40px;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* ===== TESTIMONIALS ===== */
+    .testimonials {
+      padding: 80px 40px;
+      background-color: var(--bg-blue);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .testimonials-headline {
+      font-size: 56px;
+      margin-bottom: 60px;
+      color: var(--ink);
+      max-width: 500px;
+    }
+
+    .testimonial-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    .testimonial-card {
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-md);
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      box-shadow: var(--shadow-medium);
+      transition: all 0.2s ease;
+    }
+
+    .testimonial-card:nth-child(1) {
+      background-color: var(--bg-mint);
+      transform: rotate(-1deg);
+    }
+
+    .testimonial-card:nth-child(2) {
+      background-color: var(--bg-pink);
+      transform: rotate(1deg);
+    }
+
+    .testimonial-card:nth-child(3) {
+      background-color: var(--bg-yellow);
+      transform: rotate(-0.5deg);
+    }
+
+    .testimonial-card:hover {
+      transform: translate(-2px, -2px) rotate(0deg);
+      box-shadow: var(--shadow-large);
+    }
+
+    .testimonial-quote {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .author-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: var(--border-normal) solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .author-avatar.avatar-1 { background-color: #FF6B9D; }
+    .author-avatar.avatar-2 { background-color: #4A90E2; }
+    .author-avatar.avatar-3 { background-color: #F5A623; }
+
+    .author-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .author-name {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .author-role {
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* ===== FAQ ===== */
+    .faq {
+      padding: 80px 40px;
+      background-color: var(--bg-cream);
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .faq-headline {
+      font-size: 56px;
+      margin-bottom: 60px;
+      color: var(--ink);
+    }
+
+    .faq-items {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .faq-item {
+      border: var(--border-normal) solid var(--ink);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-small);
+    }
+
+    .faq-item:nth-child(1) { background-color: var(--bg-mint); }
+    .faq-item:nth-child(2) { background-color: var(--bg-pink); }
+    .faq-item:nth-child(3) { background-color: var(--bg-blue); }
+    .faq-item:nth-child(4) { background-color: var(--bg-yellow); }
+    .faq-item:nth-child(5) { background-color: var(--bg-lilac); }
+    .faq-item:nth-child(6) { background-color: var(--bg-main); }
+
+    .faq-item:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-medium);
+    }
+
+    .faq-question {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .faq-title {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      flex-grow: 1;
+    }
+
+    .faq-chevron {
+      font-size: 20px;
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .faq-item.open .faq-chevron {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: var(--border-thin) solid var(--ink);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--ink);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 300px;
+    }
+
+    /* ===== FINAL CTA ===== */
+    .final-cta {
+      padding: 120px 40px;
+      background-color: var(--ink);
+      text-align: center;
+      position: relative;
+    }
+
+    .final-cta-headline {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: var(--bg-yellow);
+      margin-bottom: 40px;
+      line-height: 1.1;
+    }
+
+    .final-cta-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .final-cta-buttons .btn-primary {
+      background-color: var(--bg-yellow);
+      color: var(--ink);
+      box-shadow: 6px 6px 0 var(--bg-pink);
+    }
+
+    .final-cta-buttons .btn-primary:hover {
+      box-shadow: 8px 8px 0 var(--bg-pink);
+    }
+
+    .final-cta-buttons .btn-secondary {
+      background-color: #FFFFFF;
+      color: var(--ink);
+      box-shadow: 6px 6px 0 var(--bg-blue);
+    }
+
+    .final-cta-buttons .btn-secondary:hover {
+      box-shadow: 8px 8px 0 var(--bg-blue);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background-color: var(--bg-main);
+      border-top: var(--border-normal) solid var(--ink);
+      padding: 60px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 60px;
+      margin-bottom: 40px;
+    }
+
+    .footer-column h3 {
+      font-family: 'Bricolage Grotesque', -apple-system, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--ink);
+    }
+
+    .footer-column ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-column a {
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .footer-column a:hover {
+      opacity: 0.7;
+      text-decoration: underline;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .footer-brand svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .footer-tagline {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .footer-bottom {
+      border-top: var(--border-normal) solid var(--ink);
+      padding-top: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-copyright {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .footer-socials {
+      display: flex;
+      gap: 12px;
+    }
+
+    .social-btn {
+      width: 36px;
+      height: 36px;
+      border: var(--border-normal) solid var(--ink);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background-color: transparent;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .social-btn:hover {
+      background-color: var(--ink);
+      color: var(--bg-main);
+      box-shadow: var(--shadow-small);
+      transform: translate(-1px, -1px);
+    }
+
+    /* ===== UTILITY & ANIMATIONS ===== */
+    .fade-in {
+      opacity: 0;
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1200px) {
+      nav {
+        padding: 16px 24px;
+      }
+
+      .nav-center {
+        gap: 24px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 120px 24px 60px;
+      }
+
+      .hero-headline {
+        font-size: 56px;
+      }
+
+      .how-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .how-card:nth-child(1),
+      .how-card:nth-child(2),
+      .how-card:nth-child(3) {
+        transform: rotate(0deg);
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .feature-card.card-1,
+      .feature-card.card-4 {
+        grid-column: span 1;
+        grid-row: span 1;
+      }
+
+      .pricing-cards {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+      }
+
+      .testimonial-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .testimonial-card:nth-child(1),
+      .testimonial-card:nth-child(2),
+      .testimonial-card:nth-child(3) {
+        transform: rotate(0deg);
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 40px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .nav-left {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .nav-center {
+        gap: 16px;
+        order: 3;
+        width: 100%;
+        flex-direction: column;
+        padding-top: 16px;
+        border-top: var(--border-normal) solid var(--ink);
+      }
+
+      .nav-right {
+        order: 2;
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .hero {
+        padding: 100px 16px 40px;
+      }
+
+      .hero-headline {
+        font-size: 42px;
+      }
+
+      .hero-subheadline {
+        font-size: 16px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 40px 16px;
+      }
+
+      .stats > div {
+        border-right: none;
+        border-bottom: var(--border-normal) solid var(--ink);
+        padding-bottom: 20px;
+      }
+
+      .stats > div:last-child {
+        border-bottom: none;
+      }
+
+      .stat-number {
+        font-size: 48px;
+      }
+
+      .section-headline {
+        font-size: 36px;
+      }
+
+      .how-it-works,
+      .features,
+      .pricing,
+      .testimonials,
+      .faq,
+      .final-cta,
+      footer {
+        padding: 60px 16px;
+      }
+
+      .pricing-cards {
+        max-width: 100%;
+      }
+
+      .final-cta-headline {
+        font-size: 44px;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 375px) {
+      html {
+        font-size: 14px;
+      }
+
+      nav {
+        padding: 12px;
+      }
+
+      .logo-text {
+        font-size: 16px;
+      }
+
+      .nav-center {
+        gap: 12px;
+      }
+
+      .nav-center a {
+        font-size: 12px;
+      }
+
+      .hero {
+        padding: 80px 12px 30px;
+      }
+
+      .hero-headline {
+        font-size: 32px;
+      }
+
+      .hero-subheadline {
+        font-size: 14px;
+      }
+
+      .hero-ctas {
+        gap: 12px;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+
+      .stat-number {
+        font-size: 36px;
+      }
+
+      .section-headline {
+        font-size: 28px;
+      }
+
+      .how-it-works,
+      .features,
+      .pricing,
+      .testimonials,
+      .faq,
+      .final-cta,
+      footer {
+        padding: 40px 12px;
+      }
+
+      .feature-title {
+        font-size: 16px;
+      }
+
+      .price-amount {
+        font-size: 48px;
+      }
+
+      .final-cta-headline {
+        font-size: 32px;
+      }
+
+      .footer-socials {
+        justify-content: center;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVIGATION ===== -->
+  <nav>
+    <div class="nav-left">
+      <div class="logo-container">
+        <svg width="40" height="40" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="200" fill="#1A1A1A" rx="20"/>
+          <rect x="60" y="60" width="8" height="80" fill="#FFF6E0"/>
+          <path d="M 68 60 Q 100 60 100 80 Q 100 95 68 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <path d="M 68 95 Q 105 95 105 115 Q 105 140 68 140" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <rect x="120" y="60" width="8" height="80" fill="#FFF6E0"/>
+          <path d="M 128 60 Q 155 60 155 80 Q 155 95 128 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <line x1="128" y1="95" x2="155" y2="140" stroke="#FFF6E0" stroke-width="8" stroke-linecap="round"/>
+        </svg>
+        <div class="logo-text" data-en="BREVIS" data-es="BREVIS">BREVIS</div>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <a href="#features" data-en="Features" data-es="Características">Features</a>
+      <a href="#pricing" data-en="Pricing" data-es="Precios">Pricing</a>
+      <a href="#faq" data-en="FAQ" data-es="Preguntas">FAQ</a>
+    </div>
+
+    <div class="nav-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="en" data-en="EN" data-es="EN">EN</button>
+        <button class="lang-btn" data-lang="es" data-en="ES" data-es="ES">ES</button>
+      </div>
+      <a href="#" class="nav-login" data-en="Login" data-es="Iniciar sesión">Login</a>
+      <button class="btn-cta" data-en="Start free trial →" data-es="Prueba gratuita →">Start free trial →</button>
+    </div>
+  </nav>
+
+  <!-- ===== HERO SECTION ===== -->
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-label" data-en="📬 Newsletter intelligence, finally" data-es="📬 Inteligencia de newsletter, por fin">📬 Newsletter intelligence, finally</div>
+
+      <h1 class="hero-headline">
+        <span data-en="Read less." data-es="Lee menos.">Read less.</span><br>
+        <span data-en="Know" data-es="Sabe">Know</span> <span class="highlight" data-en="more." data-es="más.">more.</span>
+      </h1>
+
+      <p class="hero-subheadline" data-en="BREVIS organizes, summarizes, and extracts insights from your newsletters — so you spend less time reading and more time doing." data-es="BREVIS organiza, resume y extrae información de sus boletines informativos para que dedique menos tiempo a leer y más a hacer.">BREVIS organizes, summarizes, and extracts insights from your newsletters — so you spend less time reading and more time doing.</p>
+
+      <div class="hero-ctas">
+        <button class="btn-primary" data-en="Start free trial →" data-es="Prueba gratuita →">Start free trial →</button>
+        <button class="btn-secondary" data-en="See it in action" data-es="Véalo en acción">See it in action</button>
+      </div>
+
+      <p class="hero-tagline" data-en="No credit card · Cancel anytime · 15 day trial" data-es="Sin tarjeta de crédito · Cancelar en cualquier momento · Prueba de 15 días">No credit card · Cancel anytime · 15 day trial</p>
+    </div>
+
+    <div class="hero-right">
+      <div class="inbox-card">
+        <div class="inbox-header">
+          <div class="inbox-title" data-en="Your inbox" data-es="Tu bandeja de entrada">Your inbox</div>
+          <div class="inbox-badge" data-en="3 new" data-es="3 nuevos">3 new</div>
+        </div>
+
+        <div class="inbox-item pink">
+          <div class="inbox-item-title" data-en="The Latest in Market Trends" data-es="Lo último en tendencias de mercado">The Latest in Market Trends</div>
+          <div class="inbox-item-meta" data-en="TechFlow Weekly • 8 min read" data-es="TechFlow Weekly • 8 min de lectura">TechFlow Weekly • 8 min read</div>
+          <div class="inbox-item-summary" data-en="AI dominates 2026 funding landscape with $234B invested globally..." data-es="AI domina el panorama de financiación 2026 con $234B invertidos globalmente...">AI dominates 2026 funding landscape with $234B invested globally...</div>
+          <div class="inbox-item-tag" data-en="✦ SUMMARY" data-es="✦ RESUMEN">✦ SUMMARY</div>
+        </div>
+
+        <div class="inbox-item blue">
+          <div class="inbox-item-title" data-en="Corporate Law Update March" data-es="Actualización de Derecho Corporativo Marzo">Corporate Law Update March</div>
+          <div class="inbox-item-meta" data-en="Legal Briefs Pro • 6 min read" data-es="Legal Briefs Pro • 6 min de lectura">Legal Briefs Pro • 6 min read</div>
+          <div class="inbox-item-summary" data-en="New regulations on data privacy reshape compliance strategies for 2026..." data-es="Nuevas regulaciones de privacidad de datos remodelan estrategias de cumplimiento...">New regulations on data privacy reshape compliance strategies for 2026...</div>
+          <div class="inbox-item-tag" data-en="✦ KEY POINTS" data-es="✦ PUNTOS CLAVE">✦ KEY POINTS</div>
+        </div>
+
+        <div class="inbox-item cream">
+          <div class="inbox-item-title" data-en="VC Insights Daily" data-es="Perspectivas de VC Diarias">VC Insights Daily</div>
+          <div class="inbox-item-meta" data-en="Growth Partners • 5 min read" data-es="Growth Partners • 5 min de lectura">Growth Partners • 5 min read</div>
+          <div class="inbox-item-summary" data-en="Series B funding trends show 40% increase in climate tech investments..." data-es="Las tendencias de financiación de la Serie B muestran un aumento del 40% en inversiones de tecnología climática...">Series B funding trends show 40% increase in climate tech investments...</div>
+          <div class="inbox-item-tag" data-en="✦ INSIGHTS" data-es="✦ PERSPECTIVAS">✦ INSIGHTS</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STATS STRIP ===== -->
+  <section class="stats">
+    <div>
+      <div class="stat-number" data-en="15 days" data-es="15 días">15 days</div>
+      <div class="stat-label" data-en="Free trial" data-es="Prueba gratuita">Free trial</div>
+    </div>
+    <div>
+      <div class="stat-number" data-en="∞" data-es="∞">∞</div>
+      <div class="stat-label" data-en="Unlimited newsletters" data-es="Boletines ilimitados">Unlimited newsletters</div>
+    </div>
+    <div>
+      <div class="stat-number" data-en="90%" data-es="90%">90%</div>
+      <div class="stat-label" data-en="Less reading time" data-es="Menos tiempo de lectura">Less reading time</div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="how-it-works">
+    <div class="section-label" data-en="HOW IT WORKS" data-es="CÓMO FUNCIONA">HOW IT WORKS</div>
+    <h2 class="section-headline" data-en="Three steps to newsletter zen 🧘" data-es="Tres pasos para la serenidad del boletín 🧘">Three steps to newsletter zen 🧘</h2>
+
+    <div class="how-cards">
+      <div class="how-card fade-in">
+        <div class="how-number" data-en="01" data-es="01">01</div>
+        <h3 class="how-title" data-en="Forward your newsletters" data-es="Reenviar sus boletines">Forward your newsletters</h3>
+        <p class="how-description" data-en="Connect your favorite newsletters directly to BREVIS and let AI handle the rest." data-es="Conecte sus boletines favoritos directamente a BREVIS y deje que la IA haga el resto.">Connect your favorite newsletters directly to BREVIS and let AI handle the rest.</p>
+      </div>
+
+      <div class="how-card fade-in">
+        <div class="how-number" data-en="02" data-es="02">02</div>
+        <h3 class="how-title" data-en="AI does the heavy lifting" data-es="La IA hace el trabajo pesado">AI does the heavy lifting</h3>
+        <p class="how-description" data-en="Our advanced algorithms summarize, extract key points, and organize everything automatically." data-es="Nuestros algoritmos avanzados resumen, extraen puntos clave y organizan todo automáticamente.">Our advanced algorithms summarize, extract key points, and organize everything automatically.</p>
+      </div>
+
+      <div class="how-card fade-in">
+        <div class="how-number" data-en="03" data-es="03">03</div>
+        <h3 class="how-title" data-en="Read only what matters" data-es="Lee solo lo que importa">Read only what matters</h3>
+        <p class="how-description" data-en="Get a curated digest every morning with only the insights you care about." data-es="Obtenga un resumen seleccionado cada mañana solo con la información que le importa.">Get a curated digest every morning with only the insights you care about.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES GRID ===== -->
+  <section class="features" id="features">
+    <div class="section-label" data-en="WHAT YOU GET" data-es="LO QUE OBTIENES">WHAT YOU GET</div>
+    <h2 class="features-headline" data-en="Everything you need,<br>nothing you don't" data-es="Todo lo que necesitas,<br>nada que no necesites">Everything you need,<br>nothing you don't</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card card-1 fade-in">
+        <div class="feature-icon">🤖</div>
+        <h3 class="feature-title" data-en="AI Summaries" data-es="Resúmenes con IA">AI Summaries</h3>
+        <p class="feature-description" data-en="Intelligent summaries of every newsletter, distilled to the essential insights you need." data-es="Resúmenes inteligentes de cada boletín, destilados a la información esencial que necesita.">Intelligent summaries of every newsletter, distilled to the essential insights you need.</p>
+      </div>
+
+      <div class="feature-card card-2 fade-in">
+        <div class="feature-icon">🏷️</div>
+        <h3 class="feature-title" data-en="Smart Tags" data-es="Etiquetas inteligentes">Smart Tags</h3>
+        <p class="feature-description" data-en="Auto-categorize content by topic, priority, and relevance with AI precision." data-es="Categorice automáticamente contenido por tema, prioridad y relevancia con precisión de IA.">Auto-categorize content by topic, priority, and relevance with AI precision.</p>
+      </div>
+
+      <div class="feature-card card-3 fade-in">
+        <div class="feature-icon">📥</div>
+        <h3 class="feature-title" data-en="Universal Import" data-es="Importación universal">Universal Import</h3>
+        <p class="feature-description" data-en="Connect any newsletter provider: Substack, Morning Brew, LinkedIn, and 100+ more." data-es="Conecte cualquier proveedor de boletines: Substack, Morning Brew, LinkedIn y más de 100.">Connect any newsletter provider: Substack, Morning Brew, LinkedIn, and 100+ more.</p>
+      </div>
+
+      <div class="feature-card card-4 fade-in">
+        <div class="feature-icon">🧠</div>
+        <h3 class="feature-title" data-en="Knowledge Graph<br><span class='feature-tag'>PREMIUM</span>" data-es="Gráfico de conocimiento<br><span class='feature-tag'>PREMIUM</span>">Knowledge Graph<br><span class="feature-tag">PREMIUM</span></h3>
+        <p class="feature-description" data-en="Visualize connections across newsletters and uncover trends you'd never see manually." data-es="Visualice conexiones entre boletines y descubra tendencias que nunca vería manualmente.">Visualize connections across newsletters and uncover trends you'd never see manually.</p>
+      </div>
+
+      <div class="feature-card card-5 fade-in">
+        <div class="feature-icon">📄</div>
+        <h3 class="feature-title" data-en="Executive Briefs<br><span class='feature-tag'>PREMIUM</span>" data-es="Resúmenes ejecutivos<br><span class='feature-tag'>PREMIUM</span>">Executive Briefs<br><span class="feature-tag">PREMIUM</span></h3>
+        <p class="feature-description" data-en="Share beautifully formatted briefs with your team instantly." data-es="Comparta resúmenes perfectamente formateados con su equipo al instante.">Share beautifully formatted briefs with your team instantly.</p>
+      </div>
+
+      <div class="feature-card card-6 fade-in">
+        <div class="feature-icon">📱</div>
+        <h3 class="feature-title" data-en="Send to Kindle" data-es="Enviar a Kindle">Send to Kindle</h3>
+        <p class="feature-description" data-en="Read your digest on any device, synchronized across all platforms." data-es="Lea su resumen en cualquier dispositivo, sincronizado en todas las plataformas.">Read your digest on any device, synchronized across all platforms.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRICING ===== -->
+  <section class="pricing" id="pricing">
+    <div class="section-label" data-en="PRICING" data-es="PRECIOS">PRICING</div>
+    <h2 class="pricing-headline" data-en="Simple. Transparent.<br>No BS." data-es="Simple. Transparente.<br>Sin BS.">Simple. Transparent.<br>No BS.</h2>
+
+    <div class="pricing-toggle-container">
+      <span class="toggle-label" data-en="Billing:" data-es="Facturación:">Billing:</span>
+      <div class="toggle-switch">
+        <button class="active" data-period="monthly" data-en="Monthly" data-es="Mensual">Monthly</button>
+        <button data-period="annual" data-en="Annual" data-es="Anual">Annual</button>
+      </div>
+      <span class="pricing-badge" id="annual-badge" style="display: none;" data-en="-25% 🎉" data-es="-25% 🎉">-25% 🎉</span>
+    </div>
+
+    <div class="pricing-cards">
+      <div class="price-card fade-in">
+        <div class="price-label" data-en="STANDARD" data-es="ESTÁNDAR">STANDARD</div>
+        <div class="price-amount" id="price-standard">$12</div>
+        <div class="price-period" data-en="/month" data-es="/mes">/month</div>
+        <p class="price-description" data-en="Perfect for staying informed on your core topics." data-es="Perfecto para mantenerse informado sobre tus temas principales.">Perfect for staying informed on your core topics.</p>
+
+        <div class="price-features">
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Unlimited newsletters" data-es="Boletines ilimitados">Unlimited newsletters</span>
+          </div>
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Daily AI summaries" data-es="Resúmenes diarios de IA">Daily AI summaries</span>
+          </div>
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Smart tagging & search" data-es="Etiquetado inteligente y búsqueda">Smart tagging & search</span>
+          </div>
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Email digest delivery" data-es="Entrega del resumen por correo electrónico">Email digest delivery</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" data-en="Start free trial →" data-es="Prueba gratuita →">Start free trial →</button>
+      </div>
+
+      <div class="price-card featured fade-in">
+        <div class="price-sticker" data-en="⭐ MOST POPULAR" data-es="⭐ MÁS POPULAR">⭐ MOST POPULAR</div>
+        <div class="price-label" data-en="PREMIUM" data-es="PREMIUM">PREMIUM</div>
+        <div class="price-amount" id="price-premium">$29</div>
+        <div class="price-period" data-en="/month" data-es="/mes">/month</div>
+        <p class="price-description" data-en="For teams and power users who need deep insights." data-es="Para equipos y usuarios avanzados que necesitan información profunda.">For teams and power users who need deep insights.</p>
+
+        <div class="price-features">
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Everything in Standard" data-es="Todo en Estándar">Everything in Standard</span>
+          </div>
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Knowledge Graph visualization" data-es="Visualización de gráfico de conocimiento">Knowledge Graph visualization</span>
+          </div>
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Executive briefs & exports" data-es="Resúmenes ejecutivos y exportaciones">Executive briefs & exports</span>
+          </div>
+          <div class="price-feature">
+            <div class="price-checkmark">✓</div>
+            <span data-en="Team collaboration (5 seats)" data-es="Colaboración en equipo (5 asientos)">Team collaboration (5 seats)</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" data-en="Start free trial →" data-es="Prueba gratuita →">Start free trial →</button>
+      </div>
+    </div>
+
+    <p class="pricing-footer" data-en="All plans include 15-day free trial. No credit card required." data-es="Todos los planes incluyen prueba gratuita de 15 días. Sin tarjeta de crédito requerida.">All plans include 15-day free trial. No credit card required.</p>
+  </section>
+
+  <!-- ===== TESTIMONIALS ===== -->
+  <section class="testimonials">
+    <div class="section-label" data-en="FROM OUR USERS" data-es="DE NUESTROS USUARIOS">FROM OUR USERS</div>
+    <h2 class="testimonials-headline" data-en="People who read<br>smarter" data-es="Gente que lee<br>más inteligentemente">People who read<br>smarter</h2>
+
+    <div class="testimonial-cards">
+      <div class="testimonial-card fade-in">
+        <p class="testimonial-quote" data-en=""BREVIS saved me 3 hours a week. I actually read my newsletters now instead of archiving them."" data-es=""BREVIS me ahorró 3 horas a la semana. Ahora realmente leo mis boletines en lugar de archivarlos."">BREVIS saved me 3 hours a week. I actually read my newsletters now instead of archiving them.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar avatar-1">MG</div>
+          <div class="author-info">
+            <div class="author-name" data-en="María G." data-es="María G.">María G.</div>
+            <div class="author-role" data-en="Corporate Counsel" data-es="Abogada Corporativa">Corporate Counsel</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card fade-in">
+        <p class="testimonial-quote" data-en=""The Knowledge Graph is incredible. I'm seeing connections between market trends I would have missed."" data-es=""El Gráfico de Conocimiento es increíble. Estoy viendo conexiones entre tendencias del mercado que hubiera perdido."">The Knowledge Graph is incredible. I'm seeing connections between market trends I would have missed.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar avatar-2">DR</div>
+          <div class="author-info">
+            <div class="author-name" data-en="David R." data-es="David R.">David R.</div>
+            <div class="author-role" data-en="VC Partner" data-es="Socio de VC">VC Partner</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card fade-in">
+        <p class="testimonial-quote" data-en=""Finally, a tool that understands how professionals actually consume information."" data-es=""Por fin, una herramienta que entiende cómo los profesionales consumen información."">Finally, a tool that understands how professionals actually consume information.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar avatar-3">AL</div>
+          <div class="author-info">
+            <div class="author-name" data-en="Ana L." data-es="Ana L.">Ana L.</div>
+            <div class="author-role" data-en="Management Consultant" data-es="Consultora de Gestión">Management Consultant</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="faq" id="faq">
+    <div class="section-label" data-en="QUESTIONS" data-es="PREGUNTAS">QUESTIONS</div>
+    <h2 class="faq-headline" data-en="Quick answers" data-es="Respuestas rápidas">Quick answers</h2>
+
+    <div class="faq-items">
+      <div class="faq-item fade-in">
+        <div class="faq-question">
+          <h3 class="faq-title" data-en="What is BREVIS?" data-es="¿Qué es BREVIS?">What is BREVIS?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer" data-en="BREVIS is an AI-powered newsletter management platform that summarizes, organizes, and extracts insights from your newsletters automatically. It works with any newsletter provider and delivers a personalized daily digest to your inbox." data-es="BREVIS es una plataforma de gestión de boletines impulsada por IA que resume, organiza y extrae información de sus boletines automáticamente. Funciona con cualquier proveedor de boletines y entrega un resumen diario personalizado en su bandeja de entrada.">BREVIS is an AI-powered newsletter management platform that summarizes, organizes, and extracts insights from your newsletters automatically. It works with any newsletter provider and delivers a personalized daily digest to your inbox.</div>
+      </div>
+
+      <div class="faq-item fade-in">
+        <div class="faq-question">
+          <h3 class="faq-title" data-en="How does the AI work?" data-es="¿Cómo funciona la IA?">How does the AI work?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Our AI uses advanced natural language processing to analyze newsletter content, identify key themes, extract actionable insights, and create concise summaries. The system learns from your reading patterns to prioritize content you care about most." data-es="Nuestra IA utiliza procesamiento avanzado del lenguaje natural para analizar contenido de boletines, identificar temas clave, extraer información procesable y crear resúmenes concisos. El sistema aprende de sus patrones de lectura para priorizar el contenido que más le importa.">Our AI uses advanced natural language processing to analyze newsletter content, identify key themes, extract actionable insights, and create concise summaries. The system learns from your reading patterns to prioritize content you care about most.</div>
+      </div>
+
+      <div class="faq-item fade-in">
+        <div class="faq-question">
+          <h3 class="faq-title" data-en="Do I need a credit card for the trial?" data-es="¿Necesito una tarjeta de crédito para la prueba?">Do I need a credit card for the trial?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer" data-en="No. Our 15-day free trial requires no credit card. Just sign up and start using BREVIS. You'll only be charged after your trial ends, and only if you choose to upgrade." data-es="No. Nuestra prueba gratuita de 15 días no requiere tarjeta de crédito. Solo regístrese y comience a usar BREVIS. Solo se le cobrará después de que finalice su prueba, y solo si elige actualizar.">No. Our 15-day free trial requires no credit card. Just sign up and start using BREVIS. You'll only be charged after your trial ends, and only if you choose to upgrade.</div>
+      </div>
+
+      <div class="faq-item fade-in">
+        <div class="faq-question">
+          <h3 class="faq-title" data-en="What formats can I import?" data-es="¿Qué formatos puedo importar?">What formats can I import?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer" data-en="BREVIS supports 100+ newsletter platforms including Substack, Morning Brew, The Verge, LinkedIn newsletters, Medium, LinkedIn, and any email-based newsletter. You can also upload OPML files or manually add RSS feeds." data-es="BREVIS admite más de 100 plataformas de boletines, incluidas Substack, Morning Brew, The Verge, boletines de LinkedIn, Medium, LinkedIn y cualquier boletín basado en correo electrónico. También puede cargar archivos OPML o agregar feeds RSS manualmente.">BREVIS supports 100+ newsletter platforms including Substack, Morning Brew, The Verge, LinkedIn newsletters, Medium, LinkedIn, and any email-based newsletter. You can also upload OPML files or manually add RSS feeds.</div>
+      </div>
+
+      <div class="faq-item fade-in">
+        <div class="faq-question">
+          <h3 class="faq-title" data-en="Can I cancel anytime?" data-es="¿Puedo cancelar en cualquier momento?">Can I cancel anytime?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Yes. You can cancel your subscription at any time with one click. No contracts, no hidden fees, no questions asked. If you cancel, your account remains active through the end of your billing period." data-es="Sí. Puede cancelar su suscripción en cualquier momento con un clic. Sin contratos, sin tarifas ocultas, sin preguntas. Si cancela, su cuenta permanecerá activa hasta el final de su período de facturación.">Yes. You can cancel your subscription at any time with one click. No contracts, no hidden fees, no questions asked. If you cancel, your account remains active through the end of your billing period.</div>
+      </div>
+
+      <div class="faq-item fade-in">
+        <div class="faq-question">
+          <h3 class="faq-title" data-en="Standard vs Premium: what's the difference?" data-es="Estándar vs Premium: ¿cuál es la diferencia?">Standard vs Premium: what's the difference?</h3>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-answer" data-en="Standard gives you the essentials: unlimited newsletters, AI summaries, smart tagging, and daily digests. Premium adds Knowledge Graph visualization, executive briefs for sharing with teams, and team collaboration for up to 5 people." data-es="Standard te da lo esencial: boletines ilimitados, resúmenes de IA, etiquetado inteligente y resúmenes diarios. Premium agrega visualización del Gráfico de Conocimiento, resúmenes ejecutivos para compartir con equipos y colaboración en equipo para hasta 5 personas.">Standard gives you the essentials: unlimited newsletters, AI summaries, smart tagging, and daily digests. Premium adds Knowledge Graph visualization, executive briefs for sharing with teams, and team collaboration for up to 5 people.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FINAL CTA ===== -->
+  <section class="final-cta">
+    <h2 class="final-cta-headline" data-en="Start reading<br>smarter today ✨" data-es="Comienza a leer<br>más inteligentemente hoy ✨">Start reading<br>smarter today ✨</h2>
+
+    <div class="final-cta-buttons">
+      <button class="btn-primary" data-en="Start free trial →" data-es="Prueba gratuita →">Start free trial →</button>
+      <button class="btn-secondary" data-en="Log in" data-es="Iniciar sesión">Log in</button>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-column">
+        <div class="footer-brand">
+          <svg width="36" height="36" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="200" fill="#1A1A1A" rx="20"/>
+            <rect x="60" y="60" width="8" height="80" fill="#FFF6E0"/>
+            <path d="M 68 60 Q 100 60 100 80 Q 100 95 68 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <path d="M 68 95 Q 105 95 105 115 Q 105 140 68 140" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <rect x="120" y="60" width="8" height="80" fill="#FFF6E0"/>
+            <path d="M 128 60 Q 155 60 155 80 Q 155 95 128 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <line x1="128" y1="95" x2="155" y2="140" stroke="#FFF6E0" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+          <span data-en="BREVIS" data-es="BREVIS">BREVIS</span>
+        </div>
+        <p class="footer-tagline" data-en="Your reading list.<br>Curated. Summarized." data-es="Tu lista de lectura.<br>Seleccionada. Resumida.">Your reading list.<br>Curated. Summarized.</p>
+      </div>
+
+      <div class="footer-column">
+        <h3 data-en="Product" data-es="Producto">Product</h3>
+        <ul>
+          <li><a href="#" data-en="Features" data-es="Características">Features</a></li>
+          <li><a href="#" data-en="Pricing" data-es="Precios">Pricing</a></li>
+          <li><a href="#" data-en="Security" data-es="Seguridad">Security</a></li>
+          <li><a href="#" data-en="Roadmap" data-es="Hoja de ruta">Roadmap</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-column">
+        <h3 data-en="Company" data-es="Empresa">Company</h3>
+        <ul>
+          <li><a href="#" data-en="Blog" data-es="Blog">Blog</a></li>
+          <li><a href="#" data-en="Careers" data-es="Carreras">Careers</a></li>
+          <li><a href="#" data-en="About" data-es="Acerca de">About</a></li>
+          <li><a href="#" data-en="Contact" data-es="Contacto">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-column">
+        <h3 data-en="Legal" data-es="Legal">Legal</h3>
+        <ul>
+          <li><a href="#" data-en="Privacy Policy" data-es="Política de privacidad">Privacy Policy</a></li>
+          <li><a href="#" data-en="Terms of Service" data-es="Términos de servicio">Terms of Service</a></li>
+          <li><a href="#" data-en="Cookie Policy" data-es="Política de cookies">Cookie Policy</a></li>
+          <li><a href="#" data-en="Status Page" data-es="Página de estado">Status Page</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-copyright" data-en="© 2026 BREVIS. Made with ☕ and AI." data-es="© 2026 BREVIS. Hecho con ☕ e IA.">© 2026 BREVIS. Made with ☕ and AI.</p>
+      <div class="footer-socials">
+        <button class="social-btn" title="X (Twitter)">𝕏</button>
+        <button class="social-btn" title="LinkedIn">in</button>
+        <button class="social-btn" title="GitHub">⚙</button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ===== LANGUAGE SWITCHER =====
+    const currentLanguage = localStorage.getItem('brevis-lang') || 'en';
+    const langButtons = document.querySelectorAll('.lang-btn');
+    const allElements = document.querySelectorAll('[data-en]');
+
+    function setLanguage(lang) {
+      localStorage.setItem('brevis-lang', lang);
+
+      langButtons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.lang === lang) {
+          btn.classList.add('active');
+        }
+      });
+
+      allElements.forEach(el => {
+        const text = el.dataset[lang];
+        if (text) {
+          // Handle elements with children
+          if (el.children.length === 0) {
+            el.textContent = text;
+          } else {
+            // For elements with HTML children (like h1 with br tags)
+            el.innerHTML = text;
+          }
+        }
+      });
+    }
+
+    langButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        setLanguage(e.target.dataset.lang);
+      });
+    });
+
+    setLanguage(currentLanguage);
+
+    // ===== PRICING TOGGLE =====
+    const toggleButtons = document.querySelectorAll('.toggle-switch button');
+    const priceStandard = document.getElementById('price-standard');
+    const pricePremium = document.getElementById('price-premium');
+    const annualBadge = document.getElementById('annual-badge');
+
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        toggleButtons.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+
+        if (e.target.dataset.period === 'annual') {
+          priceStandard.textContent = '$9';
+          pricePremium.textContent = '$22';
+          annualBadge.style.display = 'inline-block';
+        } else {
+          priceStandard.textContent = '$12';
+          pricePremium.textContent = '$29';
+          annualBadge.style.display = 'none';
+        }
+      });
+    });
+
+    // ===== FAQ ACCORDION =====
+    const faqItems = document.querySelectorAll('.faq-item');
+
+    faqItems.forEach(item => {
+      const question = item.querySelector('.faq-question');
+      const answer = item.querySelector('.faq-answer');
+
+      question.addEventListener('click', () => {
+        item.classList.toggle('open');
+      });
+    });
+
+    // ===== SCROLL ANIMATIONS =====
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationDelay = entry.target.dataset.delay || '0s';
+          entry.target.style.opacity = '1';
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.fade-in').forEach((el, index) => {
+      el.style.opacity = '0';
+      el.dataset.delay = `${index * 0.1}s`;
+      observer.observe(el);
+    });
+
+    // ===== SMOOTH SCROLL =====
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+
+    // ===== BUTTON INTERACTIONS =====
+    document.querySelectorAll('.btn-primary, .btn-secondary, .btn-cta').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        // Add ripple effect
+        const rect = this.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // For now, just log (in production, these would navigate)
+        console.log('Button clicked:', this.textContent);
+      });
+    });
+  </script>
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "BREVIS",
+    "description": "Organize, summarize, and extract insights from your newsletters with AI. Designed for professionals.",
+    "url": "https://brevis.io",
+    "applicationCategory": "BusinessApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "12.00",
+      "priceCurrency": "USD",
+      "priceValidUntil": "2026-12-31"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "247"
+    }
+  }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,242 @@
+================================================================================
+BREVIS GRAPH SYSTEM - SECURITY REVIEW QUICK REFERENCE CARD
+================================================================================
+
+VERDICT: CONDITIONAL PASS - Fix 3 items before shipping
+         6-8 hours of work needed
+
+CRITICAL ISSUES (Day 1):
+  [1] Prompt Injection (graph-ai.js:51) → Escape content + fence markers
+  [2] Unlimited Rate Limiting (graph-routes.js:201,221) → Add middleware
+  [3] Input Validation (graph-extractor.js:119) → Cap entities/relationships
+
+HIGH ISSUES (Day 2):
+  [4] Newsletter Size Limit (graph-ai.js:32) → Max 10MB
+  [5] Batch Validation (graph-routes.js:221) → Validate offset param
+  [6] Daily Quota Tracking → Track usage, enforce limits
+
+MEDIUM ISSUES (Next sprint):
+  [7] Profile Deletion (graph-profiles.js:266) → Prevent active deletion
+  [8] Community Detection Limits → Future work for 100k+ nodes
+
+================================================================================
+BY ROLE
+================================================================================
+
+STAKEHOLDER (5 min read):
+  → SECURITY_SUMMARY.txt
+  → Decision: Approve fixes or block launch
+  → Timeline: 6-8 hours to fix all CRITICAL/HIGH
+
+DEVELOPER (20 min to implement):
+  → SECURITY_FIXES.md has all code patches
+  → Copy code from section 1-6 into your files
+  → Test with SECURITY_TESTS.js
+  → Estimated time per fix:
+     - Prompt injection: 2-3h
+     - Rate limiting: 2h
+     - Input validation: 2h
+     - Others: 1h each
+
+QA/TESTING (1 hour):
+  → Run SECURITY_TESTS.js (32 test cases)
+  → Manual tests:
+     - Send newsletter with "</user_content>" injection
+     - Make 51 extraction requests (should reject 51st)
+     - Submit 100MB newsletter (should skip)
+  → Sign off when all tests pass
+
+DEVOPS/INFRA (30 min):
+  → Add monitoring for:
+     - Claude API cost spikes
+     - Extraction error rates
+     - Rate limit rejections
+  → Deployment: Single release, no downtime
+
+================================================================================
+IMPLEMENTATION PRIORITY (Start here)
+================================================================================
+
+MUST DO TODAY:
+  1. Open: SECURITY_FIXES.md section 1 (Prompt Injection)
+  2. Copy the escapePromptContent() function
+  3. Copy the extractKnowledgeGraph() updated version
+  4. Update DEFAULT_SYSTEM_PROMPT
+  5. Test with SECURITY_TESTS.js::testPromptInjection
+
+  Then do:
+  2. SECURITY_FIXES.md section 2 (Rate Limiting)
+  3. SECURITY_FIXES.md section 3 (Input Validation)
+
+THEN DO:
+  4. SECURITY_FIXES.md section 4-6 (other HIGH/MEDIUM)
+
+================================================================================
+RISK IF NOT FIXED
+================================================================================
+
+Prompt Injection (CRITICAL):
+  - Attacker sends newsletter with: "</user_content>\nIgnore above..."
+  - Could manipulate extraction results
+  - Could waste thousands in tokens
+
+Rate Limiting (HIGH):
+  - Attacker calls /extract-batch repeatedly
+  - Burns $1000+ in Claude API costs per day
+  - Company bill could hit $50,000/week
+
+Input Validation (HIGH):
+  - Attacker tricks Claude into returning 100,000 entities
+  - Database bloats to gigabytes
+  - Memory exhaustion, system crash
+
+================================================================================
+WHAT'S ALREADY SECURE (No fixes needed)
+================================================================================
+
+✓ SQL Injection - Parameterized queries throughout
+✓ Authorization - user_id checks on all queries
+✓ Authentication - JWT + token version validation
+✓ Data Leakage - Generic error messages
+✓ Timeouts - 45 second limit on Claude calls
+
+These are VERIFIED SECURE and need NO CHANGES.
+
+================================================================================
+FILES & LOCATIONS
+================================================================================
+
+Document                     Purpose
+─────────────────────────────────────────────────────────────────────────────
+SECURITY_REVIEW_INDEX.md     Master index (this folder)
+SECURITY_SUMMARY.txt         Executive summary (read first)
+SECURITY_REVIEW.md           Full technical analysis
+SECURITY_FIXES.md            Copy-paste code patches ← START HERE
+SECURITY_TESTS.js            Automated test suite (32 tests)
+
+Code Files Requiring Changes:
+  graph-ai.js                Add: escapePromptContent(), content size limit
+  graph-routes.js            Add: rate limit middleware
+  graph-extractor.js         Add: validateExtraction() function
+  graph-database.js          Add: extraction_usage table
+  graph-profiles.js          Update: deleteProfile() safety check
+  graph-service.js           Add: checkAndUpdateExtractionQuota()
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+Unit Tests (automated):
+  ✓ Run: npm test SECURITY_TESTS.js
+  ✓ Should see: 32 tests, all passing
+  ✓ If any fail: Debug + fix the underlying issue
+
+Manual Tests (security team):
+  [ ] Test 1.1: Prompt injection attempt → extraction succeeds, no leak
+  [ ] Test 2.1: 51st extraction → returns 429 Too Many Requests
+  [ ] Test 3.1: 10k entities in response → capped at 500 in DB
+  [ ] Test 4.1: User B queries User A's node → 404 response
+  [ ] Test 5.1: Batch with limit:-1 → 400 Bad Request
+  [ ] Test 6.1: 50MB newsletter → skipped with "too_large" reason
+  [ ] Test 7.1: Delete active profile → 400 error
+  [ ] Test 8.1: SQL injection in search param → safe handling
+  [ ] Test 9.1: Check error messages → no stack traces or secrets
+  [ ] Test 10.1: Simulate slow API → verifies timeout works
+
+================================================================================
+DEPLOYMENT CHECKLIST
+================================================================================
+
+Before Code Review:
+  [ ] All CRITICAL fixes implemented
+  [ ] All SECURITY_TESTS.js tests passing
+  [ ] No new console errors or warnings
+  [ ] Code peer-reviewed by security engineer
+
+Before Merging:
+  [ ] Load tested (100k+ newsletters)
+  [ ] Manual security tests completed
+  [ ] Error handling verified
+  [ ] Rate limit tiers correct for plan
+
+Before Production Deploy:
+  [ ] Monitoring alerts configured
+  [ ] Rollback plan documented
+  [ ] Customer communication ready
+  [ ] Database migrations tested on staging
+
+Post-Deploy:
+  [ ] Monitor: API cost, error rates, rate limit rejections
+  [ ] Watch: First 24h for anomalies
+  [ ] Alert if: Error rate > 5% OR API cost spike
+
+================================================================================
+CONVERSATION STARTERS FOR MEETINGS
+================================================================================
+
+For Stakeholders:
+  "We have 3 security gaps in the extraction pipeline that need fixing before
+   launch. Estimated effort: 6-8 hours. Most critical is prompt injection —
+   an attacker could hijack entity extraction. Recommend we fix and ship."
+
+For Developers:
+  "Security review identified some gaps. I've prepared copy-paste code patches
+   in SECURITY_FIXES.md. Start with section 1 (prompt injection). Should take
+   ~2-3 hours. All 32 tests must pass before merging."
+
+For QA:
+  "Running security test suite on the extraction pipeline. 32 test cases.
+   If all pass, we can move to production. Need to manually test prompt
+   injection attempts too."
+
+For DevOps:
+  "Adding extraction usage table and cost monitoring. Single deployment, no
+   downtime. Need alerts on API cost spikes and rate limit rejections."
+
+================================================================================
+COMMON QUESTIONS
+================================================================================
+
+Q: Do we have to fix all 8 issues before shipping?
+A: No. Fix CRITICAL + HIGH (6 issues) before shipping. MEDIUM fixes can
+   follow in next sprint.
+
+Q: How long will this delay launch?
+A: 1-2 days of development. CRITICAL fixes are most urgent.
+
+Q: What's the business impact if we don't fix these?
+A: Prompt injection: extraction hijacking. Rate limiting: unlimited API costs
+   (could be $10,000+/day). Input validation: system crashes from huge responses.
+   Total risk: Very High.
+
+Q: Can we do a partial rollout?
+A: No. These fixes must be deployed together. But you can test on staging first.
+
+Q: Do these fixes break anything?
+A: No. All fixes are backward compatible with existing users.
+
+Q: How much does this cost to fix?
+A: ~$0 (internal development time). The rate limiting prevents much larger costs.
+
+================================================================================
+RED FLAGS (If you see these, escalate immediately)
+================================================================================
+
+🚩 Any test in SECURITY_TESTS.js fails
+🚩 Prompt injection test extracts "system prompt" or "api key"
+🚩 Rate limit test allows 51st extraction without 429 response
+🚩 Input validation test stores 1000+ entities in DB
+🚩 Size limit test accepts 50MB newsletters
+🚩 Any endpoint returns a stack trace to the client
+🚩 Database query errors contain SQL strings
+🚩 User A can query User B's graph nodes
+
+If you see any of these → STOP and investigate immediately.
+
+================================================================================
+
+Last Updated: April 7, 2026
+Reviewer: Security Engineer / QA Lead
+Status: Ready to implement
+
+Next Step: Assign developer to SECURITY_FIXES.md section 1

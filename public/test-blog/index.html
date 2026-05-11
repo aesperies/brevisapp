@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BREVIS Blog - Insights for people who read with purpose. Guides, strategies, and tools for managing professional reading.">
+  <meta property="og:title" content="BREVIS Blog">
+  <meta property="og:description" content="Insights for people who read with purpose">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://brevisapp.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://brevisapp.com/blog">
+  <title>BREVIS Blog - Insights for Purpose-Driven Reading</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-main: #FFE5D4;
+      --bg-cream: #FFF6E0;
+      --bg-mint: #B5EAD7;
+      --bg-pink: #FFCED1;
+      --bg-blue: #C5DEFF;
+      --bg-yellow: #FFD23F;
+      --bg-lilac: #E4D4FC;
+      --ink: #1A1A1A;
+      --red: #E63946;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--bg-main);
+      border-bottom: 3px solid var(--ink);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      gap: 40px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--ink);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .nav-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
+      flex: 1;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      padding: 8px 16px;
+      border: 3px solid transparent;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      background-color: var(--bg-mint);
+      border-color: var(--ink);
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .lang-toggle {
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      border: 3px solid var(--ink);
+      background-color: transparent;
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn.active {
+      background-color: var(--ink);
+      color: var(--bg-main);
+    }
+
+    .lang-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .nav-login {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .nav-login:hover {
+      opacity: 0.7;
+    }
+
+    .nav-cta {
+      padding: 10px 20px;
+      background-color: var(--bg-yellow);
+      border: 3px solid var(--ink);
+      color: var(--ink);
+      font-weight: 600;
+      border-radius: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 4px 4px 0 var(--red);
+    }
+
+    .nav-cta:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--red);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 140px 40px 80px;
+      text-align: center;
+      background-color: var(--bg-main);
+      margin-top: 80px;
+    }
+
+    .hero-label {
+      display: inline-block;
+      background-color: var(--bg-mint);
+      border: 3px solid var(--ink);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .hero h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(48px, 8vw, 72px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      color: var(--ink);
+      max-width: 700px;
+      margin: 0 auto 60px;
+      font-weight: 400;
+    }
+
+    /* Featured Article Card */
+    .featured {
+      max-width: 900px;
+      margin: 0 auto 80px;
+      padding: 40px;
+      background-color: var(--bg-yellow);
+      border: 3px solid var(--ink);
+      border-radius: 20px;
+      box-shadow: 8px 8px 0 var(--ink);
+      transform: rotate(-0.5deg);
+      transition: all 0.3s ease;
+    }
+
+    .featured:hover {
+      transform: rotate(-0.5deg) translate(-3px, -3px);
+      box-shadow: 12px 12px 0 var(--ink);
+    }
+
+    .featured-badge {
+      display: inline-block;
+      background-color: var(--bg-pink);
+      border: 3px solid var(--ink);
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .featured h2 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      line-height: 1.2;
+    }
+
+    .featured-meta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .featured-excerpt {
+      font-size: 17px;
+      line-height: 1.8;
+      margin-bottom: 24px;
+      max-width: 700px;
+    }
+
+    .featured-cta {
+      display: inline-block;
+      padding: 12px 28px;
+      background-color: var(--ink);
+      color: var(--bg-yellow);
+      border: 3px solid var(--ink);
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .featured-cta:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 var(--bg-yellow);
+    }
+
+    /* Article Grid */
+    .articles-section {
+      max-width: 1200px;
+      margin: 0 auto 80px;
+      padding: 0 40px;
+    }
+
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+    }
+
+    .article-card {
+      padding: 32px;
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      box-shadow: 5px 5px 0 var(--ink);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .article-card:nth-child(2n) {
+      transform: rotate(1deg);
+    }
+
+    .article-card:nth-child(2n+1) {
+      transform: rotate(-1deg);
+    }
+
+    .article-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 7px 7px 0 var(--ink);
+    }
+
+    .article-card:nth-child(1) { background-color: var(--bg-cream); }
+    .article-card:nth-child(2) { background-color: var(--bg-mint); }
+    .article-card:nth-child(3) { background-color: var(--bg-blue); }
+    .article-card:nth-child(4) { background-color: var(--bg-pink); }
+    .article-card:nth-child(5) { background-color: var(--bg-lilac); }
+    .article-card:nth-child(6) { background-color: var(--bg-cream); }
+    .article-card:nth-child(7) { background-color: var(--bg-mint); }
+    .article-card:nth-child(8) { background-color: var(--bg-blue); }
+    .article-card:nth-child(9) { background-color: var(--bg-pink); }
+    .article-card:nth-child(10) { background-color: var(--bg-lilac); }
+
+    .article-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border: 3px solid var(--ink);
+      border-radius: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      width: fit-content;
+    }
+
+    .badge-legal { background-color: rgba(230, 57, 70, 0.2); }
+    .badge-vc { background-color: rgba(197, 222, 255, 0.4); }
+    .badge-consulting { background-color: rgba(228, 212, 252, 0.4); }
+    .badge-tools { background-color: rgba(255, 210, 63, 0.3); }
+    .badge-guide { background-color: rgba(181, 234, 215, 0.4); }
+
+    .article-title {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.3;
+      flex-grow: 1;
+    }
+
+    .article-excerpt {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      color: var(--ink);
+    }
+
+    .article-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      padding-top: 16px;
+      border-top: 2px solid var(--ink);
+    }
+
+    .article-link {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 700;
+      transition: opacity 0.2s;
+    }
+
+    .article-link:hover {
+      opacity: 0.7;
+    }
+
+    /* Newsletter CTA */
+    .newsletter-cta {
+      background-color: var(--bg-mint);
+      border-top: 3px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
+      padding: 80px 40px;
+      text-align: center;
+      margin: 80px 0;
+    }
+
+    .newsletter-cta h2 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .newsletter-cta-subtitle {
+      font-size: 18px;
+      margin-bottom: 40px;
+      color: var(--ink);
+    }
+
+    .newsletter-form {
+      max-width: 500px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .newsletter-input {
+      flex: 1;
+      padding: 14px 20px;
+      border: 3px solid var(--ink);
+      background-color: var(--bg-cream);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .newsletter-input:focus {
+      outline: none;
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .newsletter-btn {
+      padding: 14px 28px;
+      background-color: var(--bg-yellow);
+      border: 3px solid var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 4px 4px 0 var(--red);
+    }
+
+    .newsletter-btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--red);
+    }
+
+    .newsletter-promise {
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* Footer */
+    footer {
+      background-color: var(--bg-main);
+      border-top: 3px solid var(--ink);
+      padding: 60px 40px;
+      margin-top: 80px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-col h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 12px;
+    }
+
+    .footer-col a {
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .footer-col a:hover {
+      opacity: 0.6;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .footer-brand-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .footer-brand-text {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .footer-tagline {
+      font-size: 13px;
+      color: var(--ink);
+      margin-top: 12px;
+      max-width: 280px;
+    }
+
+    .footer-bottom {
+      border-top: 2px solid var(--ink);
+      padding-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav {
+        padding: 16px 20px;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .nav-center {
+        gap: 16px;
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .nav-right {
+        gap: 12px;
+      }
+
+      .hero {
+        padding: 120px 20px 60px;
+        margin-top: 120px;
+      }
+
+      .hero h1 {
+        font-size: 40px;
+      }
+
+      .hero-subtitle {
+        font-size: 16px;
+        margin-bottom: 40px;
+      }
+
+      .featured {
+        margin: 0 20px 60px;
+        padding: 24px;
+        transform: rotate(0deg);
+      }
+
+      .featured:hover {
+        transform: translate(-2px, -2px);
+      }
+
+      .featured h2 {
+        font-size: 28px;
+      }
+
+      .articles-section {
+        padding: 0 20px;
+      }
+
+      .articles-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .article-card:nth-child(2n),
+      .article-card:nth-child(2n+1) {
+        transform: rotate(0deg);
+      }
+
+      .newsletter-cta {
+        padding: 60px 20px;
+        margin: 60px 0;
+      }
+
+      .newsletter-cta h2 {
+        font-size: 32px;
+      }
+
+      .newsletter-form {
+        flex-direction: column;
+      }
+
+      footer {
+        padding: 40px 20px;
+      }
+
+      .footer-grid {
+        gap: 30px;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero, .featured, .article-card, .newsletter-cta {
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .article-card:nth-child(1) { animation-delay: 0.1s; }
+    .article-card:nth-child(2) { animation-delay: 0.15s; }
+    .article-card:nth-child(3) { animation-delay: 0.2s; }
+    .article-card:nth-child(4) { animation-delay: 0.25s; }
+    .article-card:nth-child(5) { animation-delay: 0.3s; }
+    .article-card:nth-child(6) { animation-delay: 0.35s; }
+    .article-card:nth-child(7) { animation-delay: 0.4s; }
+    .article-card:nth-child(8) { animation-delay: 0.45s; }
+    .article-card:nth-child(9) { animation-delay: 0.5s; }
+    .article-card:nth-child(10) { animation-delay: 0.55s; }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <a href="/" class="nav-brand">
+      <svg class="nav-logo" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="200" height="200" fill="#1A1A1A" rx="20"/>
+        <rect x="60" y="60" width="8" height="80" fill="#FFF6E0"/>
+        <path d="M 68 60 Q 100 60 100 80 Q 100 95 68 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M 68 95 Q 105 95 105 115 Q 105 140 68 140" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <rect x="120" y="60" width="8" height="80" fill="#FFF6E0"/>
+        <path d="M 128 60 Q 155 60 155 80 Q 155 95 128 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <line x1="128" y1="95" x2="155" y2="140" stroke="#FFF6E0" stroke-width="8" stroke-linecap="round"/>
+      </svg>
+      BREVIS
+    </a>
+    <div class="nav-center">
+      <a href="/" class="nav-link" data-en="Home" data-es="Inicio">Home</a>
+      <a href="/blog" class="nav-link" data-en="Blog" data-es="Blog">Blog</a>
+      <a href="/#pricing" class="nav-link" data-en="Pricing" data-es="Precios">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="es">ES</button>
+      </div>
+      <a href="/login" class="nav-login" data-en="Log in" data-es="Iniciar sesión">Log in</a>
+      <a href="#" class="nav-cta">Start free trial →</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-label" data-en="THE BLOG" data-es="EL BLOG">THE BLOG</div>
+    <h1 data-en="Insights for people who&lt;br&gt;read with purpose ✨" data-es="Insights for people who&lt;br&gt;read with purpose ✨">Insights for people who<br>read with purpose ✨</h1>
+    <p class="hero-subtitle" data-en="Guides, strategies, and tools for managing your professional reading." data-es="Guías, estrategias y herramientas para gestionar tu lectura profesional.">Guides, strategies, and tools for managing your professional reading.</p>
+  </section>
+
+  <!-- Featured Article -->
+  <article class="featured">
+    <div class="featured-badge" data-en="TOOLS" data-es="HERRAMIENTAS">TOOLS</div>
+    <h2 data-en="Best Pocket Alternatives in 2026" data-es="Las Mejores Alternativas a Pocket en 2026">Best Pocket Alternatives in 2026</h2>
+    <div class="featured-meta">
+      <span data-en="10 MIN READ" data-es="10 MIN DE LECTURA">10 MIN READ</span>
+    </div>
+    <p class="featured-excerpt" data-en="Discover the top alternatives to Pocket for managing your reading list. We compare features, pricing, and integrations to help you find the perfect tool for your workflow." data-es="Descubre las mejores alternativas a Pocket para gestionar tu lista de lectura. Comparamos características, precios e integraciones para ayudarte a encontrar la herramienta perfecta.">Discover the top alternatives to Pocket for managing your reading list. We compare features, pricing, and integrations to help you find the perfect tool for your workflow.</p>
+    <a href="/blog/pocket-alternatives-2026.html" class="featured-cta" data-en="Read article →" data-es="Leer artículo →">Read article →</a>
+  </article>
+
+  <!-- Article Grid -->
+  <section class="articles-section">
+    <div class="articles-grid">
+      <article class="article-card">
+        <div class="article-badge badge-legal" data-en="LEGAL" data-es="LEGAL">LEGAL</div>
+        <h3 class="article-title" data-en="The Legal Newsletter Crisis" data-es="La Crisis de los Newsletters Legales">The Legal Newsletter Crisis</h3>
+        <p class="article-excerpt" data-en="Why legal professionals are drowning in content and how BREVIS solves it." data-es="Por qué los profesionales legales se ahogan en contenido y cómo BREVIS lo resuelve.">Why legal professionals are drowning in content and how BREVIS solves it.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/legal-newsletter-crisis.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-legal" data-en="LEGAL" data-es="LEGAL">LEGAL</div>
+        <h3 class="article-title" data-en="50 Best Legal Industry Newsletters" data-es="Los 50 Mejores Newsletters de la Industria Legal">50 Best Legal Industry Newsletters</h3>
+        <p class="article-excerpt" data-en="Comprehensive guide to the most influential legal newsletters for 2026." data-es="Guía completa de los newsletters legales más influyentes para 2026.">Comprehensive guide to the most influential legal newsletters for 2026.</p>
+        <div class="article-footer">
+          <span data-en="12 MIN READ" data-es="12 MIN DE LECTURA">12 MIN READ</span>
+          <a href="/blog/best-legal-newsletters-2026.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-legal" data-en="LEGAL" data-es="LEGAL">LEGAL</div>
+        <h3 class="article-title" data-en="Why Lawyers Choose Specialized Tools" data-es="Por Qué los Abogados Eligen Herramientas Especializadas">Why Lawyers Choose Specialized Tools</h3>
+        <p class="article-excerpt" data-en="The case for vertical-specific solutions over generic alternatives." data-es="El caso de las soluciones específicas de vertical sobre las alternativas genéricas.">The case for vertical-specific solutions over generic alternatives.</p>
+        <div class="article-footer">
+          <span data-en="7 MIN READ" data-es="7 MIN DE LECTURA">7 MIN READ</span>
+          <a href="/blog/brevis-vs-generic-tools.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-vc" data-en="VC/PE" data-es="VC/PE">VC/PE</div>
+        <h3 class="article-title" data-en="How VC Firms Should Manage Newsletters" data-es="Cómo Deben las Firmas de VC Gestionar Newsletters">How VC Firms Should Manage Newsletters</h3>
+        <p class="article-excerpt" data-en="Best practices for portfolio management teams to stay informed." data-es="Mejores prácticas para equipos de gestión de cartera mantenerse informados.">Best practices for portfolio management teams to stay informed.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/vc-newsletter-management.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-legal" data-en="LEGAL" data-es="LEGAL">LEGAL</div>
+        <h3 class="article-title" data-en="AI Newsletter Summarization for Legal" data-es="Resumen de Newsletters con IA para Legal">AI Newsletter Summarization for Legal</h3>
+        <p class="article-excerpt" data-en="How artificial intelligence is transforming legal reading workflows." data-es="Cómo la inteligencia artificial está transformando los flujos de lectura legal.">How artificial intelligence is transforming legal reading workflows.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/ai-newsletter-summarization-legal.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-consulting" data-en="CONSULTING" data-es="CONSULTORÍA">CONSULTING</div>
+        <h3 class="article-title" data-en="Consulting Newsletter Overload: 5-Step System" data-es="Sobrecarga de Newsletters de Consultoría: Sistema de 5 Pasos">Consulting Newsletter Overload: 5-Step System</h3>
+        <p class="article-excerpt" data-en="A framework for managing content overload as a consultant." data-es="Un marco para gestionar la sobrecarga de contenido como consultor.">A framework for managing content overload as a consultant.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/consulting-newsletter-overload.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-vc" data-en="VC/PE" data-es="VC/PE">VC/PE</div>
+        <h3 class="article-title" data-en="The 20 Best VC & PE Newsletters" data-es="Los 20 Mejores Newsletters de VC y PE">The 20 Best VC & PE Newsletters</h3>
+        <p class="article-excerpt" data-en="Essential reading for venture capital and private equity professionals." data-es="Lectura esencial para profesionales de capital de riesgo y capital privado.">Essential reading for venture capital and private equity professionals.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/best-vc-newsletters-2026.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-legal" data-en="LEGAL" data-es="LEGAL">LEGAL</div>
+        <h3 class="article-title" data-en="Newsletter Management for In-House Counsel" data-es="Gestión de Newsletters para Abogados Internos">Newsletter Management for In-House Counsel</h3>
+        <p class="article-excerpt" data-en="Specialized strategies for in-house legal teams." data-es="Estrategias especializadas para equipos legales internos.">Specialized strategies for in-house legal teams.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/newsletter-management-inhouse-counsel.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-legal" data-en="LEGAL-ES" data-es="LEGAL-ES">LEGAL-ES 🇪🇸</div>
+        <h3 class="article-title" data-en="Newsletters Legales en Español" data-es="Newsletters Legales en Español">Newsletters Legales en Español</h3>
+        <p class="article-excerpt" data-en="Complete guide to Spanish-language legal content sources." data-es="Guía completa de fuentes de contenido legal en español.">Complete guide to Spanish-language legal content sources.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/newsletters-legales-espanol-2026.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+
+      <article class="article-card">
+        <div class="article-badge badge-guide" data-en="GUIDE" data-es="GUÍA">GUIDE</div>
+        <h3 class="article-title" data-en="Build a Personal Research Digest" data-es="Construye tu Digest de Investigación Personal">Build a Personal Research Digest</h3>
+        <p class="article-excerpt" data-en="Step-by-step guide to creating your personalized knowledge system." data-es="Guía paso a paso para crear tu sistema de conocimiento personalizado.">Step-by-step guide to creating your personalized knowledge system.</p>
+        <div class="article-footer">
+          <span data-en="8 MIN READ" data-es="8 MIN DE LECTURA">8 MIN READ</span>
+          <a href="/blog/personal-research-digest-guide.html" class="article-link" data-en="Read →" data-es="Leer →">Read →</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Newsletter CTA -->
+  <section class="newsletter-cta">
+    <h2 data-en="Don't miss an article" data-es="No te pierdas ningún artículo">Don't miss an article</h2>
+    <p class="newsletter-cta-subtitle" data-en="Get our best content in your inbox 📬" data-es="Recibe nuestro mejor contenido en tu bandeja de entrada 📬">Get our best content in your inbox 📬</p>
+    <form class="newsletter-form" onsubmit="return handleNewsletterSignup(event)">
+      <input type="email" class="newsletter-input" placeholder="your@email.com" required>
+      <button type="submit" class="newsletter-btn" data-en="Subscribe" data-es="Suscribirse">Subscribe</button>
+    </form>
+    <p class="newsletter-promise" data-en="No spam. Pinky promise." data-es="Sin spam. Promesa de honor.">No spam. Pinky promise.</p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-brand">
+            <svg class="footer-brand-logo" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="200" height="200" fill="#1A1A1A" rx="20"/>
+              <rect x="60" y="60" width="8" height="80" fill="#FFF6E0"/>
+              <path d="M 68 60 Q 100 60 100 80 Q 100 95 68 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+              <path d="M 68 95 Q 105 95 105 115 Q 105 140 68 140" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+              <rect x="120" y="60" width="8" height="80" fill="#FFF6E0"/>
+              <path d="M 128 60 Q 155 60 155 80 Q 155 95 128 95" stroke="#FFF6E0" stroke-width="8" fill="none" stroke-linecap="round"/>
+              <line x1="128" y1="95" x2="155" y2="140" stroke="#FFF6E0" stroke-width="8" stroke-linecap="round"/>
+            </svg>
+            <div class="footer-brand-text">BREVIS</div>
+          </div>
+          <p class="footer-tagline" data-en="Your reading list. Curated. Summarized." data-es="Tu lista de lectura. Curada. Resumida.">Your reading list. Curated. Summarized.</p>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Product" data-es="Producto">Product</h3>
+          <ul>
+            <li><a href="/" data-en="Home" data-es="Inicio">Home</a></li>
+            <li><a href="/#features" data-en="Features" data-es="Características">Features</a></li>
+            <li><a href="/#pricing" data-en="Pricing" data-es="Precios">Pricing</a></li>
+            <li><a href="/blog" data-en="Blog" data-es="Blog">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Company" data-es="Empresa">Company</h3>
+          <ul>
+            <li><a href="/about" data-en="About" data-es="Acerca de">About</a></li>
+            <li><a href="mailto:hello@brevisapp.com" data-en="Contact" data-es="Contacto">Contact</a></li>
+            <li><a href="/careers" data-en="Careers" data-es="Carreras">Careers</a></li>
+            <li><a href="/press" data-en="Press" data-es="Prensa">Press</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3 data-en="Legal" data-es="Legal">Legal</h3>
+          <ul>
+            <li><a href="/terms" data-en="Terms" data-es="Términos">Terms</a></li>
+            <li><a href="/privacy" data-en="Privacy" data-es="Privacidad">Privacy</a></li>
+            <li><a href="/cookies" data-en="Cookies" data-es="Cookies">Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom" data-en="© 2026 BREVIS. Made with ☕ and AI." data-es="© 2026 BREVIS. Hecho con ☕ e IA.">© 2026 BREVIS. Made with ☕ and AI.</div>
+    </div>
+  </footer>
+
+  <script>
+    // Language toggle
+    const langBtns = document.querySelectorAll('.lang-btn');
+    let currentLang = localStorage.getItem('brevisLang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('brevisLang', lang);
+
+      document.querySelectorAll('[data-en], [data-es]').forEach(el => {
+        const text = el.getAttribute(`data-${lang}`);
+        if (text && text.includes('<br>')) {
+          el.innerHTML = text;
+        } else {
+          el.textContent = text;
+        }
+      });
+
+      langBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-lang') === lang) {
+          btn.classList.add('active');
+        }
+      });
+    }
+
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => setLanguage(btn.getAttribute('data-lang')));
+    });
+
+    // Initialize language
+    setLanguage(currentLang);
+
+    // Newsletter signup
+    function handleNewsletterSignup(e) {
+      e.preventDefault();
+      const email = e.target.querySelector('input[type="email"]').value;
+      alert(`Thanks for subscribing! We'll send updates to ${email}`);
+      e.target.reset();
+      return false;
+    }
+  </script>
+</body>
+</html>

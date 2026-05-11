@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Build a Personal Research Digest: A Guide for Lawyers, VCs, and Consultants</title>
+    <meta name="description" content="A comprehensive guide to organizing newsletters, articles, and research into a daily intelligence feed.">
+
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Article */
+        article {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 100px 32px 80px;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author {
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
+
+        h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-top: 40px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--accent-dark);
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        em {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 20px;
+            margin: 30px 0;
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: var(--surface);
+            padding: 16px;
+            text-align: left;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .cta-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 32px 28px;
+            margin: 50px 0;
+            text-align: center;
+        }
+
+        .cta-box h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .cta-box p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .cta-button {
+            background: var(--primary);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .cta-button:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 48px 32px 32px;
+            margin-top: 80px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 48px;
+        }
+
+        .footer-brand {
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.6;
+        }
+
+        .footer-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .footer-section a {
+            display: block;
+            font-size: 14px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 900px) {
+            .nav-links { display: none; }
+            h1 { font-size: 32px; }
+            h2 { font-size: 24px; }
+            article { padding: 100px 24px 60px; }
+            .footer-container { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+
+        @media (max-width: 480px) {
+            article { padding: 100px 20px 60px; }
+            .footer-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a class="logo" href="/"><img src="/logo-v2-3-light.svg" alt="BREVIS" style="height:36px;"></a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/blog/">Blog</a>
+                <a href="/#precios">Pricing</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Log in</a>
+                <a href="/app.html" class="btn btn-primary">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <article>
+        <h1>How to Build a Personal Research Digest: A Guide for Lawyers, VCs, and Consultants</h1>
+
+            <div class="article-meta">
+                <span class="author-line">By Antonio | Brevis</span>
+                <span>April 2026</span>
+                <span>11 min read</span>
+            </div>
+
+            
+                <p>A personal research digest is a curated feed of information tailored to your specific professional needs. Instead of following generic newsletters or scrolling through social media, a research digest consolidates your sources into a single daily or weekly briefing that reflects your interests, thesis, and responsibilities.</p>
+
+                <p>The problem is that most professionals stop at subscribing to newsletters. They don't build a system to manage them. This guide walks through three approaches—from low-tech to fully automated—so you can choose the one that fits your workflow.</p>
+
+                <h2>Why You Need a Personal Research Digest</h2>
+
+                <p>Consider what you're actually trying to solve: you need to stay informed about your domain (law, venture capital, consulting, etc.) without letting information gathering become a full-time job. You're busy. Your attention is valuable.</p>
+
+                <p>A personal research digest does three things:</p>
+
+                <ul>
+                    <li><strong>Filters signal from noise:</strong> Not every newsletter update matters equally. A digest lets you see only what's relevant to your specific interests.</li>
+                    <li><strong>Consolidates sources:</strong> Instead of checking five different apps, you read one briefing. It saves cognitive overhead.</li>
+                    <li><strong>Forces a reading habit:</strong> When information arrives in a single organized place at a predictable time, you actually read it. Scattered subscriptions get ignored.</li>
+                </ul>
+
+                <p>The real benefit emerges over time: when you're in a client meeting, pitch meeting, or board discussion, you have current context that people who aren't systematically consuming information don't have. Information advantage compounds.</p>
+
+                <h2>Three Approaches to Building a Digest</h2>
+
+                <h3>Approach 1: Manual Email Rules (Low-Tech)</h3>
+
+                <div class="approach-box">
+                    <h4>Email Filtering + Folder Organization</h4>
+                    <div class="time-cost">Setup time: 2-3 hours | Ongoing time: 30 min/week</div>
+
+                    <p>Use your email client's native filtering capabilities to automatically route newsletters to specific folders by category. Create folders like: Market Analysis, Deal Flow, Regulatory Alerts, Thought Leadership. Set up rules so newsletters arrive tagged and organized before you ever open them.</p>
+
+                    <div class="pros-cons">
+                        <div class="pros">✓ Zero cost, works with any email client</div>
+                        <div class="pros">✓ Simple to understand and maintain</div>
+                        <div class="pros">✓ Good for teams using shared email accounts</div>
+                        <div class="cons">✗ Doesn't save reading time, just organizes it</div>
+                        <div class="cons">✗ Manual process to create a digest view</div>
+                        <div class="cons">✗ Still easy to get overwhelmed by volume</div>
+                    </div>
+
+                    <p style="margin-top: 15px;"><strong>Best for:</strong> Small teams (2-3 people) with 5-8 core newsletters who want to avoid paid tools.</p>
+                </div>
+
+                <h3>Approach 2: Semi-Automated (RSS + Digest Tools)</h3>
+
+                <div class="approach-box">
+                    <h4>RSS Aggregator + Digest Generation</h4>
+                    <div class="time-cost">Setup time: 4-6 hours | Ongoing time: 15 min/week</div>
+
+                    <p>Use an RSS aggregator (Feedly, Inoreader) to pull newsletter content into a single reading interface. Some newsletters publish RSS feeds; others need email-to-RSS conversion (services like Kill the Newsletter). Set up keyword alerts so critical topics get flagged. Generate a weekly digest email that summarizes everything you haven't read.</p>
+
+                    <div class="pros-cons">
+                        <div class="pros">✓ Centralized reading experience</div>
+                        <div class="pros">✓ Automatic keyword alerts for critical topics</div>
+                        <div class="pros">✓ Can set up custom digest emails</div>
+                        <div class="cons">✗ Requires learning a new platform</div>
+                        <div class="cons">✗ Not all newsletters support RSS</div>
+                        <div class="cons">✗ Summaries are still mostly full text, not condensed</div>
+                    </div>
+
+                    <p style="margin-top: 15px;"><strong>Best for:</strong> Individuals or small teams who want a single reading interface and are comfortable with minor technical setup.</p>
+                </div>
+
+                <h3>Approach 3: Fully Automated (AI-Powered Summarization)</h3>
+
+                <div class="approach-box">
+                    <h4>AI Newsletter Consolidation</h4>
+                    <div class="time-cost">Setup time: 30 min | Ongoing time: 0 min</div>
+
+                    <p>Use an AI-powered tool (like Brevis) to automatically collect your newsletters, summarize them, and deliver a single daily briefing. The AI reads everything and extracts what matters. You get a 10-minute read instead of 90 minutes of newsletter scrolling. Custom alerts flag critical changes or opportunities specific to your interests.</p>
+
+                    <div class="pros-cons">
+                        <div class="pros">✓ Dramatically saves reading time (5-10 hours/week)</div>
+                        <div class="pros">✓ AI extracts only critical information</div>
+                        <div class="pros">✓ Works with any newsletter (email-based)</div>
+                        <div class="pros">✓ Zero maintenance after setup</div>
+                        <div class="cons">✗ Requires a paid subscription</div>
+                        <div class="cons">✗ You see the AI's interpretation, not original text</div>
+                    </div>
+
+                    <p style="margin-top: 15px;"><strong>Best for:</strong> Professionals with 8+ newsletter subscriptions who are information-intensive (lawyers, VCs, consultants) and want to eliminate reading overhead.</p>
+                </div>
+
+                <h2>Quick Comparison</h2>
+
+                <div class="comparison-table">
+                    <div class="table-row">
+                        <div class="table-cell table-header">Approach</div>
+                        <div class="table-cell table-header">Cost</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Manual Email Rules</div>
+                        <div class="table-cell">Free</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">RSS Aggregator</div>
+                        <div class="table-cell">$5-10/mo</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">AI Summarization</div>
+                        <div class="table-cell">$12-29/mo</div>
+                    </div>
+                </div>
+
+                <div class="comparison-table">
+                    <div class="table-row">
+                        <div class="table-cell table-header">Approach</div>
+                        <div class="table-cell table-header">Time Saved/Week</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Manual Email Rules</div>
+                        <div class="table-cell">1-2 hours</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">RSS Aggregator</div>
+                        <div class="table-cell">3-5 hours</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">AI Summarization</div>
+                        <div class="table-cell">5-10 hours</div>
+                    </div>
+                </div>
+
+                <h2>Step-by-Step: Building Your Digest (AI-Powered Approach)</h2>
+
+                <p>Let me walk through the easiest and most effective approach—using AI summarization—since most readers will find it the best return on investment.</p>
+
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <h4>List Your Current Subscriptions</h4>
+                    <p>Spend 30 minutes cataloging every newsletter you're currently subscribed to. Open your email and search for newsletter sender addresses. Be brutally honest about which ones you actually read. This is your baseline.</p>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <h4>Categorize by Function</h4>
+                    <p>Group your newsletters into categories that match your role: Market Intelligence, Regulatory Alerts, Industry Analysis, Competitor Tracking, Thought Leadership, etc. You'll use these categories to configure your digest tool's filters.</p>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <h4>Select and Sign Up for Your Digest Tool</h4>
+                    <p>Sign up for a free trial of an AI summarization tool (Brevis offers a 14-day free trial). The onboarding process will ask you to connect your email and select which newsletters to consolidate. The tool will then send you summaries.</p>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">4</div>
+                    <h4>Configure Custom Alerts</h4>
+                    <p>Most AI digest tools let you set custom keywords for alerts. If you're a VC, flag "funding round," "Series A," or specific company names. If you're in-house counsel, flag "SEC," "enforcement," or "litigation." These alerts bubble critical information to the top of your digest.</p>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">5</div>
+                    <h4>Set a Reading Routine</h4>
+                    <p>Most AI tools deliver digests daily or on a schedule you set. Pick a time to read—morning with coffee, or end-of-day review. Consistency matters more than volume. 10 minutes daily beats 90 minutes once a week.</p>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-number">6</div>
+                    <h4>Refine After Two Weeks</h4>
+                    <p>After two weeks of using your digest, you'll know which categories are signal-rich and which are noise. Disable or remove underperforming newsletters. Add ones you missed. Good digest systems improve over time as you tune what matters.</p>
+                </div>
+
+                <h2>Advanced: Multiple Digests for Different Roles</h2>
+
+                <p>If you have multiple roles (VP of Legal at a VC, but also serve on a board; in-house counsel but also teach part-time), consider running separate digests for different functions. One digest for your primary job (focused on deal flow, regulatory, competitive), another for your secondary role (board issues, industry trends).</p>
+
+                <p>This keeps signal clean. You read deal flow intelligence in your morning digest, and board-relevant analysis in your afternoon digest. Instead of one overwhelming feed, you have multiple focused feeds timed to when you need them.</p>
+
+                <h2>The Real Productivity Gain</h2>
+
+                <p>What you're actually buying with a good research digest isn't just time saved—though that's real (5-10 hours per week). It's information advantage. When you're consistently consuming curated, high-quality information tailored to your domain, you develop a knowledge advantage over peers who read randomly or not at all.</p>
+
+                <p>That advantage shows up in client meetings when you reference market moves before anyone else knows about them. In board meetings when you spot competitive threats early. In deal reviews when you ask the right questions because you've been tracking market trends.</p>
+
+                <p>A good research digest is the difference between staying informed and actually staying ahead.</p>
+
+                <div class="cta-box">
+                    <h3>Start Your Research Digest Today</h3>
+                    <p>Consolidate your newsletters into one 10-minute daily briefing. AI-powered summarization for lawyers, VCs, and consultants. No manual work. No information overload.</p>
+                    <a href="/app.html" class="cta-button">Try Brevis Free for 14 Days</a>
+                </div>
+
+                <p><strong>Related reading:</strong> Explore our guide to <a href="./best-vc-newsletters-2026.html">the best VC newsletters</a> and <a href="./newsletter-management-inhouse-counsel.html">newsletter management for in-house counsel</a>.</p>
+    </article>
+
+    <footer>
+        <div class="footer-container">
+            <div>
+                <div class="footer-brand">BREVIS</div>
+                <p class="footer-tagline">Read smarter. Summarize everything. Stay current on what matters.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Product</h3>
+                <a href="/">Home</a>
+                <a href="/features">Features</a>
+                <a href="/#precios">Pricing</a>
+                <a href="/blog/">Blog</a>
+            </div>
+            <div class="footer-section">
+                <h3>Company</h3>
+                <a href="/about">About</a>
+                <a href="/careers">Careers</a>
+                <a href="/press">Press</a>
+                <a href="mailto:hello@brevisapp.com">Contact</a>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+                <a href="/security">Security</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Brevis. All rights reserved. Made for professionals who read.</p>
+        </div>
+    </footer>
+</body>
+</html>

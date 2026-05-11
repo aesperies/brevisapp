@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best Pocket Alternatives in 2026: 8 Tools Compared After the Shutdown</title>
+    <meta name="description" content="Pocket shut down in July 2025. Here's our honest review of 8 alternatives for professionals.">
+
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600;1,9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #000000;
+            --accent: #26C6DA;
+            --accent-light: #e8f9fa;
+            --accent-dark: #1a9499;
+            --bg: #F9F8F5;
+            --text: #0a0a0a;
+            --text-secondary: #555555;
+            --text-tertiary: #888888;
+            --border: #E8E8E8;
+            --surface: #F0EFE9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(249, 248, 245, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            height: 36px;
+        }
+
+        .logo img {
+            height: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            text-decoration: none;
+            display: inline-block;
+            color: var(--text);
+            background: transparent;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            background: var(--surface);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Article */
+        article {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 100px 32px 80px;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 40px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author {
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
+
+        h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--primary);
+            margin-top: 40px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--accent-dark);
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        em {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 20px;
+            margin: 30px 0;
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background: var(--surface);
+            padding: 16px;
+            text-align: left;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .summary-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .cta-box {
+            background: rgba(38, 198, 218, 0.06);
+            border: 1px solid rgba(38, 198, 218, 0.2);
+            border-radius: 8px;
+            padding: 32px 28px;
+            margin: 50px 0;
+            text-align: center;
+        }
+
+        .cta-box h3 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .cta-box p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .cta-button {
+            background: var(--primary);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+        }
+
+        .cta-button:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 48px 32px 32px;
+            margin-top: 80px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr;
+            gap: 48px;
+        }
+
+        .footer-brand {
+            font-family: 'Instrument Serif', serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .footer-tagline {
+            font-size: 14px;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.6;
+        }
+
+        .footer-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.45);
+        }
+
+        .footer-section a {
+            display: block;
+            font-size: 14px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 900px) {
+            .nav-links { display: none; }
+            h1 { font-size: 32px; }
+            h2 { font-size: 24px; }
+            article { padding: 100px 24px 60px; }
+            .footer-container { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+
+        @media (max-width: 480px) {
+            article { padding: 100px 20px 60px; }
+            .footer-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a class="logo" href="/"><img src="/logo-v2-3-light.svg" alt="BREVIS" style="height:36px;"></a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/blog/">Blog</a>
+                <a href="/#precios">Pricing</a>
+            </div>
+            <div class="nav-right">
+                <a href="/app.html" class="btn-ghost">Log in</a>
+                <a href="/app.html" class="btn btn-primary">Try for free</a>
+            </div>
+        </div>
+    </nav>
+
+    <article>
+        <h1>Best Pocket Alternatives in 2026: 8 Tools Compared After the Shutdown</h1>
+
+            <div class="article-meta">
+                <span class="author-line">By Antonio | Brevis</span>
+                <span>April 2026</span>
+                <span class="reading-time">10 min read</span>
+            </div>
+
+            
+                <h2>The End of Pocket—and Your New Beginning</h2>
+
+                <p>Mozilla shut down Pocket in July 2025, and if you were among the 30+ million users who relied on it, that stung. I was one of them. For nearly a decade, Pocket was the invisible infrastructure of my reading life: clip a long-form article in the morning, review newsletters on the subway, archive interesting research for later. It was simple, fast, and just worked.</p>
+
+                <p>The shutdown forced me to do what I should have done years ago: actually compare what's out there. And I'm glad it did. Because while Pocket was reliable, it was also static. It saved articles and newsletters, but it didn't help you <strong>understand</strong> them. It didn't summarize. It didn't synthesize. It didn't tell you what mattered most.</p>
+
+                <p>After testing eight serious alternatives over the past nine months, I've learned that Pocket's departure created a vacuum—and several tools are filling it with something better. This post is for other professionals who lost Pocket: lawyers managing case research, VCs reviewing market reports, consultants handling client intel, and anyone whose work involves staying informed across dozens of sources daily.</p>
+
+                <p>I'm writing this because I tested all these tools myself. I didn't accept marketing claims. I used them for real work. Here's what actually works.</p>
+
+                <h2>Quick Comparison: 8 Pocket Alternatives at a Glance</h2>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Tool</th>
+                            <th>Best For</th>
+                            <th>AI Features</th>
+                            <th>Price</th>
+                            <th>Free Tier</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Brevis</strong></td>
+                            <td>Professionals needing AI summaries</td>
+                            <td>4-6 bullet summaries, daily digest</td>
+                            <td>$12/mo</td>
+                            <td>Yes (limited)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Readwise Reader</strong></td>
+                            <td>Highlight-heavy readers</td>
+                            <td>Ghostreader AI, audio reviews</td>
+                            <td>$8.99–$13.99/mo</td>
+                            <td>30-day free trial</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Matter</strong></td>
+                            <td>Clean, simple mobile experience</td>
+                            <td>Limited (premium only)</td>
+                            <td>Free + premium</td>
+                            <td>Yes (robust)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Readless</strong></td>
+                            <td>Budget AI summarization</td>
+                            <td>AI summaries, multi-source feed</td>
+                            <td>~$4.90/mo</td>
+                            <td>Yes (limited)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Raindrop.io</strong></td>
+                            <td>Bookmarking and curation</td>
+                            <td>None</td>
+                            <td>Free + $2.99/mo</td>
+                            <td>Yes (unlimited)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Inoreader</strong></td>
+                            <td>RSS power users</td>
+                            <td>Basic AI summaries</td>
+                            <td>$7.50–$10/mo</td>
+                            <td>Yes (150 feeds)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Feedly</strong></td>
+                            <td>Enterprise/team content</td>
+                            <td>Leo AI (expensive tiers)</td>
+                            <td>$6.99–$12.99/mo</td>
+                            <td>Yes (limited)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Wallabag</strong></td>
+                            <td>Self-hosted data ownership</td>
+                            <td>None</td>
+                            <td>Free (self-hosted)</td>
+                            <td>Yes (fully)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2>The 8 Best Pocket Alternatives, Reviewed Honestly</h2>
+
+                <h3>1. Brevis: Best for Professionals Who Want AI Summaries</h3>
+
+                <div class="tool-item">
+                    <p>Brevis is the new tool here, and it's built specifically for what killed Pocket's usefulness: <strong>volume</strong>. Lawyers get 50+ articles a week. VCs see market reports from dozens of sources. Consultants track industry news across 30+ publications. Pocket would just stack them up.</p>
+
+                    <p>Brevis reads everything and gives you a 4-6 bullet summary. You get a daily digest email with summaries of the newsletters and articles you saved. If you're focused on legal news, it knows to highlight regulatory changes. If you're in venture capital, it flags fundraising rounds and market shifts. It reads in English and Spanish, which matters if you work with international teams.</p>
+
+                    <p>The migration offer is real: $6/month for the first year if you're coming from Pocket (normally $12). It integrates with email—forward your newsletters directly to Brevis and it'll summarize them automatically.</p>
+
+                    <p><strong>The honest downside:</strong> It's a newer tool with a smaller community. If you're the type who loves a massive user base and third-party integrations, you might feel the difference. There's no self-hosted option. And if your reading is more hobby-oriented than professional, Brevis might feel like overkill.</p>
+
+                    <p><strong>Good for:</strong> Lawyers, VCs, consultants, and anyone buried in newsletters who needs to extract signal from noise.</p>
+
+                    <p><strong>Not ideal for:</strong> Casual readers, audio-only learners, or people who want a massive ecosystem of integrations.</p>
+                </div>
+
+                <h3>2. Readwise Reader: Best for Highlight-Heavy Readers</h3>
+
+                <div class="tool-item">
+                    <p>If Pocket was where you saved articles, Readwise Reader is where you <strong>engage</strong> with them. It's not a direct Pocket replacement—it's more sophisticated. You highlight passages, and Readwise collects those highlights across all your sources (emails, Twitter, books, articles, PDFs). Then it surfaces them periodically in "spaced repetition" reviews, so you actually remember what you've read.</p>
+
+                    <p>Ghostreader, their AI feature, can summarize a full article or answer questions about it in context. Audio Reviews let you listen to your highlights while commuting. Integration with Readwise Reader to your own highlights is seamless.</p>
+
+                    <p>The interface is excellent—dark theme, keyboard shortcuts, and smooth reading. The pricing ($8.99–$13.99/mo depending on tier) is reasonable for what you get.</p>
+
+                    <p><strong>The honest downside:</strong> Readwise Reader is for readers who <strong>really</strong> engage with content. If you just want to save stuff and come back to it later, this is overhead. It's also not specifically designed for newsletter management—you can add newsletters to a reading list, but it's not the primary use case. The learning curve is steeper than Pocket.</p>
+
+                    <p><strong>Good for:</strong> People who highlight and annotate. Academic researchers. Anyone who wants to build a personal knowledge base.</p>
+
+                    <p><strong>Not ideal for:</strong> People who want a fast, simple save-and-archive tool. Mobile-only users.</p>
+                </div>
+
+                <h3>3. Matter: Best Free Option</h3>
+
+                <div class="tool-item">
+                    <p>Matter is the closest spiritual successor to Pocket in terms of simplicity. You save articles, newsletters show up in a clean feed, and you read them on phone or web. The mobile app is genuinely delightful—iOS-native, fast, minimal. Matter also ran an actual Pocket migration program, so if you exported your data, you could import it directly.</p>
+
+                    <p>The free tier is robust: unlimited article saves, newsletter subscriptions, and offline reading. That's not common anymore. If you pay for premium ($7.99/mo), you get slightly better recommendations and some AI features, but you don't need premium to use the product well.</p>
+
+                    <p><strong>The honest downside:</strong> The AI features, even in premium, are minimal compared to Brevis or Readwise Reader. There's no daily digest or automatic summarization—you still have to read everything yourself. The web interface is less polished than the mobile app, so if you're primarily on desktop (like many professionals), it feels limited. The company is smaller and newer, so bet accordingly.</p>
+
+                    <p><strong>Good for:</strong> People who want Pocket back almost exactly as it was. Mobile-first readers. Budget-conscious users.</p>
+
+                    <p><strong>Not ideal for:</strong> Professionals who need AI summaries. Heavy desktop users. Anyone managing 100+ articles a week.</p>
+                </div>
+
+                <h3>4. Readless: Best Budget AI Option</h3>
+
+                <div class="tool-item">
+                    <p>Readless is a quiet overachiever. It's a read-later app <strong>and</strong> an RSS feed reader <strong>and</strong> a newsletter subscription manager, all for about $4.90/month. It summarizes everything using AI—articles, newsletters, PDFs, YouTube videos. The summaries are shorter and less contextual than Brevis, but they're useful for deciding whether something's worth your time.</p>
+
+                    <p>The interface is simple. The pricing is genuinely cheap. It works on mobile and web. For someone on a tight budget who still wants AI help, Readless does the job.</p>
+
+                    <p><strong>The honest downside:</strong> It's very new, and the team is small. There are fewer integrations. The summaries are functional but not as sharp as Brevis (which has industry-specific context). Community is tiny, so if you're the type who wants lots of user forums and tips, you won't find them. Customer support is basic.</p>
+
+                    <p><strong>Good for:</strong> Budget-conscious freelancers and solopreneurs. People who want AI summaries but don't need vertical specialization.</p>
+
+                    <p><strong>Not ideal for:</strong> Enterprise users. Anyone who needs deep integrations or sophisticated RSS rules.</p>
+                </div>
+
+                <h3>5. Raindrop.io: Best for Bookmarkers</h3>
+
+                <div class="tool-item">
+                    <p>Raindrop.io is a bookmarking tool, and that's an important distinction. It's not a read-later app; it's a way to curate, organize, and share links. If you're the type who builds link collections, shares reading lists with colleagues, or maintains a personal knowledge library, Raindrop shines.</p>
+
+                    <p>The free tier is genuinely unlimited: unlimited bookmarks, collections, and browser extension. The UI is familiar to Pocket users—it actually borrowed some design patterns. Raindrop is excellent at what it does: storing and organizing links for later retrieval.</p>
+
+                    <p><strong>The honest downside:</strong> It's not for reading, it's for storing. There's no AI. There's no newsletter integration. There's no daily digest. If your workflow is "save a link, come back to it in a month," Raindrop is great. If it's "I'm drowning in 200 articles a week and need to triage them fast," this won't help.</p>
+
+                    <p><strong>Good for:</strong> Link curators, content researchers, people who build reading lists to share.</p>
+
+                    <p><strong>Not ideal for:</strong> Newsletter power users. Anyone overwhelmed by volume. People who need AI help making sense of content.</p>
+                </div>
+
+                <h3>6. Inoreader: Best for RSS Power Users</h3>
+
+                <div class="tool-item">
+                    <p>Inoreader is an RSS feed reader that's been quietly excellent for over a decade. It's powerful, highly customizable, and supports the core infrastructure of internet reading: feeds. You can add 150 feeds for free, set up rules to auto-tag and filter content, and organize by topic.</p>
+
+                    <p>The free tier is surprisingly good. The paid tiers ($7.50–$10/mo) add AI summarization, advanced rules, and more feeds. If you're comfortable with RSS and want to escape the newsletter/algorithm trap, Inoreader lets you build a custom reading experience.</p>
+
+                    <p><strong>The honest downside:</strong> The learning curve is steep. Features are everywhere. The UI feels inherited from years of updates—not ugly, but not modern. AI features are behind the $7.50/mo paywall. And if you're not already an RSS person, this is a lot of friction to become one. The mobile app is functional but not delightful.</p>
+
+                    <p><strong>Good for:</strong> Technologists, power users, people who want complete control over their reading sources.</p>
+
+                    <p><strong>Not ideal for:</strong> People who want simplicity. Non-technical professionals. Anyone new to RSS.</p>
+                </div>
+
+                <h3>7. Feedly: Best for Teams and Enterprise</h3>
+
+                <div class="tool-item">
+                    <p>Feedly is a huge platform for content curation at scale. Enterprises use it. Teams use it. You can add feeds, follow topics, get AI summaries (Leo AI), and collaborate with colleagues. The source library is massive—basically every publication you'd want to follow is findable.</p>
+
+                    <p><strong>The honest downside:</strong> Feedly has steadily moved toward enterprise pricing, and individual pricing has suffered. The $6.99/mo starter plan gives you basic features, but AI summaries (Leo AI) are locked behind the $13.99/mo plan. For an individual, that's expensive. The product is powerful but not minimal—there's a lot of UI that a solo professional doesn't need. And honestly, Feedly feels like it's pricing out individual users in favor of teams.</p>
+
+                    <p><strong>Good for:</strong> Small teams sharing a reading list. Enterprises managing research. Companies who need collaboration features.</p>
+
+                    <p><strong>Not ideal for:</strong> Solo professionals on budgets. Anyone who wants simplicity. Individual users who don't need team features.</p>
+                </div>
+
+                <h3>8. Wallabag: Best for Self-Hosted Data Ownership</h3>
+
+                <div class="tool-item">
+                    <p>Wallabag is open-source software that you host yourself. You run it on your own server, and everything stays on your infrastructure. It works like a read-later tool, with tagging, searching, and full-text search. There's no subscription, no data mining, no vendor lock-in.</p>
+
+                    <p><strong>The honest downside:</strong> You have to run it. That means either paying for hosting ($50-$100/year) or running it on a home server (technical knowledge required). There's no AI. The interface is functional but not beautiful. Community support is smaller. If your server goes down, so does your reading list. Updates are your responsibility.</p>
+
+                    <p><strong>Good for:</strong> Technical users who want complete privacy. Organizations managing sensitive research. People who distrust SaaS companies.</p>
+
+                    <p><strong>Not ideal for:</strong> Non-technical users. Anyone who wants AI features. People who want a seamless mobile experience.</p>
+                </div>
+
+                <h2>Which One Is Right for You? A Quick Decision Tree</h2>
+
+                <div class="decision-tree">
+                    <p><strong>Are you drowning in 100+ articles/newsletters per week and need AI to triage?</strong><br>
+                    → <strong>Brevis</strong> (if you want industry context) or <strong>Readless</strong> (if you want the cheapest option)</p>
+
+                    <p><strong>Do you highlight and annotate heavily?</strong><br>
+                    → <strong>Readwise Reader</strong></p>
+
+                    <p><strong>Do you want something as close to Pocket as possible?</strong><br>
+                    → <strong>Matter</strong></p>
+
+                    <p><strong>Are you a hardcore RSS user who wants full control?</strong><br>
+                    → <strong>Inoreader</strong></p>
+
+                    <p><strong>Do you just want a simple bookmark system?</strong><br>
+                    → <strong>Raindrop.io</strong></p>
+
+                    <p><strong>Is privacy and data ownership your top priority?</strong><br>
+                    → <strong>Wallabag</strong></p>
+
+                    <p><strong>Are you managing a team or enterprise?</strong><br>
+                    → <strong>Feedly</strong></p>
+
+                    <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #333333;"><strong>For most professionals:</strong> The choice is between <strong>Brevis</strong> and <strong>Readwise Reader</strong>. Brevis wins if newsletters are your main input and you need speed. Readwise Reader wins if you're a close reader who wants to retain what you learn.</p>
+                </div>
+
+                <h2>The Pocket Shutdown Was Inconvenient—But It's an Opportunity</h2>
+
+                <p>Here's what I've learned: Pocket was comfortable because it was passive. Save, archive, forget. The problem is that was also its limit. It made you <strong>less</strong> informed, not more, because it turned reading into a compulsion to accumulate rather than an effort to understand.</p>
+
+                <p>The tools that are replacing it are better. They summarize. They synthesize. They force you to engage. For professionals managing dozens of sources, that's not a bug—it's essential.</p>
+
+                <p>If you were relying on Pocket for newsletter and article management, you have a real opportunity now. Don't just copy your Pocket data to another simple archive. Upgrade to something that actively helps you stay informed.</p>
+
+                <div class="cta-box">
+                    <h3>For professionals who need to extract signal from noise</h3>
+                    <p>Try Brevis free. It's built for exactly this: read-later for people buried in newsletters. Get your first month at $6 if you're migrating from Pocket.</p>
+                    <a href="/switch-from-pocket" class="cta-button">Switch from Pocket →</a>
+                </div>
+
+                <p>For everyone else: pick the tool that matches how you actually work. The Pocket era is over. The era of active, intelligent reading is here.</p>
+
+                <div class="further-reading">
+                    <h3>Further Reading</h3>
+                    <ul>
+                        <li><a href="/guides/newsletter-overload">How to manage newsletter overload</a> — Brevis guide</li>
+                        <li><a href="/insights/ai-summaries">The rise of AI summarization tools</a> — Industry analysis</li>
+                        <li><a href="/switch-from-pocket">Switching from Pocket: migration guide</a> — Step-by-step</li>
+                    </ul>
+                </div>
+
+                <p style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #333333;"><em>Have you tested any of these alternatives? Share your experience in the comments below.</em></p>
+    </article>
+
+    <footer>
+        <div class="footer-container">
+            <div>
+                <div class="footer-brand">BREVIS</div>
+                <p class="footer-tagline">Read smarter. Summarize everything. Stay current on what matters.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Product</h3>
+                <a href="/">Home</a>
+                <a href="/features">Features</a>
+                <a href="/#precios">Pricing</a>
+                <a href="/blog/">Blog</a>
+            </div>
+            <div class="footer-section">
+                <h3>Company</h3>
+                <a href="/about">About</a>
+                <a href="/careers">Careers</a>
+                <a href="/press">Press</a>
+                <a href="mailto:hello@brevisapp.com">Contact</a>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+                <a href="/security">Security</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Brevis. All rights reserved. Made for professionals who read.</p>
+        </div>
+    </footer>
+</body>
+</html>

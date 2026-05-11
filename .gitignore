@@ -10,3 +10,5 @@ build/
 .vscode/
 .idea/
 db.json
+.claude/
+.~lock.*#
