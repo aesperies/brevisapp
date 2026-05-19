@@ -1873,15 +1873,27 @@ app.get('/api/config/email-domain', (req, res) => {
 
 // ============= EMAIL WEBHOOK =============
 
-app.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
-    // Verify webhook secret via x-webhook-secret header ONLY (URL/query params leak into server logs)
+app.post('/api/webhook/email/:secret?', webhookLimiter, upload.none(), asyncHandler(async (req, res) => {
+    // Verify webhook secret. SendGrid Inbound Parse can't send custom headers
+    // and strips query params + basic-auth credentials on redirects, so the only
+    // reliable transport is a high-entropy secret in the URL path itself:
+    //   POST /api/webhook/email/<EMAIL_WEBHOOK_SECRET>
+    // Header `x-webhook-secret` is also accepted for clients that can send it.
+    // NOTE: never log req.originalUrl or req.url here — the secret is in the path.
         const webhookSecret = process.env.EMAIL_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error('❌ Email webhook: EMAIL_WEBHOOK_SECRET not configured — rejecting request');
             return res.status(503).json({ error: 'Webhook not configured' });
         }
-        const providedSecret = req.headers['x-webhook-secret'];
-        if (providedSecret !== webhookSecret) {
+        const providedSecret = req.params.secret || req.headers['x-webhook-secret'];
+        const secretsMatch = (() => {
+            if (!providedSecret) return false;
+            const a = Buffer.from(providedSecret, 'utf8');
+            const b = Buffer.from(webhookSecret, 'utf8');
+            if (a.length !== b.length) return false;
+            return crypto.timingSafeEqual(a, b);
+        })();
+        if (!secretsMatch) {
             console.error('❌ Email webhook: invalid or missing secret');
             return res.status(401).json({ error: 'Unauthorized' });
         }
