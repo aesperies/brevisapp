@@ -1423,6 +1423,10 @@
                 sendToKindle: 'Send to Kindle',
                 more: 'More',
                 aiSummary: 'AI Summary',
+                generateSummary: 'Summarize',
+                generatingSummary: 'Summarizing…',
+                translateSummary: 'Translate',
+                summaryFailed: 'Couldn’t generate summary',
                 newsletter: 'Newsletter',
                 news: 'News',
                 aiNewsBrief: 'AI News Brief',
@@ -1493,6 +1497,10 @@
                 sendToKindle: 'Enviar a Kindle',
                 more: 'Más',
                 aiSummary: 'Resumen IA',
+                generateSummary: 'Resumir',
+                generatingSummary: 'Resumiendo…',
+                translateSummary: 'Traducir',
+                summaryFailed: 'No se pudo generar el resumen',
                 newsletter: 'Boletín',
                 news: 'Noticias',
                 aiNewsBrief: 'Resumen de Noticias IA',
@@ -1874,6 +1882,7 @@
                 tags: tagList.map(t => typeof t === 'string' ? t : (t && t.name) || '').filter(Boolean),
                 autoTags,
                 summary: n.summary || '',
+                summary_language: n.summary_language || null,
                 content: n.content || '',
                 url: n.url || null,
                 isRead: !!n.is_read,
@@ -1948,6 +1957,10 @@
             const [importing, setImporting] = useState(false);
             const [importError, setImportError] = useState(null);
             const [emailDomain, setEmailDomain] = useState('mail.brevisapp.com');
+            // Per-newsletter "summarizing" flags. Set<number> of newsletter ids.
+            // Cleared when the request resolves (success or error) so the button
+            // can be retried.
+            const [summarizingIds, setSummarizingIds] = useState(() => new Set());
 
             // Snapshot of the user's settings at the moment the settings modal opens.
             // Used to dirty-check on save: the auto-tag toggle is a controlled checkbox
@@ -2074,6 +2087,42 @@
                 setSelectedItems(prev =>
                     prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
                 );
+            };
+
+            // Trigger AI summary generation for a newsletter. The endpoint is
+            // gated on the user's plan; FREE returns 403, which we map to the
+            // upgrade modal. On success we merge the returned summary into both
+            // the list state and the open reader (if it matches).
+            const generateSummary = async (id) => {
+                if (!user || user.plan === 'free') {
+                    setActiveModal('upgrade');
+                    return;
+                }
+                if (summarizingIds.has(id)) return;
+                setSummarizingIds(prev => { const next = new Set(prev); next.add(id); return next; });
+                try {
+                    const res = await fetch(`/api/newsletters/${id}/summary`, {
+                        method: 'POST',
+                        credentials: 'include',
+                    });
+                    if (res.status === 403) {
+                        setActiveModal('upgrade');
+                        return;
+                    }
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        throw new Error(body.error || `HTTP ${res.status}`);
+                    }
+                    const data = await res.json();
+                    const patch = { summary: data.summary, summary_language: language };
+                    setNewsletters(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
+                    setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, ...patch } : prev);
+                } catch (err) {
+                    console.error('[brevis] generateSummary failed:', err);
+                    alert(t('summaryFailed') + ': ' + err.message);
+                } finally {
+                    setSummarizingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                }
             };
 
             const filteredNewsletters = newsLetters.filter(n => {
@@ -2389,6 +2438,23 @@
                                         >
                                             ✓
                                         </button>
+                                        {/* Summary: visible when we don't already have one in the current language.
+                                            Shows ⏳ while a request is in-flight. Clicking on FREE plan opens
+                                            the upgrade modal instead of hitting the API. */}
+                                        {(!newsletter.summary || newsletter.summary_language !== language) && (
+                                            <button
+                                                className="action-btn"
+                                                onClick={(e) => { e.stopPropagation(); generateSummary(newsletter.id); }}
+                                                disabled={summarizingIds.has(newsletter.id)}
+                                                title={
+                                                    summarizingIds.has(newsletter.id)
+                                                        ? t('generatingSummary')
+                                                        : (newsletter.summary ? t('translateSummary') : t('generateSummary'))
+                                                }
+                                            >
+                                                {summarizingIds.has(newsletter.id) ? '⏳' : '✦'}
+                                            </button>
+                                        )}
                                         <button
                                             className="action-btn"
                                             onClick={(e) => { e.stopPropagation(); }}
@@ -2457,12 +2523,23 @@
                                         <div className="reader-summary-title">
                                             ✦ {t('aiSummary')}
                                         </div>
-                                        <div
-                                            className="reader-text"
-                                            dangerouslySetInnerHTML={{
-                                                __html: DOMPurify.sanitize(formatSummaryHTML(selectedNewsletter.summary))
-                                            }}
-                                        />
+                                        {selectedNewsletter.summary ? (
+                                            <div
+                                                className="reader-text"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: DOMPurify.sanitize(formatSummaryHTML(selectedNewsletter.summary))
+                                                }}
+                                            />
+                                        ) : (
+                                            <button
+                                                className="btn"
+                                                style={{ marginTop: '8px' }}
+                                                onClick={() => generateSummary(selectedNewsletter.id)}
+                                                disabled={summarizingIds.has(selectedNewsletter.id)}
+                                            >
+                                                {summarizingIds.has(selectedNewsletter.id) ? t('generatingSummary') : ('✦ ' + t('generateSummary'))}
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div
