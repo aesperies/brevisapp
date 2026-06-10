@@ -41,6 +41,17 @@ route extraction → /api/v1 → hardening batch → prompt-injection Highs → 
 (3) prompt versioning + AI fixtures; (4) refresh-token rotation + Sentry/metrics;
 (5) background-task DB persistence + remaining Mediums.
 
+---
+
+## SPRINT 2 — 10x Phase 2: Frontend build step (2026-06-10, branch `feat/frontend-build-step`, stacked on PR #4)
+
+- [x] **Step A — Vite build, verbatim lift**: public/app.html's CSS (1,337 lines) + inline JSX (1,664 lines) → web/ as one module. React/ReactDOM/DOMPurify bundled (npm); Babel-standalone and CDN scripts gone; unused vis.min.js dropped. 66KB gz bundle.
+- [x] **Serving**: server prefers dist-web/, falls back LOUDLY to legacy public/app.html (a missed build degrades, never blanks prod). nixpacks build phase, multi-stage Dockerfile, CI build step.
+- [x] **Step B — componentization**: main.jsx → mount-only + i18n.js + components/{Root,App,AuthView,BRLogo,SummaryToggle,ErrorBoundary} + utils/newsletters. Verbatim moves; dead mockNewsletters/mockTags deleted (78 lines, 0 refs).
+- [x] **Browser verification (per lessons 2026-04-10)**: registered a real user through the built UI, dashboard showed the real brief-* forwarding address, created newsletter appeared in list with live counters, zero console errors, no failed requests. Smoke data cleaned from dev DB.
+- [ ] **Deferred**: App.jsx decomposition (needs E2E tests); deleting legacy public/app.html (after the bundle ships clean for a while); dark-mode/a11y polish (brief 7B); code-splitting (brief 7C).
+- **Found**: Import-modal PDF/Manual tabs are DEAD buttons (no onClick — pre-existing, also Browse/Query tabs). Spawned follow-up task.
+
 ### Deliberately deferred to later PRs (flagged trade-offs)
 - Frontend build step + componentization (brief Phase 7) — big, independent; PR 2.
 - Refresh-token rotation (brief 2A) — auth surgery; current token_version revocation is sound interim; PR 3.
