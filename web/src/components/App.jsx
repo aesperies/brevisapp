@@ -29,6 +29,7 @@ export function App() {
             const [sidebarOpen, setSidebarOpen] = useState(false);
             const [importing, setImporting] = useState(false);
             const [importError, setImportError] = useState(null);
+            const [importTab, setImportTab] = useState('url'); // 'url' | 'pdf' | 'manual'
             const [emailDomain, setEmailDomain] = useState('mail.brevisapp.com');
             // Per-newsletter "summarizing" flags. Set<number> of newsletter ids.
             // Cleared when the request resolves (success or error) so the button
@@ -62,8 +63,19 @@ export function App() {
                 if (activeModal !== 'import') {
                     setImporting(false);
                     setImportError(null);
+                    setImportTab('url');
                 }
             }, [activeModal]);
+
+            // Shared by the three import forms: prepend the created newsletter and
+            // close the modal. De-dupe by id: if a background refetch already pulled
+            // this newsletter into the list while the request was in-flight, the
+            // second copy would warn about duplicate keys in React.
+            const finishImport = (created) => {
+                const normalized = normalizeNewsletter(created.newsletter || created);
+                setNewsletters(prev => [normalized, ...prev.filter(n => n.id !== normalized.id)]);
+                setActiveModal(null);
+            };
 
             // Load newsletters, tags, subscriptions, user profile.
             // `silent` skips the loading spinner (used by polling + focus refetch).
@@ -634,11 +646,12 @@ export function App() {
                                 <h2 className="modal-title">{t('importNewsletter')}</h2>
 
                                 <div className="modal-tabs">
-                                    <button className="modal-tab active">URL</button>
-                                    <button className="modal-tab">PDF</button>
-                                    <button className="modal-tab">{t('manual')}</button>
+                                    <button className={`modal-tab ${importTab === 'url' ? 'active' : ''}`} onClick={() => { setImportTab('url'); setImportError(null); }}>{t('url')}</button>
+                                    <button className={`modal-tab ${importTab === 'pdf' ? 'active' : ''}`} onClick={() => { setImportTab('pdf'); setImportError(null); }}>{t('pdf')}</button>
+                                    <button className={`modal-tab ${importTab === 'manual' ? 'active' : ''}`} onClick={() => { setImportTab('manual'); setImportError(null); }}>{t('manual')}</button>
                                 </div>
 
+                                {importTab === 'url' && (
                                 <form className="modal-form" onSubmit={async (e) => {
                                     e.preventDefault();
                                     if (importing) return;
@@ -664,12 +677,7 @@ export function App() {
                                             throw new Error(errBody.error || `Import failed (${res.status})`);
                                         }
                                         const created = await res.json();
-                                        const normalized = normalizeNewsletter(created.newsletter || created);
-                                        // De-dupe by id: if a background refetch already pulled this
-                                        // newsletter into the list while the request was in-flight, the
-                                        // second copy would warn about duplicate keys in React.
-                                        setNewsletters(prev => [normalized, ...prev.filter(n => n.id !== normalized.id)]);
-                                        setActiveModal(null);
+                                        finishImport(created);
                                     } catch (err) {
                                         console.error('[brevis] import failed:', err);
                                         setImportError(err.message || 'Import failed');
@@ -690,6 +698,114 @@ export function App() {
                                         {importing ? 'Importing…' : 'Import'}
                                     </button>
                                 </form>
+                                )}
+
+                                {importTab === 'pdf' && (
+                                <form className="modal-form" onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    if (importing) return;
+                                    const file = e.target.elements.file.files[0];
+                                    if (!file) return;
+                                    // Server enforces both too (src/routes/newsletters.js);
+                                    // checking here saves uploading 10MB just to get a 400.
+                                    if (file.type !== 'application/pdf') {
+                                        setImportError('Only PDF files are supported');
+                                        return;
+                                    }
+                                    if (file.size > 10 * 1024 * 1024) {
+                                        setImportError('File too large (max 10MB)');
+                                        return;
+                                    }
+                                    setImporting(true);
+                                    setImportError(null);
+                                    try {
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        const res = await fetch('/api/newsletters/upload-pdf', {
+                                            method: 'POST',
+                                            credentials: 'include',
+                                            body: formData,
+                                        });
+                                        if (!res.ok) {
+                                            const errBody = await res.json().catch(() => ({}));
+                                            throw new Error(errBody.error || `Upload failed (${res.status})`);
+                                        }
+                                        const created = await res.json();
+                                        finishImport(created);
+                                    } catch (err) {
+                                        console.error('[brevis] PDF upload failed:', err);
+                                        setImportError(err.message || 'Upload failed');
+                                    } finally {
+                                        setImporting(false);
+                                    }
+                                }}>
+                                    <div className="form-group">
+                                        <label className="form-label">{t('pdfFile')}</label>
+                                        <input name="file" type="file" accept="application/pdf,.pdf" className="form-input" required disabled={importing} />
+                                    </div>
+                                    {importError && (
+                                        <div className="form-error" style={{ color: 'var(--accent-red, #c0392b)', fontSize: '13px', marginBottom: '12px', padding: '8px 12px', background: 'rgba(192,57,43,0.08)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: '8px' }}>
+                                            {importError}
+                                        </div>
+                                    )}
+                                    <button type="submit" className="btn btn-primary" disabled={importing}>
+                                        {importing ? 'Importing…' : 'Import'}
+                                    </button>
+                                </form>
+                                )}
+
+                                {importTab === 'manual' && (
+                                <form className="modal-form" onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    if (importing) return;
+                                    const title = (e.target.elements.title.value || '').trim();
+                                    const source = (e.target.elements.source.value || '').trim();
+                                    const content = (e.target.elements.content.value || '').trim();
+                                    if (!title || !content) return;
+                                    setImporting(true);
+                                    setImportError(null);
+                                    try {
+                                        const res = await fetch('/api/newsletters', {
+                                            method: 'POST',
+                                            credentials: 'include',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ title, source, content }),
+                                        });
+                                        if (!res.ok) {
+                                            const errBody = await res.json().catch(() => ({}));
+                                            throw new Error(errBody.error || `Save failed (${res.status})`);
+                                        }
+                                        const created = await res.json();
+                                        finishImport(created);
+                                    } catch (err) {
+                                        console.error('[brevis] manual create failed:', err);
+                                        setImportError(err.message || 'Save failed');
+                                    } finally {
+                                        setImporting(false);
+                                    }
+                                }}>
+                                    <div className="form-group">
+                                        <label className="form-label">{t('title')}</label>
+                                        <input name="title" type="text" className="form-input" maxLength="500" required disabled={importing} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">{t('source')}</label>
+                                        <input name="source" type="text" className="form-input" maxLength="255" disabled={importing} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">{t('content')}</label>
+                                        <textarea name="content" className="form-input" rows="8" required disabled={importing} />
+                                    </div>
+                                    {importError && (
+                                        <div className="form-error" style={{ color: 'var(--accent-red, #c0392b)', fontSize: '13px', marginBottom: '12px', padding: '8px 12px', background: 'rgba(192,57,43,0.08)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: '8px' }}>
+                                            {importError}
+                                        </div>
+                                    )}
+                                    <button type="submit" className="btn btn-primary" disabled={importing}>
+                                        {importing ? 'Saving…' : t('save')}
+                                    </button>
+                                </form>
+                                )}
                             </div>
                         </div>
                     )}
@@ -700,11 +816,6 @@ export function App() {
                             <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px', maxHeight: '90vh' }}>
                                 <button className="modal-close-btn" onClick={() => setActiveModal(null)}>✕</button>
                                 <h2 className="modal-title">{t('knowledgeGraph')}</h2>
-
-                                <div className="modal-tabs">
-                                    <button className="modal-tab active">Browse</button>
-                                    <button className="modal-tab">Query</button>
-                                </div>
 
                                 <div className="graph-container" style={{ height: '400px', background: 'linear-gradient(135deg, var(--bg-cream), var(--bg-blue))', border: '3px solid var(--ink)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
