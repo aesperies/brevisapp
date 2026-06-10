@@ -111,8 +111,15 @@ export async function safeFetch(urlString, options = {}) {
     const agent = new AgentCtor({
         keepAlive: false,
         // Pin DNS to the validated IP for this connection. `lookup` is the only
-        // resolution that runs after this point.
-        lookup: (_hostname, _opts, cb) => cb(null, ip, family || 4),
+        // resolution that runs after this point. Node ≥20 enables
+        // autoSelectFamily by default, which calls lookup with {all: true} and
+        // expects an ARRAY of {address, family} — the legacy 3-arg callback
+        // form then fails every request with "Invalid IP address: undefined".
+        lookup: (_hostname, opts, cb) => {
+            const fam = family || 4;
+            if (opts && opts.all) return cb(null, [{ address: ip, family: fam }]);
+            return cb(null, ip, fam);
+        },
     });
     return fetch(urlString, { ...options, agent });
 }
