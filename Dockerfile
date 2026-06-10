@@ -1,5 +1,16 @@
 # Brevis production image. Railway currently builds via nixpacks.toml; this
 # image gives parity for local dev (docker-compose) and any future host.
+
+# --- Stage 1: build the SPA (needs devDependencies for vite) ---
+FROM node:22-slim AS web-builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY web ./web
+COPY public ./public
+RUN npm run build
+
+# --- Stage 2: runtime ---
 FROM node:22-slim
 
 WORKDIR /app
@@ -10,6 +21,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY . .
+COPY --from=web-builder /app/dist-web ./dist-web
 
 EXPOSE 3000
 
