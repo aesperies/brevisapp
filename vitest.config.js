@@ -16,7 +16,9 @@ export default defineConfig({
         testTimeout: 30000,
         env: {
             NODE_ENV: 'test',
-            DATABASE_URL: 'postgresql://localhost:5432/brevis_test',
+            // Overridable for CI (service container needs user/password in the URL);
+            // tests/setup.js still hard-refuses any DB not named brevis_test.
+            DATABASE_URL: process.env.TEST_DATABASE_URL || 'postgresql://localhost:5432/brevis_test',
             JWT_SECRET: 'test-jwt-secret-not-for-production',
             EMAIL_WEBHOOK_SECRET: 'test-webhook-secret',
             // Dummy key so no code path can ever hit the real Anthropic API
