@@ -84,9 +84,21 @@ app.use(cors({
     ],
     credentials: true
 }));
-// Parse JSON for all routes except Stripe webhook (needs raw body)
+// API versioning: /api/v1/* is the canonical prefix going forward; the
+// unversioned /api/* paths stay supported so existing clients never break.
+// The rewrite happens before body parsing and routing so every router,
+// limiter, and the Stripe raw-body exception see one canonical URL.
 app.use((req, res, next) => {
-    if (req.originalUrl === '/api/stripe/webhook') {
+    if (req.url.startsWith('/api/v1/')) {
+        req.url = '/api/' + req.url.slice('/api/v1/'.length);
+    }
+    next();
+});
+
+// Parse JSON for all routes except Stripe webhook (needs raw body).
+// Checks req.url (post-rewrite) so /api/v1/stripe/webhook is covered too.
+app.use((req, res, next) => {
+    if (req.url === '/api/stripe/webhook') {
         next();
     } else {
         express.json({ limit: '10mb' })(req, res, next);
