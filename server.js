@@ -1,135 +1,41 @@
 import 'dotenv/config';
 import crypto from 'crypto';
-import dns from 'dns';
-import http from 'http';
-import https from 'https';
-import net from 'net';
-import { promisify } from 'util';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
-import multer from 'multer';
-import Stripe from 'stripe';
 
 import { simpleParser } from 'mailparser';
-import nodemailer from 'nodemailer';
-import sgMail from '@sendgrid/mail';
-import OpenAI from 'openai';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
-import Parser from 'rss-parser';
 
 import { setupDatabase, generateEmailCode, createInitialUser, dbHelpers, getDb, invalidateUserAutoTagCache } from './database.js';
 import { recordAutoTagRemoval } from './lib/auto-tagger.js';
-import { generateToken, verifyToken, makeAuthMiddleware } from './auth.js';
-
-// DB-backed authMiddleware: validates JWT signature AND token_version (revoked on password change)
-const authMiddleware = makeAuthMiddleware(async (userId) => {
-    const db = getDb();
-    const result = await db.query('SELECT token_version, plan, language, trial_end_date FROM users WHERE id = $1', [userId]);
-    return result.rows[0] ?? { token_version: 0 };
-});
+import { generateToken, verifyToken } from './auth.js';
 import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction, PLANS } from './ai-service.js';
 import { createGraphRouter } from './graph-routes.js';
 import { extractAndStoreGraph } from './graph-extractor.js';
 import { createKBRouter } from './kb-routes.js';
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY.trim()) : null;
-
-// ============= ERROR HANDLING UTILITIES =============
-
-class AppError extends Error {
-    constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {
-        super(message);
-        this.statusCode = statusCode;
-        this.code = code;
-        this.isOperational = true;
-    }
-}
-
-const asyncHandler = (fn) => (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
-
-// ============= STRUCTURED LOGGING =============
-
-const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
-const LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
-
-const log = {
-    _emit(level, msg, meta = {}) {
-        if (LEVELS[level] > LEVELS[LOG_LEVEL]) return;
-        const entry = { level, msg, ts: new Date().toISOString(), ...meta };
-        // Redact sensitive fields
-        if (entry.email) entry.email = maskEmail(entry.email);
-        if (entry.token) entry.token = '[REDACTED]';
-        if (entry.password) entry.password = '[REDACTED]';
-        if (level === 'error') console.error(JSON.stringify(entry));
-        else console.log(JSON.stringify(entry));
-    },
-    error: (msg, meta) => log._emit('error', msg, meta),
-    warn:  (msg, meta) => log._emit('warn', msg, meta),
-    info:  (msg, meta) => log._emit('info', msg, meta),
-    debug: (msg, meta) => log._emit('debug', msg, meta),
-};
-
-// ============= REQUEST ID MIDDLEWARE =============
-
-// Email sending: prefer SendGrid API (works on Railway), fallback to SMTP
-let emailEnabled = false;
-const EMAIL_FROM = process.env.SMTP_FROM || process.env.SMTP_USER || 'info@brevisapp.com';
-
-// SMTP transporter created once at startup and reused for all emails
-let smtpTransporter = null;
-
-if (process.env.SENDGRID_API_KEY) {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    emailEnabled = true;
-    console.log('✅ Email configured via SendGrid API (verification, password reset, Kindle)');
-} else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
-    smtpTransporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false,
-        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
-    });
-    emailEnabled = true;
-    console.log('✅ Email configured via SMTP (verification, password reset, Kindle)');
-} else {
-    console.log('⚠️  Email not configured — set SENDGRID_API_KEY or SMTP_HOST/SMTP_USER/SMTP_PASSWORD');
-    console.log('   Email verification, password reset, and Kindle features will be disabled');
-}
-
-// Unified email sender: uses SendGrid API or SMTP
-async function sendEmail({ to, subject, html, text }) {
-    if (!emailEnabled) throw new Error('Email service not configured');
-
-    if (process.env.SENDGRID_API_KEY) {
-        await sgMail.send({
-            to,
-            from: EMAIL_FROM,
-            subject,
-            html: html || undefined,
-            text: text || undefined
-        });
-    } else {
-        await smtpTransporter.sendMail({ from: EMAIL_FROM, to, subject, html, text });
-    }
-}
-
-// Initialize OpenAI for text-to-speech (optional)
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
-if (openai) {
-    console.log('✅ OpenAI configured for audio generation');
-} else {
-    console.log('⚠️  OpenAI not configured (audio feature disabled)');
-}
+import { log, maskEmail } from './src/utils/logger.js';
+import { asyncHandler } from './src/utils/errors.js';
+import { extractUrls, cleanForwardedContent, cleanTextContent } from './src/utils/content.js';
+import { safeFetch } from './src/utils/safe-fetch.js';
+import { sendEmail, emailEnabled } from './src/services/email.js';
+import { detectPlatform, fetchGenericContent, extractTweetId, fetchFullThread } from './src/services/import.js';
+import { safeParseRssUrl, startRssCron } from './src/services/rss.js';
+import { authMiddleware } from './src/middleware/auth.js';
+import { upload } from './src/middleware/uploads.js';
+import { stripe, openai, STRIPE_PRICES } from './src/clients.js';
+import {
+    authLimiter, registerLimiter, aiLimiter, importLimiter, subscriptionLimiter,
+    webhookLimiter, tagMutationLimiter, kindleLimiter, newsletterCrudLimiter, waitlistLimiter
+} from './src/middleware/rate-limits.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -137,13 +43,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-
-// Mask emails in logs for privacy (an***@gmail.com)
-const maskEmail = (email) => {
-    if (!email || !email.includes('@')) return '***';
-    const [local, domain] = email.split('@');
-    return local.slice(0, 2) + '***@' + domain;
-};
 
 console.log('🚀 Starting BREVIS server...');
 console.log('📁 Directory:', __dirname);
@@ -158,9 +57,6 @@ try {
 } catch (error) {
     console.error('❌ Database initialization failed:', error);
 }
-
-// Configure multer for SendGrid webhook
-const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } }); // 25MB max
 
 // HTTPS redirect — Railway terminates SSL at the load balancer and sets
 // x-forwarded-proto. This catches any direct HTTP requests that slip through.
@@ -219,159 +115,6 @@ app.use((req, res, next) => {
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Helper functions
-function extractUrls(text) {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.match(urlRegex) || [];
-}
-
-function cleanForwardedContent(html) {
-    if (!html) return '';
-
-    // Remove common forwarding headers and signatures
-    let cleaned = html;
-
-    // Remove Gmail forwarding header
-    cleaned = cleaned.replace(/---------- Forwarded message ---------[\s\S]*?<br\s*\/?>\s*<br\s*\/?>/gi, '');
-    cleaned = cleaned.replace(/<div[^>]*>---------- Forwarded message ---------<\/div>[\s\S]*?(?=<div|<table|<p|$)/gi, '');
-
-    // Remove "From:", "Date:", "Subject:", "To:" lines at the beginning (forwarding metadata)
-    cleaned = cleaned.replace(/<div[^>]*>From:[\s\S]*?<\/div>/gi, '');
-    cleaned = cleaned.replace(/<div[^>]*>Date:[\s\S]*?<\/div>/gi, '');
-    cleaned = cleaned.replace(/<div[^>]*>Subject:[\s\S]*?<\/div>/gi, '');
-    cleaned = cleaned.replace(/<div[^>]*>To:[\s\S]*?<\/div>/gi, '');
-
-    // Remove blockquote wrapping (often used for forwarded content)
-    cleaned = cleaned.replace(/<blockquote[^>]*class="[^"]*gmail_quote[^"]*"[^>]*>([\s\S]*?)<\/blockquote>/gi, '$1');
-
-    // Remove empty divs and excessive whitespace
-    cleaned = cleaned.replace(/<div[^>]*>\s*<\/div>/gi, '');
-    cleaned = cleaned.replace(/<br\s*\/?>\s*<br\s*\/?>\s*<br\s*\/?>/gi, '<br><br>');
-
-    return cleaned.trim();
-}
-
-function cleanTextContent(text) {
-    if (!text) return '';
-
-    let cleaned = text;
-
-    // Remove forwarding headers
-    cleaned = cleaned.replace(/---------- Forwarded message ---------[\s\S]*?\n\n/gi, '');
-    cleaned = cleaned.replace(/^From:.*\n/gim, '');
-    cleaned = cleaned.replace(/^Date:.*\n/gim, '');
-    cleaned = cleaned.replace(/^Subject:.*\n/gim, '');
-    cleaned = cleaned.replace(/^To:.*\n/gim, '');
-
-    // Remove image placeholders like [image: description] or [cid:...]
-    cleaned = cleaned.replace(/\[image:[^\]]*\]/gi, '');
-    cleaned = cleaned.replace(/\[cid:[^\]]*\]/gi, '');
-
-    // Remove excessive newlines
-    cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
-
-    return cleaned.trim();
-}
-
-// ============= AUTH ROUTES =============
-
-// Rate limiters for auth endpoints
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
-    message: { error: 'Too many attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-const registerLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 registrations per hour per IP
-    message: { error: 'Too many registration attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-// Rate limiter for AI/expensive operations (summaries, briefs, reports, audio, news builder)
-const aiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 30, // 30 AI requests per 15 min per IP
-    message: { error: 'Too many AI requests, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-// Rate limiter for URL imports and file uploads
-const importLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: { error: 'Too many import requests, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-// Rate limiter for subscription management (add/delete/import)
-const subscriptionLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 30, // 30 subscription changes per 15 min per IP
-    message: { error: 'Too many subscription requests, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-// Rate limiter for email webhook (prevent flooding)
-const webhookLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 30, // 30 emails per minute
-    message: { error: 'Too many webhook requests' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-// Rate limiter for newsletter↔tag mutations (POST /:id/tags/:tagId, DELETE /:id/tags/:tagId).
-// The DELETE path now writes to sender_tag_blocklist when the user removes an auto-tag, so
-// rapid add/remove cycles can train the blocklist. Bound is generous for normal usage
-// (a power user editing tags on dozens of newsletters in a session) but stops automation.
-const tagMutationLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    message: { error: 'Too many tag changes, please slow down' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-// Per-user limiter for Kindle send (the endpoint dispatches mail to a user-controlled
-// kindle_email address; throttle to prevent abuse / mailcost runaway).
-const kindleLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // 10 sends/hour
-    message: { error: 'Too many Kindle sends, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => (req.user?.id ? `kindle:${req.user.id}` : req.ip)
-});
-
-// Light limiter for newsletter CRUD reads (GET list, GET item) and DELETE.
-// Intent is to stop scrapers, not to bother power users.
-const newsletterCrudLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 600, // ~40/min — well above any human pattern
-    message: { error: 'Too many newsletter requests, please slow down' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => (req.user?.id ? `nlcrud:${req.user.id}` : req.ip)
-});
-
-// Waitlist limiter — keyed by IP since the user is unauthenticated.
-// 5 signups/hour per IP is plenty for a real human and stops fill-the-table spam.
-const waitlistLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
-    message: { error: 'Too many waitlist signups from this network, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
 
 // Knowledge Graph routes
 app.use('/api/graph', authMiddleware, createGraphRouter());
@@ -1005,215 +748,6 @@ app.post('/api/news-builder/upload-file', importLimiter, authMiddleware, upload.
 
 // === URL Import & Bookmarklet ===
 
-const dnsLookup = promisify(dns.lookup);
-
-function isPrivateIP(ip) {
-    if (typeof ip !== 'string') return true;
-    const family = net.isIP(ip);
-    if (family === 4) {
-        const parts = ip.split('.').map(Number);
-        return (
-            parts[0] === 127 ||
-            parts[0] === 10 ||
-            (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-            (parts[0] === 192 && parts[1] === 168) ||
-            (parts[0] === 169 && parts[1] === 254) || // link-local incl. AWS/GCP metadata 169.254.169.254
-            (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) || // CGNAT
-            parts[0] === 0
-        );
-    }
-    if (family === 6) {
-        const lower = ip.toLowerCase();
-        // ::1, unspecified, link-local fe80::/10, unique-local fc00::/7,
-        // and IPv4-mapped (::ffff:0:0/96) — also treat any '::ffff:'-mapped private v4 as private.
-        if (lower === '::1' || lower === '::') return true;
-        if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true;
-        if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
-        if (lower.startsWith('::ffff:')) {
-            const v4 = lower.slice(7);
-            return isPrivateIP(v4);
-        }
-        return false;
-    }
-    return true; // unknown family → treat as private
-}
-
-/**
- * Validate a URL is safe to fetch from the server.
- * Returns the resolved IP so the caller can pin DNS to it during fetch
- * (closing the DNS-rebinding window between validation and use).
- */
-async function validateUrlForFetch(urlString) {
-    let parsed;
-    try {
-        parsed = new URL(urlString);
-    } catch {
-        return { safe: false, reason: 'Invalid URL' };
-    }
-
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-        return { safe: false, reason: 'Only HTTP/HTTPS URLs are allowed' };
-    }
-
-    const hostname = parsed.hostname;
-    if (hostname === 'localhost') {
-        return { safe: false, reason: 'Local addresses are not allowed' };
-    }
-    // Direct-IP hostnames bypass DNS — validate them immediately.
-    if (net.isIP(hostname)) {
-        if (isPrivateIP(hostname)) {
-            return { safe: false, reason: 'URL targets a private IP address' };
-        }
-        return { safe: true, ip: hostname, family: net.isIP(hostname), parsed };
-    }
-
-    try {
-        // Resolve all addresses, validate every one (defense against round-robin DNS
-        // returning a mix of public and private IPs), then pin to the first.
-        const addresses = await dnsLookup(hostname, { all: true });
-        if (!addresses.length) {
-            return { safe: false, reason: 'Hostname did not resolve' };
-        }
-        for (const { address } of addresses) {
-            if (isPrivateIP(address)) {
-                return { safe: false, reason: 'URL resolves to a private IP address' };
-            }
-        }
-        const pinned = addresses[0];
-        return { safe: true, ip: pinned.address, family: pinned.family, parsed };
-    } catch {
-        return { safe: false, reason: 'Could not resolve hostname' };
-    }
-}
-
-/**
- * Fetch a URL with DNS pinned to the IP that was validated.
- * Closes the DNS-rebinding window: between `validateUrlForFetch` resolving
- * and the actual TCP connect, an attacker-controlled DNS server cannot
- * flip the answer to an internal IP. The pin uses a custom `lookup` on
- * the http(s).Agent so SNI / Host header behavior is unchanged.
- *
- * Throws an Error with code 'URL_BLOCKED' when validation fails.
- */
-async function safeFetch(urlString, options = {}) {
-    const validation = await validateUrlForFetch(urlString);
-    if (!validation.safe) {
-        const err = new Error(`URL blocked: ${validation.reason}`);
-        err.code = 'URL_BLOCKED';
-        err.reason = validation.reason;
-        throw err;
-    }
-    const { ip, family, parsed } = validation;
-    const AgentCtor = parsed.protocol === 'https:' ? https.Agent : http.Agent;
-    const agent = new AgentCtor({
-        keepAlive: false,
-        // Pin DNS to the validated IP for this connection. `lookup` is the only
-        // resolution that runs after this point.
-        lookup: (_hostname, _opts, cb) => cb(null, ip, family || 4),
-    });
-    return fetch(urlString, { ...options, agent });
-}
-
-function detectPlatform(url) {
-    if (/twitter\.com|x\.com/i.test(url)) return 'twitter';
-    if (/linkedin\.com/i.test(url)) return 'linkedin';
-    return 'unknown';
-}
-
-async function fetchGenericContent(url) {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-        let response;
-        try {
-            // safeFetch validates the URL and pins DNS to the validated IP
-            // so the connect cannot be redirected to an internal address by
-            // an attacker-controlled DNS server between validation and fetch.
-            response = await safeFetch(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0)' },
-                redirect: 'manual',
-                signal: controller.signal
-            });
-        } catch (err) {
-            if (err?.code === 'URL_BLOCKED') {
-                console.error('URL blocked:', url, err.reason);
-                return null;
-            }
-            throw err;
-        } finally {
-            clearTimeout(timeoutId);
-        }
-        // Reject redirects to prevent SSRF bypass via redirect to internal IP
-        if (response.status >= 300 && response.status < 400) return null;
-        const html = await response.text();
-
-        // Extraer metadata con regex (sin cheerio para simplicidad)
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
-        const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
-        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-        const authorMatch = html.match(/<meta[^>]*name=["']author["'][^>]*content=["']([^"']+)["']/i);
-
-        const title = ogTitleMatch?.[1] || titleMatch?.[1] || new URL(url).hostname;
-        const description = ogDescMatch?.[1] || descMatch?.[1] || '';
-        const author = authorMatch?.[1] || new URL(url).hostname;
-
-        // Extraer contenido del body (simplificado)
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        let content = bodyMatch?.[1] || '';
-        content = content.replace(/<script[\s\S]*?<\/script>/gi, '');
-        content = content.replace(/<style[\s\S]*?<\/style>/gi, '');
-        content = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        content = content.substring(0, 5000);
-
-        return { title, author, content: `<p>${description}</p><p>${content}</p>` };
-    } catch (error) {
-        console.error('Error fetching generic URL:', error);
-        return null;
-    }
-}
-
-function extractTweetId(url) {
-    const match = url.match(/(?:twitter|x)\.com\/\w+\/status\/(\d+)/);
-    return match ? match[1] : null;
-}
-
-async function fetchFullThread(tweetId) {
-    // Primary: fxtwitter — single API call, returns thread data if available
-    try {
-        const res = await fetch(`https://api.fxtwitter.com/x/status/${tweetId}`, {
-            headers: { 'User-Agent': 'BREVIS/1.0' }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.tweet) {
-                const tweet = data.tweet;
-                // fxtwitter may include continuation tweets in thread.tweets
-                const continuationTweets = tweet.thread?.tweets || [];
-                const allTweets = continuationTweets.length > 0
-                    ? [tweet, ...continuationTweets]
-                    : [tweet];
-                return { tweet, thread: allTweets };
-            }
-        }
-    } catch (e) { /* fallback */ }
-
-    // Fallback: syndication API
-    try {
-        const res = await fetch(`https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&token=x`);
-        if (res.ok) {
-            const synData = await res.json();
-            const tweet = {
-                id: tweetId,
-                text: synData.text || '',
-                author: { name: synData.user?.name, screen_name: synData.user?.screen_name },
-            };
-            return { tweet, thread: [tweet] };
-        }
-    } catch (e) { /* give up */ }
-
-    return null;
-}
 
 app.post('/api/import/url', importLimiter, authMiddleware, asyncHandler(async (req, res) => {
     const { url } = req.body;
@@ -1662,29 +1196,6 @@ app.get('/api/plans', (req, res) => {
 
 // ============= STRIPE ROUTES =============
 
-const STRIPE_PRICES = {
-    // Keep pro for backward compatibility
-    pro_month: process.env.STRIPE_PRICE_PRO_MONTHLY,
-    pro_year: process.env.STRIPE_PRICE_PRO_ANNUAL,
-    // Standard uses same price IDs as pro (rebranded)
-    standard_month: process.env.STRIPE_PRICE_PRO_MONTHLY,
-    standard_year: process.env.STRIPE_PRICE_PRO_ANNUAL,
-    premium_month: process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
-    premium_year: process.env.STRIPE_PRICE_PREMIUM_ANNUAL
-};
-
-// Log Stripe config status at startup
-if (process.env.STRIPE_SECRET_KEY) {
-    const missingPrices = Object.entries(STRIPE_PRICES)
-        .filter(([, v]) => !v)
-        .map(([k]) => k);
-    if (missingPrices.length > 0) {
-        console.warn('⚠️  [Stripe] Missing price IDs for:', missingPrices.join(', '));
-        console.warn('   Set STRIPE_PRICE_PRO_MONTHLY, STRIPE_PRICE_PRO_ANNUAL, STRIPE_PRICE_PREMIUM_MONTHLY, STRIPE_PRICE_PREMIUM_ANNUAL in env vars.');
-    } else {
-        console.log('✅ [Stripe] All price IDs configured.');
-    }
-}
 
 app.post('/api/stripe/checkout', authMiddleware, asyncHandler(async (req, res) => {
     if (!stripe) {
@@ -2006,38 +1517,6 @@ app.get('/health', async (req, res) => {
 
 // ============= SUBSCRIPTION / RSS ROUTES =============
 
-const rssParser = new Parser();
-
-/**
- * SSRF-safe wrapper around rssParser.parseURL.
- * `rssParser.parseURL` does its own DNS lookup, which would re-open the
- * rebinding window we close in safeFetch. Fetch the body via safeFetch
- * (DNS pinned to validated IP) and feed it to parseString instead.
- */
-async function safeParseRssUrl(url, { timeoutMs = 20000 } = {}) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-        const response = await safeFetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; Brevis/1.0; +https://brevisapp.com)',
-                'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
-            },
-            redirect: 'manual',
-            signal: controller.signal,
-        });
-        if (response.status >= 300 && response.status < 400) {
-            throw new Error(`RSS feed redirected (status ${response.status}); refusing to follow`);
-        }
-        if (!response.ok) {
-            throw new Error(`RSS feed returned status ${response.status}`);
-        }
-        const body = await response.text();
-        return await rssParser.parseString(body);
-    } finally {
-        clearTimeout(timeoutId);
-    }
-}
 
 app.get('/api/subscriptions', authMiddleware, asyncHandler(async (req, res) => {
     const db = dbHelpers.getDb();
@@ -2130,74 +1609,9 @@ app.delete('/api/subscriptions/:id', subscriptionLimiter, authMiddleware, asyncH
     res.json({ success: true });
 }));
 
-// RSS fetch cron - runs every 30 minutes
-let rssCronRunning = false;
-async function fetchAllRSSFeeds() {
-    if (rssCronRunning) {
-        console.log('⏭️  RSS cron skipped — previous run still in progress');
-        return;
-    }
-    rssCronRunning = true;
-    try {
-        const db = dbHelpers.getDb();
-        const subs = await db.query('SELECT s.*, u.id as uid FROM subscriptions s JOIN users u ON s.user_id = u.id');
-
-        for (const sub of subs.rows) {
-            try {
-                // safeParseRssUrl re-validates the URL on every cron run (preventing
-                // DNS rebinding via subscriptions that were valid at signup but later
-                // pointed to internal IPs) and pins DNS to the validated IP.
-                const feed = await safeParseRssUrl(sub.url, { timeoutMs: 20000 });
-                const sender = feed.title || sub.name || 'RSS Feed';
-
-                for (const item of (feed.items || []).slice(0, 10)) {
-                    // Deduplicate by URL (item.link) — title-based dedup was fragile and caused missed updates
-                    const itemUrl = item.link || '';
-                    if (itemUrl) {
-                        const existing = await db.query(
-                            'SELECT id FROM newsletters WHERE user_id = $1 AND url = $2',
-                            [sub.user_id, itemUrl]
-                        );
-                        if (existing.rows.length > 0) continue;
-                    } else {
-                        // Fallback: title+sender dedup for items with no URL
-                        const existing = await db.query(
-                            'SELECT id FROM newsletters WHERE user_id = $1 AND title = $2 AND sender = $3',
-                            [sub.user_id, item.title || 'Untitled', sender]
-                        );
-                        if (existing.rows.length > 0) continue;
-                    }
-
-                    // Route through the helper so sender_key is derived and auto-tagging
-                    // runs on RSS items just like every other ingest path.
-                    await dbHelpers.createNewsletter(
-                        sub.user_id,
-                        item.title || 'Untitled',
-                        sender,
-                        item.content || item.contentSnippet || '',
-                        item.link || '',
-                        { source: 'rss', feedUrl: sub.url }
-                    );
-                }
-
-                await db.query('UPDATE subscriptions SET last_fetched = NOW() WHERE id = $1', [sub.id]);
-            } catch (e) {
-                console.error('⚠️  RSS fetch error for', sub.url, ':', e.message);
-            }
-        }
-        console.log('✅ RSS feeds fetched at', new Date().toISOString());
-    } catch (e) {
-        console.error('❌ RSS cron error:', e);
-    } finally {
-        rssCronRunning = false;
-    }
-}
-
-// Run RSS fetch every 30 minutes (not under test — timers keep the process alive)
+// RSS fetch cron — every 30 minutes (not under test: timers keep the process alive)
 if (process.env.NODE_ENV !== 'test') {
-    setInterval(fetchAllRSSFeeds, 30 * 60 * 1000);
-    // Also run once on startup (after 10 seconds delay)
-    setTimeout(fetchAllRSSFeeds, 10000);
+    startRssCron();
 }
 
 // Landing page at root
