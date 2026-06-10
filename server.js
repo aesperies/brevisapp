@@ -1318,7 +1318,8 @@ app.patch('/api/newsletters/:id', authMiddleware, newsletterCrudLimiter, [
 
     const updates = {};
     if (req.body.is_read !== undefined) {
-        updates.is_read = req.body.is_read;
+        // Column is INTEGER (0/1) — pg rejects a JS boolean against it
+        updates.is_read = req.body.is_read ? 1 : 0;
     }
 
     const updated = await dbHelpers.updateNewsletter(parseInt(req.params.id), updates);
@@ -2192,10 +2193,12 @@ async function fetchAllRSSFeeds() {
     }
 }
 
-// Run RSS fetch every 30 minutes
-setInterval(fetchAllRSSFeeds, 30 * 60 * 1000);
-// Also run once on startup (after 10 seconds delay)
-setTimeout(fetchAllRSSFeeds, 10000);
+// Run RSS fetch every 30 minutes (not under test — timers keep the process alive)
+if (process.env.NODE_ENV !== 'test') {
+    setInterval(fetchAllRSSFeeds, 30 * 60 * 1000);
+    // Also run once on startup (after 10 seconds delay)
+    setTimeout(fetchAllRSSFeeds, 10000);
+}
 
 // Landing page at root
 app.get('/', (req, res) => {
@@ -2250,7 +2253,9 @@ process.on('unhandledRejection', (reason) => {
 
 // ============= SERVER START =============
 
-app.listen(PORT, '0.0.0.0', () => {
+export { app };
+
+if (process.env.NODE_ENV !== 'test') app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║                    BREVIS Server                       ║

@@ -2,7 +2,33 @@
 
 ---
 
-## ACTIVE SPRINT — Agent Stack v1 (May 4 → May 10, 2026)
+## ACTIVE SPRINT — 10x Upgrade, Phase 1 (started 2026-06-10, branch `refactor/architecture-overhaul`)
+
+**Mission:** Execute the "Brevis 10x" overhaul. Reality check vs the brief: the app is ALREADY on PostgreSQL (pg pool, migrations system), already 3-tier (Free/Standard $12/Premium $29), already has Helmet+HSTS, CORS whitelist, 10 rate limiters, structured JSON logs w/ redaction, JWT revocation via token_version, complete Stripe, working SendGrid inbound email. The brief's Phase 1A (LowDB→Postgres) is a no-op. The real gaps: 2,268-line server.js monolith, zero wired tests, no CI, no Docker, no API versioning, hardcoded prompts, single-file 128KB frontend.
+
+### This PR's scope (Phase 1 of N)
+- [ ] **Test harness**: Vitest + Supertest, `npm test`, test DB `brevis_test` on local PG15 (NEVER the dev/prod DB). Requires app/listen split.
+- [ ] **Characterization tests** (write BEFORE refactor, green on old code): auth register/login/me/logout/profile, newsletters CRUD, tags CRUD + newsletter-tag attach, /api/plans, plan gating on AI routes (Claude mocked), email webhook secret check, API 404 JSON, health.
+- [ ] **Modular refactor (brief Phase 1B)**: server.js → `src/` (config, middleware, routes, services). Code MOVES, not rewrites (lesson 2026-04-10). Tests green after every slice. Root server.js stays as entry shim (nixpacks runs `node server.js`).
+- [ ] **Security ship list** (from tasks/code_review_2026-05-18/25 — 2 High + Mediums): fence user content in KB/graph prompts; validate+cap `extractionPrompt`; `npm audit fix` (qs, brace-expansion); multer →^2 + smoke the 5 upload routes; `crypto.timingSafeEqual` for email webhook secret; fix setImmediate error swallow.
+- [ ] **API v1 (brief Phase 1C, non-breaking)**: mount routers at `/api/v1/*` AND legacy `/api/*` aliases. No client breaks.
+- [ ] **Prompt versioning (brief 5A-lite)**: extract hardcoded prompts from ai-service.js → `prompts/` versioned modules.
+- [ ] **Rich health check**: `/api/health` reports DB + Stripe + email config status.
+- [ ] **CI (brief 6B)**: GitHub Actions — tests w/ PG service container + npm audit on PR/push.
+- [ ] **Docker (brief 6A)**: Dockerfile + docker-compose.yml (app + postgres) for local dev parity.
+- [ ] **Docs (brief 8)**: docs/ARCHITECTURE.md, README + .env.example sync.
+- [ ] **Self-audit + review section** at bottom of this file.
+
+### Deliberately deferred to later PRs (flagged trade-offs)
+- Frontend build step + componentization (brief Phase 7) — big, independent; PR 2.
+- Refresh-token rotation (brief 2A) — auth surgery; current token_version revocation is sound interim; PR 3.
+- Sentry + Prometheus/OTel (brief 3) — needs vendor decision ($); PR 3.
+- Full OpenAPI spec (1C), field-level encryption (2C), full-text search (5C), collaboration (5D) — later.
+- Brief's Phase 1A (LowDB→PG): already done in reality; skipping.
+
+---
+
+## PREVIOUS SPRINT — Agent Stack v1 (May 4 → May 10, 2026)
 
 **Mission:** Brevis run by 6 agents in 7 days. Editor + Growth drive MRR; Sales + Support raise conversion + cut Antonio's inbox time; Engineer ships code; Ops watches everything. All on a single Node-native runtime, MCP-style tool layer, Postgres event bus.
 
