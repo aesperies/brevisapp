@@ -51,6 +51,30 @@ describe('platform behavior', () => {
                 .send({});
             expect(res.status).toBe(401);
         });
+
+        it('rejects a wrong secret in the URL path', async () => {
+            const res = await request(app).post('/api/webhook/email/wrong-secret').send({});
+            expect(res.status).toBe(401);
+        });
+
+        it('accepts the secret as a URL path param (SendGrid cannot send headers)', async () => {
+            // Auth passes; empty payload then fails recipient parsing with 400 —
+            // proves we got past the secret check.
+            const res = await request(app)
+                .post('/api/webhook/email/test-webhook-secret')
+                .send({});
+            expect(res.status).toBe(400);
+            expect(res.body.error).toMatch(/recipient/i);
+        });
+
+        it('accepts the secret via header too', async () => {
+            const res = await request(app)
+                .post('/api/webhook/email')
+                .set('x-webhook-secret', 'test-webhook-secret')
+                .send({});
+            expect(res.status).toBe(400);
+            expect(res.body.error).toMatch(/recipient/i);
+        });
     });
 
     it('stripe checkout reports unavailable when Stripe is not configured', async () => {

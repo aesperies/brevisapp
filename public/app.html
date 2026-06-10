@@ -1386,7 +1386,7 @@
             crossorigin="anonymous"></script>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         // TRANSLATIONS
         const translations = {
@@ -1423,6 +1423,10 @@
                 sendToKindle: 'Send to Kindle',
                 more: 'More',
                 aiSummary: 'AI Summary',
+                generateSummary: 'Summarize',
+                generatingSummary: 'Summarizing…',
+                translateSummary: 'Translate',
+                summaryFailed: 'Couldn’t generate summary',
                 newsletter: 'Newsletter',
                 news: 'News',
                 aiNewsBrief: 'AI News Brief',
@@ -1493,6 +1497,10 @@
                 sendToKindle: 'Enviar a Kindle',
                 more: 'Más',
                 aiSummary: 'Resumen IA',
+                generateSummary: 'Resumir',
+                generatingSummary: 'Resumiendo…',
+                translateSummary: 'Traducir',
+                summaryFailed: 'No se pudo generar el resumen',
                 newsletter: 'Boletín',
                 news: 'Noticias',
                 aiNewsBrief: 'Resumen de Noticias IA',
@@ -1874,6 +1882,7 @@
                 tags: tagList.map(t => typeof t === 'string' ? t : (t && t.name) || '').filter(Boolean),
                 autoTags,
                 summary: n.summary || '',
+                summary_language: n.summary_language || null,
                 content: n.content || '',
                 url: n.url || null,
                 isRead: !!n.is_read,
@@ -1947,6 +1956,11 @@
             const [sidebarOpen, setSidebarOpen] = useState(false);
             const [importing, setImporting] = useState(false);
             const [importError, setImportError] = useState(null);
+            const [emailDomain, setEmailDomain] = useState('mail.brevisapp.com');
+            // Per-newsletter "summarizing" flags. Set<number> of newsletter ids.
+            // Cleared when the request resolves (success or error) so the button
+            // can be retried.
+            const [summarizingIds, setSummarizingIds] = useState(() => new Set());
 
             // Snapshot of the user's settings at the moment the settings modal opens.
             // Used to dirty-check on save: the auto-tag toggle is a controlled checkbox
@@ -1978,46 +1992,83 @@
                 }
             }, [activeModal]);
 
-            // Fetch newsletters, tags, subscriptions, user profile on mount.
+            // Load newsletters, tags, subscriptions, user profile.
+            // `silent` skips the loading spinner (used by polling + focus refetch).
+            const loadData = useCallback(async ({ silent = false } = {}) => {
+                try {
+                    if (!silent) setDataLoading(true);
+                    const [nRes, tRes, sRes, uRes] = await Promise.all([
+                        fetch('/api/newsletters', { credentials: 'include' }),
+                        fetch('/api/tags', { credentials: 'include' }),
+                        fetch('/api/subscriptions', { credentials: 'include' }),
+                        fetch('/api/auth/me', { credentials: 'include' }),
+                    ]);
+                    if (!nRes.ok) throw new Error('Failed to load newsletters (' + nRes.status + ')');
+                    if (!tRes.ok) throw new Error('Failed to load tags (' + tRes.status + ')');
+                    const nJson = await nRes.json();
+                    const tJson = await tRes.json();
+                    const sJson = sRes.ok ? await sRes.json() : [];
+                    const uJson = uRes.ok ? await uRes.json() : {};
+                    const nArr = Array.isArray(nJson) ? nJson : (nJson.newsletters || []);
+                    const tArr = Array.isArray(tJson) ? tJson : (tJson.tags || []);
+                    const sArr = Array.isArray(sJson) ? sJson : (sJson.subscriptions || []);
+                    setNewsletters(nArr.map(normalizeNewsletter));
+                    setTags(tArr.map(t => ({
+                        id: t.id,
+                        name: t.name,
+                        color: t.color || '#FFD23F',
+                    })));
+                    setSubscriptions(sArr);
+                    setUser(uJson.user || uJson);
+                    setDataError(null);
+                } catch (err) {
+                    console.error('[brevis] data load failed:', err);
+                    if (!silent) setDataError(err.message || 'Failed to load data');
+                } finally {
+                    if (!silent) setDataLoading(false);
+                }
+            }, []);
+
+            // Initial load on mount.
+            useEffect(() => { loadData(); }, [loadData]);
+
+            // Email forwarding domain — fetched once from backend so the UI
+            // always matches the SendGrid Inbound Parse config (Railway env var).
             useEffect(() => {
                 let cancelled = false;
-                (async () => {
-                    try {
-                        setDataLoading(true);
-                        const [nRes, tRes, sRes, uRes] = await Promise.all([
-                            fetch('/api/newsletters', { credentials: 'include' }),
-                            fetch('/api/tags', { credentials: 'include' }),
-                            fetch('/api/subscriptions', { credentials: 'include' }),
-                            fetch('/api/auth/me', { credentials: 'include' }),
-                        ]);
-                        if (!nRes.ok) throw new Error('Failed to load newsletters (' + nRes.status + ')');
-                        if (!tRes.ok) throw new Error('Failed to load tags (' + tRes.status + ')');
-                        const nJson = await nRes.json();
-                        const tJson = await tRes.json();
-                        const sJson = sRes.ok ? await sRes.json() : [];
-                        const uJson = uRes.ok ? await uRes.json() : {};
-                        const nArr = Array.isArray(nJson) ? nJson : (nJson.newsletters || []);
-                        const tArr = Array.isArray(tJson) ? tJson : (tJson.tags || []);
-                        const sArr = Array.isArray(sJson) ? sJson : (sJson.subscriptions || []);
-                        if (cancelled) return;
-                        setNewsletters(nArr.map(normalizeNewsletter));
-                        setTags(tArr.map(t => ({
-                            id: t.id,
-                            name: t.name,
-                            color: t.color || '#FFD23F',
-                        })));
-                        setSubscriptions(sArr);
-                        setUser(uJson.user || uJson);
-                        setDataError(null);
-                    } catch (err) {
-                        console.error('[brevis] data load failed:', err);
-                        if (!cancelled) setDataError(err.message || 'Failed to load data');
-                    } finally {
-                        if (!cancelled) setDataLoading(false);
-                    }
-                })();
+                fetch('/api/config/email-domain')
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => { if (!cancelled && data && data.domain) setEmailDomain(data.domain); })
+                    .catch(() => { /* fall back to default state */ });
                 return () => { cancelled = true; };
             }, []);
+
+            // Auto-refresh: poll every 30s and refetch when the tab regains focus,
+            // so newsletters arriving via email-forwarding / RSS show up without a manual reload.
+            useEffect(() => {
+                const POLL_MS = 30000;
+                let intervalId = null;
+                const startPolling = () => {
+                    if (intervalId == null) intervalId = setInterval(() => loadData({ silent: true }), POLL_MS);
+                };
+                const stopPolling = () => {
+                    if (intervalId != null) { clearInterval(intervalId); intervalId = null; }
+                };
+                const onVisibility = () => {
+                    if (document.visibilityState === 'visible') {
+                        loadData({ silent: true });
+                        startPolling();
+                    } else {
+                        stopPolling();
+                    }
+                };
+                if (document.visibilityState === 'visible') startPolling();
+                document.addEventListener('visibilitychange', onVisibility);
+                return () => {
+                    stopPolling();
+                    document.removeEventListener('visibilitychange', onVisibility);
+                };
+            }, [loadData]);
 
             useEffect(() => {
                 document.documentElement.setAttribute('data-theme', theme);
@@ -2036,6 +2087,42 @@
                 setSelectedItems(prev =>
                     prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
                 );
+            };
+
+            // Trigger AI summary generation for a newsletter. The endpoint is
+            // gated on the user's plan; FREE returns 403, which we map to the
+            // upgrade modal. On success we merge the returned summary into both
+            // the list state and the open reader (if it matches).
+            const generateSummary = async (id) => {
+                if (!user || user.plan === 'free') {
+                    setActiveModal('upgrade');
+                    return;
+                }
+                if (summarizingIds.has(id)) return;
+                setSummarizingIds(prev => { const next = new Set(prev); next.add(id); return next; });
+                try {
+                    const res = await fetch(`/api/newsletters/${id}/summary`, {
+                        method: 'POST',
+                        credentials: 'include',
+                    });
+                    if (res.status === 403) {
+                        setActiveModal('upgrade');
+                        return;
+                    }
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        throw new Error(body.error || `HTTP ${res.status}`);
+                    }
+                    const data = await res.json();
+                    const patch = { summary: data.summary, summary_language: language };
+                    setNewsletters(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
+                    setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, ...patch } : prev);
+                } catch (err) {
+                    console.error('[brevis] generateSummary failed:', err);
+                    alert(t('summaryFailed') + ': ' + err.message);
+                } finally {
+                    setSummarizingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                }
             };
 
             const filteredNewsletters = newsLetters.filter(n => {
@@ -2121,7 +2208,7 @@
                             <div className="nav-section" style={{ padding: '12px', background: 'var(--yellow)', borderRadius: '10px', border: '2px solid var(--ink)', margin: '0 8px 8px' }}>
                                 <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px', opacity: 0.7 }}>Forward newsletters to:</div>
                                 <div style={{ fontSize: '12px', fontWeight: 600, wordBreak: 'break-all', fontFamily: "'Space Mono', monospace" }}>
-                                    {user.email_code}@newsletters.brevisapp.com
+                                    {user.email_code}@{emailDomain}
                                 </div>
                             </div>
                         )}
@@ -2351,6 +2438,23 @@
                                         >
                                             ✓
                                         </button>
+                                        {/* Summary: visible when we don't already have one in the current language.
+                                            Shows ⏳ while a request is in-flight. Clicking on FREE plan opens
+                                            the upgrade modal instead of hitting the API. */}
+                                        {(!newsletter.summary || newsletter.summary_language !== language) && (
+                                            <button
+                                                className="action-btn"
+                                                onClick={(e) => { e.stopPropagation(); generateSummary(newsletter.id); }}
+                                                disabled={summarizingIds.has(newsletter.id)}
+                                                title={
+                                                    summarizingIds.has(newsletter.id)
+                                                        ? t('generatingSummary')
+                                                        : (newsletter.summary ? t('translateSummary') : t('generateSummary'))
+                                                }
+                                            >
+                                                {summarizingIds.has(newsletter.id) ? '⏳' : '✦'}
+                                            </button>
+                                        )}
                                         <button
                                             className="action-btn"
                                             onClick={(e) => { e.stopPropagation(); }}
@@ -2419,12 +2523,23 @@
                                         <div className="reader-summary-title">
                                             ✦ {t('aiSummary')}
                                         </div>
-                                        <div
-                                            className="reader-text"
-                                            dangerouslySetInnerHTML={{
-                                                __html: DOMPurify.sanitize(formatSummaryHTML(selectedNewsletter.summary))
-                                            }}
-                                        />
+                                        {selectedNewsletter.summary ? (
+                                            <div
+                                                className="reader-text"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: DOMPurify.sanitize(formatSummaryHTML(selectedNewsletter.summary))
+                                                }}
+                                            />
+                                        ) : (
+                                            <button
+                                                className="btn"
+                                                style={{ marginTop: '8px' }}
+                                                onClick={() => generateSummary(selectedNewsletter.id)}
+                                                disabled={summarizingIds.has(selectedNewsletter.id)}
+                                            >
+                                                {summarizingIds.has(selectedNewsletter.id) ? t('generatingSummary') : ('✦ ' + t('generateSummary'))}
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div
@@ -2698,8 +2813,8 @@
                                         <div className="form-group">
                                             <label className="form-label">Your forwarding address</label>
                                             <div className="form-input" style={{ background: 'var(--yellow)', fontFamily: "'Space Mono', monospace", fontSize: '13px', cursor: 'pointer' }}
-                                                 onClick={() => { navigator.clipboard.writeText(user.email_code + '@newsletters.brevisapp.com'); alert('Copied!'); }}>
-                                                {user.email_code}@newsletters.brevisapp.com
+                                                 onClick={() => { navigator.clipboard.writeText(user.email_code + '@' + emailDomain); alert('Copied!'); }}>
+                                                {user.email_code}@{emailDomain}
                                             </div>
                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Click to copy. Forward any newsletter here to add it to Brevis.</div>
                                         </div>

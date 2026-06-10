@@ -160,7 +160,12 @@ app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const isOperational = err.isOperational || false;
 
-    log.error(`${req.method} ${req.path}`, {
+    // The email webhook carries its secret in the URL path — never log it.
+    const logPath = req.path.startsWith('/api/webhook/email/')
+        ? '/api/webhook/email/[REDACTED]'
+        : req.path;
+
+    log.error(`${req.method} ${logPath}`, {
         reqId: req.id,
         status: statusCode,
         message: err.message,
