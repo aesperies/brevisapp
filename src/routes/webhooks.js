@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import express from 'express';
 import { simpleParser } from 'mailparser';
 
@@ -28,7 +29,11 @@ router.post('/api/webhook/email', webhookLimiter, upload.none(), asyncHandler(as
             return res.status(503).json({ error: 'Webhook not configured' });
         }
         const providedSecret = req.headers['x-webhook-secret'];
-        if (providedSecret !== webhookSecret) {
+        // Timing-safe comparison; length pre-check because timingSafeEqual throws
+        // on unequal buffer lengths (and length is not secret here).
+        const provided = Buffer.from(String(providedSecret ?? ''));
+        const expected = Buffer.from(webhookSecret);
+        if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
             console.error('❌ Email webhook: invalid or missing secret');
             return res.status(401).json({ error: 'Unauthorized' });
         }
