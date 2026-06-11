@@ -358,7 +358,10 @@ export function createGraphRouter() {
     router.post('/profiles', requirePlan('premium'), graphWriteLimiter, [
         body('name').isString().isLength({ min: 1, max: 100 }),
         body('entityTypes').isArray({ min: 1 }),
-        body('relationshipTypes').isArray({ min: 1 })
+        body('relationshipTypes').isArray({ min: 1 }),
+        // extractionPrompt feeds the LLM system prompt — cap it and require a
+        // plain string; graph-ai.js additionally pins an immutable safety preamble.
+        body('extractionPrompt').optional({ values: 'null' }).isString().isLength({ max: 4000 })
     ], async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json({ error: 'Invalid profile data', code: 'VALIDATION_ERROR' });

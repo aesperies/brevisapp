@@ -2,7 +2,55 @@
 
 ---
 
-## ACTIVE SPRINT — Agent Stack v1 (May 4 → May 10, 2026)
+## ACTIVE SPRINT — 10x Upgrade, Phase 1 (started 2026-06-10, branch `refactor/architecture-overhaul`)
+
+**Mission:** Execute the "Brevis 10x" overhaul. Reality check vs the brief: the app is ALREADY on PostgreSQL (pg pool, migrations system), already 3-tier (Free/Standard $12/Premium $29), already has Helmet+HSTS, CORS whitelist, 10 rate limiters, structured JSON logs w/ redaction, JWT revocation via token_version, complete Stripe, working SendGrid inbound email. The brief's Phase 1A (LowDB→Postgres) is a no-op. The real gaps: 2,268-line server.js monolith, zero wired tests, no CI, no Docker, no API versioning, hardcoded prompts, single-file 128KB frontend.
+
+### This PR's scope (Phase 1 of N)
+- [x] **Test harness**: Vitest + Supertest, `npm test`, test DB `brevis_test` on local PG15 (NEVER the dev/prod DB). App/listen split done.
+- [x] **Characterization tests**: 50 new integration tests (75 total incl. wired-in sender-key suite) — auth, newsletters, tags, plan gating, uploads, v1 prefix, webhooks, headers. Caught a REAL prod bug on first run (PATCH is_read 500 — boolean vs INTEGER column).
+- [x] **Modular refactor (brief Phase 1B)**: server.js 2270 → 198 lines; infra in src/utils|services|middleware|clients, 45 routes verbatim-moved into 9 routers. Route inventory verified identical; tests green after every slice.
+- [x] **Security ship list**: KB/graph prompt fencing (High); extractionPrompt validation + immutable preamble (High); npm audit fix → 0 vulns; multer ^2.1.1 + upload smoke tests; timingSafeEqual webhook secret; removed unsafe legacy authMiddleware export. BONUS: fixed dead DNS-pinning (safeFetch passed `agent` to undici fetch which ignores it — now node-fetch, pin actually applies).
+- [x] **API v1 (brief Phase 1C, non-breaking)**: `/api/v1/*` rewrite ahead of routing; legacy `/api/*` untouched; Stripe raw-body exception covers both.
+- [→] **Prompt versioning (brief 5A-lite)**: DEFERRED to next PR — rewriting every template in ai-service.js without AI-success-path test coverage is the wrong risk for this PR. Fencing fixes landed; versioning needs its own focused change.
+- [x] **Rich health check**: `/health` already reported DB/Stripe/email (existed); verified + covered by tests.
+- [x] **CI (brief 6B)**: .github/workflows/ci.yml — tests vs PG15 service container + prod-dep audit on PR/push.
+- [x] **Docker (brief 6A)**: Dockerfile (node:22-slim, healthcheck) + docker-compose.yml (app + PG15) + .dockerignore.
+- [x] **Docs (brief 8)**: docs/ARCHITECTURE.md; .env.example synced to actual env surface (added ACCESS_CODE, ADMIN_*, SENDGRID_API_KEY, LOG_LEVEL, DATABASE_SSL_VERIFY; dropped dead IMAP_*).
+- [x] **Self-audit + review section** — see below.
+
+### Review — 10x Phase 1 (2026-06-10)
+
+**Shipped on `refactor/architecture-overhaul`** (7 commits, each test-green):
+test harness + is_read bugfix → infra extraction (+ node-fetch DNS-pin fix) →
+route extraction → /api/v1 → hardening batch → prompt-injection Highs → CI/Docker/docs.
+
+**Found & fixed along the way (not in the brief):**
+1. `PATCH /api/newsletters/:id {is_read}` 500'd in production (boolean → INTEGER column).
+2. safeFetch's DNS-rebinding pin was dead code (undici ignores `agent`) — real now via node-fetch.
+3. Stale `.git/index.lock` from May 18 was blocking all commits.
+
+**Self-audit honesty list:**
+- AI success paths (live Claude calls) untested — gating/cache paths only. Needs recorded-fixture tests before prompt refactors.
+- Word-upload route smoke-tested only via the shared multer surface, not a real .docx fixture.
+- Graph/KB routers have no dedicated characterization tests (only plan-gating 403s).
+- setImmediate background-task persistence (Medium from 05-18 review) still open — needs kb_tasks/graph_tasks DB rows.
+- `is_read` column type migration (INTEGER→BOOLEAN) still debt; route-level coercion is the patch.
+
+**Next PRs (per brief priorities):** (2) frontend build step + componentization;
+(3) prompt versioning + AI fixtures; (4) refresh-token rotation + Sentry/metrics;
+(5) background-task DB persistence + remaining Mediums.
+
+### Deliberately deferred to later PRs (flagged trade-offs)
+- Frontend build step + componentization (brief Phase 7) — big, independent; PR 2.
+- Refresh-token rotation (brief 2A) — auth surgery; current token_version revocation is sound interim; PR 3.
+- Sentry + Prometheus/OTel (brief 3) — needs vendor decision ($); PR 3.
+- Full OpenAPI spec (1C), field-level encryption (2C), full-text search (5C), collaboration (5D) — later.
+- Brief's Phase 1A (LowDB→PG): already done in reality; skipping.
+
+---
+
+## PREVIOUS SPRINT — Agent Stack v1 (May 4 → May 10, 2026)
 
 **Mission:** Brevis run by 6 agents in 7 days. Editor + Growth drive MRR; Sales + Support raise conversion + cut Antonio's inbox time; Engineer ships code; Ops watches everything. All on a single Node-native runtime, MCP-style tool layer, Postgres event bus.
 

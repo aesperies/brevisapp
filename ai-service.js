@@ -448,21 +448,26 @@ export async function compileKnowledgeBase(sourceMaterial, language = 'en') {
         throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
-    const { tagName, newsletters, entities, existingArticles = [] } = sourceMaterial;
+    const { tagName: rawTagName, newsletters, entities, existingArticles = [] } = sourceMaterial;
+
+    // Everything below derives from user-controlled data (tag names, newsletter
+    // titles/senders/summaries, entity names) — fence it all in <user_content>
+    // so the SYSTEM_PROMPT injection guard applies, same as generateSummary.
+    const tagName = `<user_content>${rawTagName}</user_content>`;
 
     // Format newsletter summaries for context
-    const newsletterContext = newsletters
+    const newsletterContext = '<user_content>\n' + newsletters
         .map(n => `- "${n.title}" (${n.sender}, ${n.date_added}): ${n.summary}`)
-        .join('\n');
+        .join('\n') + '\n</user_content>';
 
     // Format entities for knowledge graph structure
-    const entityContext = entities
+    const entityContext = '<user_content>\n' + entities
         .map(e => `- ${e.name} (${e.node_type}, mentioned ${e.mention_count}x)${e.connections ? ': connects to ' + e.connections.join(', ') : ''}`)
-        .join('\n');
+        .join('\n') + '\n</user_content>';
 
     // Format existing articles if this is a recompile
     const existingContext = existingArticles.length > 0
-        ? `\n\nExisting articles (for reference and to avoid duplication):\n${existingArticles.map(a => `- ${a.title}`).join('\n')}`
+        ? `\n\nExisting articles (for reference and to avoid duplication):\n<user_content>\n${existingArticles.map(a => `- ${a.title}`).join('\n')}\n</user_content>`
         : '';
 
     const prompts = {
@@ -607,12 +612,18 @@ Respond ONLY with valid JSON, no additional text, in this exact format:
  * @param {string} language - Language code ('en' or 'es', defaults to 'en')
  * @returns {Promise<Object>} - { answer: string, citations: [...], tokensUsed: number }
  */
-export async function queryKnowledgeBase(question, kbContext, language = 'en') {
+export async function queryKnowledgeBase(rawQuestion, kbContext, language = 'en') {
     if (!ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
-    const { tagName, articles, recentQA = [], indexArticle } = kbContext;
+    const { tagName: rawTagName, articles, recentQA = [], indexArticle } = kbContext;
+
+    // The question, tag name, article bodies/summaries, and prior Q&A are all
+    // user-controlled — fence them in <user_content> so the SYSTEM_PROMPT
+    // injection guard applies (same pattern as generateSummary).
+    const tagName = `<user_content>${rawTagName}</user_content>`;
+    const question = `<user_content>${rawQuestion}</user_content>`;
 
     // Build context: index article + article summaries for relevance detection
     let contextText = '';
@@ -625,10 +636,11 @@ export async function queryKnowledgeBase(question, kbContext, language = 'en') {
     articles.forEach(a => {
         contextText += `- ${a.title}: ${a.summary}\n`;
     });
+    contextText = `<user_content>\n${contextText}\n</user_content>`;
 
     // Build recent Q&A context for consistency
     const qaContext = recentQA.length > 0
-        ? `\n\nRecent Q&A for context:\n${recentQA.map(qa => `Q: ${qa.question}\nA: ${qa.answer}`).join('\n\n')}`
+        ? `\n\nRecent Q&A for context:\n<user_content>\n${recentQA.map(qa => `Q: ${qa.question}\nA: ${qa.answer}`).join('\n\n')}\n</user_content>`
         : '';
 
     const prompts = {

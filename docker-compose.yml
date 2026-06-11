@@ -1,0 +1,36 @@
+# Local development stack: app + PostgreSQL.
+#   docker compose up --build
+# The app reads secrets from .env (never baked into the image).
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://brevis:brevis@db:5432/brevis_db
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: brevis
+      POSTGRES_PASSWORD: brevis
+      POSTGRES_DB: brevis_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - brevis_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brevis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  brevis_pgdata:

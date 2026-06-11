@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "last_review_date": "2026-05-25",
+  "last_review_head": "1f1b027",
+  "last_full_sweep_date": "2026-05-18",
+  "open_findings": [
+    {
+      "id": "2026-05-18-kb-prompt-injection",
+      "severity": "High",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "ai-service.js:451-545",
+      "summary": "KB compile/query prompts skip <user_content> delimiters",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-18-extraction-prompt-unvalidated",
+      "severity": "High",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "graph-routes.js:358-377",
+      "summary": "POST /api/graph/profiles accepts unvalidated extractionPrompt",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-18-multer-eol",
+      "severity": "Medium",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "package.json:31",
+      "summary": "multer 1.x EOL with CVE-2025-47935/47944",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-18-webhook-secret-timing",
+      "severity": "Medium",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "server.js:1884",
+      "summary": "Webhook secret compared with !== instead of crypto.timingSafeEqual",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-18-setimmediate-error-swallow",
+      "severity": "Medium",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "graph-routes.js:269-289, kb-routes.js:174-191",
+      "summary": "Background tasks swallow errors past response; not persisted to DB",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-18-inmem-task-maps",
+      "severity": "Medium",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "graph-routes.js:83, kb-routes.js:78",
+      "summary": "In-memory task maps lost on restart; poll yields 404",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-18-legacy-authMiddleware",
+      "severity": "Low",
+      "first_seen": "2026-05-18",
+      "weeks_open": 2,
+      "file": "auth.js:69-85",
+      "summary": "Legacy authMiddleware export (no token_version check) still present; unused",
+      "gh_issue": null
+    },
+    {
+      "id": "carryover-100line-handlers",
+      "severity": "Low",
+      "first_seen": "2026-04-13",
+      "weeks_open": 6,
+      "file": "server.js:1756-1980 + cleanTextContent",
+      "summary": "Three handlers >100 lines; refactor candidates",
+      "gh_issue": null
+    },
+    {
+      "id": "2026-05-25-npm-qs-brace-expansion-dos",
+      "severity": "Medium",
+      "first_seen": "2026-05-25",
+      "weeks_open": 1,
+      "file": "package-lock.json",
+      "summary": "qs (GHSA-q8mj-m7cp-5q26) + brace-expansion (GHSA-jxxr-4gwj-5jf2) DoS advisories — auto-fixable via npm audit fix",
+      "gh_issue": null
+    }
+  ],
+  "closed_this_week": []
+}

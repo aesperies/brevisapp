@@ -66,20 +66,6 @@ export function makeAuthMiddleware(getUserData) {
     };
 }
 
-// Backwards-compatible static authMiddleware (no token_version check) — used as fallback only.
-export function authMiddleware(req, res, next) {
-    const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
+// The legacy static authMiddleware (no token_version check) was removed in the
+// 2026-06 hardening pass — always build the middleware via makeAuthMiddleware.
 
-    if (!token) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-
-    req.user = decoded;
-    next();
-}
