@@ -13,6 +13,7 @@
  */
 
 import { Router } from 'express';
+import { log } from './src/utils/logger.js';
 import { body, param, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import {
@@ -186,7 +187,12 @@ export function createKBRouter() {
                 } catch (err) {
                     task.status = 'failed';
                     task.error = err.message;
-                    console.error('📚 [KB API] Background compilation failed:', err.message);
+                    // Structured log with stack — the only failure record for this
+                    // post-response AI call (in-memory task map; DB persistence is
+                    // tracked in tasks/todo.md).
+                    log.error('[kb] background compilation failed', {
+                        taskId, kbId: id, userId: req.user.id, message: err.message, stack: err.stack,
+                    });
                 }
             });
         } catch (error) {
