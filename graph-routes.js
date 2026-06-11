@@ -13,6 +13,7 @@
  */
 
 import { Router } from 'express';
+import { log } from './src/utils/logger.js';
 import { body, param, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import {
@@ -283,7 +284,12 @@ export function createGraphRouter() {
             } catch (err) {
                 task.status = 'failed';
                 task.error = err.message;
-                console.error('📊 [Graph API] Background extraction failed:', err.message);
+                // Structured log with stack — these cost-bearing AI calls run after
+                // the response was sent, so this log is the ONLY failure record
+                // (task map is in-memory; DB persistence tracked in tasks/todo.md).
+                log.error('[graph] background extraction failed', {
+                    taskId, newsletterId, userId, message: err.message, stack: err.stack,
+                });
             }
         });
     });

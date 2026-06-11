@@ -108,8 +108,7 @@ router.patch('/api/newsletters/:id', authMiddleware, newsletterCrudLimiter, [
 
     const updates = {};
     if (req.body.is_read !== undefined) {
-        // Column is INTEGER (0/1) — pg rejects a JS boolean against it
-        updates.is_read = req.body.is_read ? 1 : 0;
+        updates.is_read = req.body.is_read;
     }
 
     const updated = await dbHelpers.updateNewsletter(parseInt(req.params.id), updates);

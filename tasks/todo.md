@@ -50,7 +50,20 @@ route extraction → /api/v1 → hardening batch → prompt-injection Highs → 
 - [x] **Step B — componentization**: main.jsx → mount-only + i18n.js + components/{Root,App,AuthView,BRLogo,SummaryToggle,ErrorBoundary} + utils/newsletters. Verbatim moves; dead mockNewsletters/mockTags deleted (78 lines, 0 refs).
 - [x] **Browser verification (per lessons 2026-04-10)**: registered a real user through the built UI, dashboard showed the real brief-* forwarding address, created newsletter appeared in list with live counters, zero console errors, no failed requests. Smoke data cleaned from dev DB.
 - [ ] **Deferred**: App.jsx decomposition (needs E2E tests); deleting legacy public/app.html (after the bundle ships clean for a while); dark-mode/a11y polish (brief 7B); code-splitting (brief 7C).
-- **Found**: Import-modal PDF/Manual tabs are DEAD buttons (no onClick — pre-existing, also Browse/Query tabs). Spawned follow-up task.
+- **Found**: Import-modal PDF/Manual tabs are DEAD buttons (no onClick — pre-existing, also Browse/Query tabs). Fixed in-session (browser-verified all 3 tabs); graph-modal decorative tabs removed.
+- **Found & fixed**: safeFetch DNS-pin lookup broke ALL outbound fetches on Node ≥20 ({all:true} contract) — latent bug activated by Phase 1's node-fetch switch; fix + network regression test landed on PR #4's branch. Lesson recorded.
+
+---
+
+## SPRINT 3 — 10x Phase 3: Prompt versioning (2026-06-11, branch `feat/prompt-versioning`, stacked on PR #5)
+
+- [x] **Fixtures FIRST (brief 5A precondition)**: tests/ai-prompts.test.js — 19 snapshots of the exact Anthropic request body per AI function (mocked node-fetch, both languages, purpose/refs variants, unknown-language fallback). Committed as baseline BEFORE touching any prompt.
+- [x] **prompts/ registry (brief 5A)**: 7 versioned modules (newsletter-summary, batch-brief, batch-report, newsletter-from-template, newsletter-from-project, kb-compile, kb-query) + system.v1 + model.js + index.js with change rules (never edit published versions in place — copy to .v2, switch registry). Templates, token budgets, timeouts, and <user_content> fencing moved verbatim; ai-service.js 729→~400 lines (API mechanics + parsing only).
+- [x] **Proof**: all 19 snapshots byte-identical after extraction; 100/100 full suite.
+- [x] **graph-ai.js prompts into registry** (fixtures-first, 7 new snapshots byte-identical): graph-extraction.v1 + graph-query.v1; kb-service/graph-extractor confirmed prompt-free — registry now covers EVERY Claude prompt in the codebase. 115/115 tests.
+- [x] **is_read INTEGER→BOOLEAN** (migration 003, guarded) + **self-migrating deploys**: runMigrations() runs at boot before setupDatabase (brief 6A "migration on deploy") — code can never run ahead of schema.
+- [x] **Quick wins**: @anthropic-ai/sdk ^0.98 + nodemailer bumps (review's safe list); structured log.error w/ stack for graph/KB background-task failures; CI workflow_dispatch; unit tests for content utils + logger PII redaction.
+- [ ] **Deferred**: A/B variant assignment + multi-model support (structure ready: per-prompt `model` field); satisfaction tracking; graph/KB task state → DB (next sprint).
 
 ### Deliberately deferred to later PRs (flagged trade-offs)
 - Frontend build step + componentization (brief Phase 7) — big, independent; PR 2.

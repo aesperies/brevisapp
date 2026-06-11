@@ -107,6 +107,16 @@ All user-derived text interpolated into Claude prompts is fenced in
 content as data. Custom graph extraction prompts (premium) are length-capped
 and always preceded by an immutable safety preamble.
 
+### Versioned prompts
+
+Every Claude prompt is a frozen, versioned module in `prompts/` (template,
+model, token budget, timeout). Published versions are never edited in place —
+copy to `.v2`, change there, switch the registry entry in `prompts/index.js`.
+`tests/ai-prompts.test.js` snapshots the full request body for all prompts
+(mocked fetch, no spend); a changed snapshot must be a deliberate version
+bump, never a refactor side effect. ai-service.js keeps only API mechanics
+(retries, input caps, response parsing).
+
 ## Testing
 
 `npm test` — Vitest + Supertest against a dedicated local `brevis_test`
@@ -140,5 +150,5 @@ Dockerfile exists for parity and future hosts.
 - `newsletters.is_read` is INTEGER (SQLite heritage) — route coerces; migrate
   to BOOLEAN eventually.
 - Graph/KB background tasks keep state in in-memory Maps (lost on restart).
-- Prompts hardcoded in ai-service.js — versioned prompt files planned.
+- graph-ai.js / kb-service.js prompts not yet in prompts/ (ai-service.js done).
 - No refresh-token rotation (token_version revocation is the interim).

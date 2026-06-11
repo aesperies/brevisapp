@@ -21,7 +21,7 @@ const { Pool } = pg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function main() {
+export async function runMigrations() {
     if (!process.env.DATABASE_URL) {
         console.error('❌ [migrate] DATABASE_URL is not set. Aborting.');
         process.exit(1);
@@ -92,7 +92,11 @@ async function main() {
     }
 }
 
-main().catch(err => {
-    console.error('❌ [migrate] Fatal:', err);
-    process.exit(1);
-});
+// CLI entrypoint (`npm run migrate`). server.js also calls runMigrations()
+// at boot so deploys are self-migrating — code can never run ahead of schema.
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+    runMigrations().catch(err => {
+        console.error('❌ [migrate] Fatal:', err);
+        process.exit(1);
+    });
+}

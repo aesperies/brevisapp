@@ -19,7 +19,7 @@
     "agents:editor:dryrun": "node agents/runtime/cli.js editor:dryrun"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.92.0",
+    "@anthropic-ai/sdk": "^0.98.1",
     "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.6",
@@ -35,7 +35,7 @@
     "mammoth": "^1.12.0",
     "multer": "^2.1.1",
     "node-fetch": "^3.3.2",
-    "nodemailer": "^8.0.2",
+    "nodemailer": "^8.0.11",
     "openai": "^4.24.1",
     "pdf-parse": "^1.1.4",
     "pg": "^8.20.0",

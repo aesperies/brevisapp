@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
 import { setupDatabase, createInitialUser } from './database.js';
+import { runMigrations } from './migrations/run-migrations.js';
 import { createGraphRouter } from './graph-routes.js';
 import { createKBRouter } from './kb-routes.js';
 import { createAuthRouter } from './src/routes/auth.js';
@@ -38,9 +39,14 @@ console.log('📁 Directory:', __dirname);
 console.log('🔌 Port:', PORT);
 console.log('🌐 Frontend URL:', process.env.FRONTEND_URL || 'http://localhost:3000');
 
-// Initialize database
+// Initialize database: base schema first (idempotent CREATE IF NOT EXISTS),
+// then migrations — they alter/extend base tables (001 has FKs to users, 003
+// alters newsletters), so on a FRESH database they need the base to exist.
+// Running both at boot makes deploys self-migrating: code never runs ahead
+// of schema.
 try {
     await setupDatabase();
+    await runMigrations();
     await createInitialUser();
     console.log('✅ Database initialized');
 } catch (error) {
