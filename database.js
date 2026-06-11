@@ -58,7 +58,7 @@ export async function setupDatabase() {
                 content TEXT,
                 summary TEXT,
                 url VARCHAR(1000),
-                is_read INTEGER DEFAULT 0,
+                is_read BOOLEAN DEFAULT FALSE,
                 date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -505,7 +505,7 @@ export const dbHelpers = {
 
         const insert = await pool.query(
             `INSERT INTO newsletters (user_id, title, sender, content, url, sender_key, is_read)
-             VALUES ($1, $2, $3, $4, $5, $6, 0)
+             VALUES ($1, $2, $3, $4, $5, $6, FALSE)
              RETURNING *`,
             [userId, title, sender, content, url || null, senderKey]
         );

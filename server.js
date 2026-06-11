@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
 import { setupDatabase, createInitialUser } from './database.js';
+import { runMigrations } from './migrations/run-migrations.js';
 import { createGraphRouter } from './graph-routes.js';
 import { createKBRouter } from './kb-routes.js';
 import { createAuthRouter } from './src/routes/auth.js';
@@ -38,8 +39,10 @@ console.log('📁 Directory:', __dirname);
 console.log('🔌 Port:', PORT);
 console.log('🌐 Frontend URL:', process.env.FRONTEND_URL || 'http://localhost:3000');
 
-// Initialize database
+// Initialize database. Migrations run first so deploys are self-migrating —
+// code never runs ahead of schema (003 is_read BOOLEAN depends on this).
 try {
+    await runMigrations();
     await setupDatabase();
     await createInitialUser();
     console.log('✅ Database initialized');

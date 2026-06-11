@@ -57,7 +57,7 @@ describe('newsletters', () => {
         const fetched = await request(app)
             .get(`/api/newsletters/${created.id}`)
             .set('Cookie', cookie);
-        expect([true, 1]).toContain(fetched.body.is_read);
+        expect(fetched.body.is_read).toBe(true);
     });
 
     it('rejects non-boolean is_read', async () => {
