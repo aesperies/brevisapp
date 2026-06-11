@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import crypto from 'crypto';
+import fs from 'fs';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -113,7 +114,18 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static files
+// Serve static files. The built SPA (dist-web, from `npm run build`) takes
+// precedence over public/ so /app.html and /assets/* come from the bundle;
+// if the build is missing we fall back LOUDLY to the legacy CDN-React
+// public/app.html so a misconfigured deploy degrades instead of blanking.
+const builtAppPath = path.join(__dirname, 'dist-web', 'app.html');
+const hasBuiltApp = fs.existsSync(builtAppPath);
+if (hasBuiltApp) {
+    app.use(express.static(path.join(__dirname, 'dist-web')));
+    console.log('✅ Serving built SPA from dist-web/ (vite bundle)');
+} else {
+    console.warn('⚠️  dist-web/app.html not found — serving LEGACY public/app.html (CDN React). Run `npm run build`.');
+}
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Knowledge Graph routes
@@ -149,7 +161,7 @@ app.all('/api/*', (req, res) => {
 
 // SPA fallback - serve app.html for all other routes
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'app.html'));
+    res.sendFile(hasBuiltApp ? builtAppPath : path.join(__dirname, 'public', 'app.html'));
 });
 
 // ============= EXPRESS ERROR MIDDLEWARE =============

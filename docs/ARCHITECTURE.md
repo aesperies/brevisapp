@@ -7,9 +7,10 @@ _Last updated: 2026-06-10 (architecture-overhaul PR)._
 Brevis is a newsletter aggregation + AI summarization SaaS. Node.js/Express
 monolith on PostgreSQL, deployed to Railway (nixpacks), Claude API for
 summarization, Stripe for billing, SendGrid for inbound email forwarding and
-outbound transactional email. The frontend is a React SPA served from
-`public/app.html` (CDN React, no build step — modernization tracked as a
-separate workstream).
+outbound transactional email. The frontend is a Vite-built React SPA in
+`web/` (source) → `dist-web/` (build output, gitignored); the server prefers
+the built bundle and falls back loudly to the legacy `public/app.html` if the
+build is missing.
 
 Staying a monolith is deliberate: split into services only when a real scaling
 bottleneck appears.
@@ -53,7 +54,17 @@ kb-*.js                   # Knowledge bases (create Standard+; query Premium)
 migrations/               # SQL files + transactional runner (schema_migrations)
 agents/                   # Autonomous agent runtime (ops tooling, not request path)
 tests/                    # Vitest + Supertest integration suite
+web/                      # SPA source (Vite): app.html entry + src/
+├── src/main.jsx          # Mount only
+├── src/i18n.js           # EN/ES translations + t()
+├── src/components/       # Root, App (dashboard), AuthView, ErrorBoundary, …
+├── src/utils/            # newsletter normalize/format helpers
+└── vite.config.js        # builds to ../dist-web; dev proxy to :3000
 ```
+
+Frontend commands: `npm run build` (bundle), `npm run dev:web` (Vite dev
+server on :5173 proxying /api to :3000). Railway runs the build via
+nixpacks' build phase; Docker builds it in a separate stage.
 
 ## Request path
 
@@ -122,7 +133,10 @@ Dockerfile exists for parity and future hosts.
 
 ## Known debt (tracked in tasks/todo.md)
 
-- Frontend: single-file SPA, runtime Babel — needs a build step (next PR).
+- `App.jsx` is still one ~990-line component — decompose only after E2E
+  coverage exists. Import-modal PDF/Manual tabs are dead buttons (never wired).
+- Legacy `public/app.html` kept as a loud fallback — delete once the built
+  bundle has shipped cleanly for a while.
 - `newsletters.is_read` is INTEGER (SQLite heritage) — route coerces; migrate
   to BOOLEAN eventually.
 - Graph/KB background tasks keep state in in-memory Maps (lost on restart).

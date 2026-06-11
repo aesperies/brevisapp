@@ -6,6 +6,7 @@ node_modules/
 *.log
 .DS_Store
 dist/
+dist-web/
 build/
 .vscode/
 .idea/
