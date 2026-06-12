@@ -141,6 +141,17 @@ Or full stack in Docker: `docker compose up --build` (app on :3000, Postgres on
 host :5433). Production deploy is Railway via nixpacks (`node server.js`); the
 Dockerfile exists for parity and future hosts.
 
+### Observability
+
+`src/observability.js`: Sentry (inert without `SENTRY_DSN`; unexpected 5xx +
+process-level failures, PII scrubbed in `beforeSend`), Prometheus metrics at
+`GET /metrics` (Bearer `METRICS_TOKEN`, 404 when unset; request duration
+histogram + counters with low-cardinality route labels), and one structured
+log line per API request (request id, user id, duration). Background AI tasks
+(graph extraction, KB compilation) persist to the `background_tasks` table
+(migration 004) — they survive restarts, are owner-scoped, auto-pruned after
+7 days, and counted in `brevis_background_tasks_total`.
+
 ## Known debt (tracked in tasks/todo.md)
 
 - `App.jsx` is still one ~990-line component — decompose only after E2E

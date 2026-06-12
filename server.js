@@ -23,6 +23,7 @@ import { createMiscRouter } from './src/routes/misc.js';
 import { createSubscriptionsRouter } from './src/routes/subscriptions.js';
 
 import { log } from './src/utils/logger.js';
+import { requestInstrumentation, metricsHandler, captureError } from './src/observability.js';
 import { startRssCron } from './src/services/rss.js';
 import { authMiddleware } from './src/middleware/auth.js';
 import { stripe } from './src/clients.js';
@@ -120,6 +121,12 @@ app.use((req, res, next) => {
     next();
 });
 
+// Metrics + one structured log line per API request (src/observability.js)
+app.use(requestInstrumentation);
+
+// Prometheus scrape endpoint (404 unless METRICS_TOKEN is configured)
+app.get('/metrics', metricsHandler);
+
 // Serve static files. The built SPA (dist-web, from `npm run build`) takes
 // precedence over public/ so /app.html and /assets/* come from the bundle;
 // if the build is missing we fall back LOUDLY to the legacy CDN-React
@@ -190,6 +197,11 @@ app.use((err, req, res, next) => {
         ...(statusCode >= 500 && !isOperational ? { stack: err.stack } : {})
     });
 
+    // Unexpected 5xx → Sentry (no-op without SENTRY_DSN)
+    if (statusCode >= 500 && !isOperational) {
+        captureError(err, { reqId: req.id, route: logPath });
+    }
+
     const clientMessage = isOperational
         ? err.message
         : 'An unexpected error occurred. Please try again.';
@@ -204,11 +216,13 @@ app.use((err, req, res, next) => {
 
 process.on('uncaughtException', (err) => {
     console.error('❌ Uncaught Exception:', err);
+    captureError(err, { fatal: true });
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
     console.error('❌ Unhandled Rejection:', reason);
+    captureError(reason instanceof Error ? reason : new Error(String(reason)), { unhandledRejection: true });
 });
 
 // ============= SERVER START =============
