@@ -167,6 +167,28 @@ export async function generateSummary(newsletter, language = 'es') {
     }
 }
 
+// Translate an existing summary into another language (cheap) rather than
+// re-summarizing the newsletter (expensive). Used when a user switches UI
+// language and already has a summary.
+export async function translateText(text, targetLanguage = 'en') {
+    if (!ANTHROPIC_API_KEY) {
+        throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const p = PROMPTS.translate;
+    try {
+        return await anthropicRequest({
+            model: p.model,
+            max_tokens: p.maxTokens,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: p.build({ text }, targetLanguage) }]
+        }, p.timeoutMs);
+    } catch (error) {
+        console.error('Error translating summary:', error);
+        throw error;
+    }
+}
+
 export async function generateBatchBrief(newsletters, language = 'es', purpose = '') {
     if (!ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY not configured');

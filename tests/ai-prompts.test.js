@@ -25,6 +25,7 @@ vi.mock('node-fetch', () => ({
 
 const {
     generateSummary,
+    translateText,
     generateBatchBrief,
     generateBatchReport,
     generateNewsletterFromTemplate,
@@ -139,4 +140,11 @@ describe('AI prompt request fixtures', () => {
         const body = await lastRequest();
         expect(body.messages[0].content).toContain('Crea un resumen');
     });
+
+    for (const language of ['es', 'en']) {
+        it(`translateText (${language})`, async () => {
+            await translateText('- Point one\n- Point two', language);
+            expect(await lastRequest()).toMatchSnapshot();
+        });
+    }
 });

@@ -141,6 +141,15 @@ Or full stack in Docker: `docker compose up --build` (app on :3000, Postgres on
 host :5433). Production deploy is Railway via nixpacks (`node server.js`); the
 Dockerfile exists for parity and future hosts.
 
+### Summaries & translation
+
+A newsletter summary is generated once in the user's selected language and
+stored in `summary` (+ `summary_language`). When the user switches UI language,
+`POST /api/newsletters/:id/summary` (with `{language}`) **translates** the stored
+summary via the cheap `translate` prompt instead of re-summarizing, and caches
+the result in `summary_translations` (JSONB, lang → text, migration 006). So
+each language costs one translation at most, never a re-summarization.
+
 ## Known debt (tracked in tasks/todo.md)
 
 - `App.jsx` is still one ~990-line component — decompose only after E2E

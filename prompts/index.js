@@ -24,6 +24,7 @@ import { kbCompileV1 } from './kb-compile.v1.js';
 import { kbQueryV1 } from './kb-query.v1.js';
 import { graphExtractionV1 } from './graph-extraction.v1.js';
 import { graphQueryV1 } from './graph-query.v1.js';
+import { translateV1 } from './translate.v1.js';
 
 export const PROMPTS = {
     newsletterSummary: newsletterSummaryV1,
@@ -35,4 +36,5 @@ export const PROMPTS = {
     kbQuery: kbQueryV1,
     graphExtraction: graphExtractionV1,
     graphQuery: graphQueryV1,
+    translate: translateV1,
 };

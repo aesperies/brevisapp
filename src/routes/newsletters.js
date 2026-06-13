@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
 
 import { dbHelpers } from '../../database.js';
-import { generateSummary, generateBatchBrief, generateBatchReport, canUserPerformAction } from '../../ai-service.js';
+import { generateSummary, translateText, generateBatchBrief, generateBatchReport, canUserPerformAction } from '../../ai-service.js';
 import { extractAndStoreGraph } from '../../graph-extractor.js';
 import { maskEmail } from '../utils/logger.js';
 import { asyncHandler } from '../utils/errors.js';
@@ -134,15 +134,37 @@ router.post('/api/newsletters/:id/summary', aiLimiter, authMiddleware, asyncHand
         return res.status(404).json({ error: 'Newsletter not found' });
     }
 
-    if (newsletter.summary && newsletter.summary_language === user.language) {
-        return res.json({ summary: newsletter.summary });
+    // The summary is produced in the language the user is actually viewing.
+    // The SPA sends its current UI language; fall back to the profile language.
+    const reqLang = ['es', 'en'].includes(req.body?.language) ? req.body.language : user.language;
+
+    // 1. Canonical summary already in the requested language.
+    if (newsletter.summary && newsletter.summary_language === reqLang) {
+        return res.json({ summary: newsletter.summary, language: reqLang });
     }
 
-    const summary = await generateSummary(newsletter, user.language);
-    await dbHelpers.updateNewsletter(newsletter.id, { summary, summary_language: user.language });
+    // 2. A cached translation in the requested language.
+    const translations = newsletter.summary_translations || {};
+    if (newsletter.summary && translations[reqLang]) {
+        return res.json({ summary: translations[reqLang], language: reqLang });
+    }
+
+    // 3. A summary exists but in another language → TRANSLATE the stored text
+    //    (cheap) rather than re-summarize, and cache the translation.
+    if (newsletter.summary) {
+        const translated = await translateText(newsletter.summary, reqLang);
+        translations[reqLang] = translated;
+        await dbHelpers.updateNewsletter(newsletter.id, { summary_translations: JSON.stringify(translations) });
+        console.log('✅ Summary translated for newsletter:', newsletter.id, '→', reqLang);
+        return res.json({ summary: translated, language: reqLang });
+    }
+
+    // 4. No summary yet → generate fresh in the requested language.
+    const summary = await generateSummary(newsletter, reqLang);
+    await dbHelpers.updateNewsletter(newsletter.id, { summary, summary_language: reqLang });
 
     console.log('✅ Summary generated for newsletter:', newsletter.id);
-    res.json({ summary });
+    res.json({ summary, language: reqLang });
 }));
 
 // Send newsletter to Kindle

@@ -105,6 +105,9 @@ export async function setupDatabase() {
         await pool.query(`
             ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS summary_language VARCHAR(5);
         `);
+        await pool.query(`
+            ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS summary_translations JSONB;
+        `);
 
         // Email verification tokens
         await pool.query(`
@@ -540,7 +543,7 @@ export const dbHelpers = {
 
     updateNewsletter: async (id, updates) => {
         // Whitelist allowed fields to prevent SQL injection
-        const allowedFields = ['title', 'sender', 'content', 'summary', 'summary_language', 'is_read', 'url'];
+        const allowedFields = ['title', 'sender', 'content', 'summary', 'summary_language', 'summary_translations', 'is_read', 'url'];
         const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
         if (fields.length === 0) return null;
 

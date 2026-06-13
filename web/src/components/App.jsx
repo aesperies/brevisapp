@@ -189,6 +189,11 @@ export function App() {
                     const res = await fetch(`/api/newsletters/${id}/summary`, {
                         method: 'POST',
                         credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Ask for the summary in the language the user is viewing.
+                        // The backend translates a cached summary (cheap) rather
+                        // than regenerating when only the language differs.
+                        body: JSON.stringify({ language }),
                     });
                     if (res.status === 403) {
                         setActiveModal('upgrade');
@@ -199,7 +204,7 @@ export function App() {
                         throw new Error(body.error || `HTTP ${res.status}`);
                     }
                     const data = await res.json();
-                    const patch = { summary: data.summary, summary_language: language };
+                    const patch = { summary: data.summary, summary_language: data.language || language };
                     setNewsletters(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
                     setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, ...patch } : prev);
                 } catch (err) {

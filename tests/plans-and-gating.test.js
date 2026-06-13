@@ -61,6 +61,30 @@ describe('plans & AI gating', () => {
         expect(res.body.summary).toBe('cached bullet points');
     });
 
+    it('serves a cached translation without calling the AI when the UI language differs', async () => {
+        // Canonical summary in ES + a cached EN translation. Requesting EN must
+        // return the cached translation (200) — translateText would fail on the
+        // dummy API key, so a 200 proves the translation-cache path, not a call.
+        const { cookie, user } = await registerUser(app);
+        const newsletter = await createNewsletter(app, cookie);
+        const { getDb } = await import('../database.js');
+        await getDb().query(
+            `UPDATE newsletters
+             SET summary = 'resumen en español', summary_language = 'es',
+                 summary_translations = '{"en":"summary in english"}'::jsonb
+             WHERE id = $1 AND user_id = $2`,
+            [newsletter.id, user.id]
+        );
+
+        const res = await request(app)
+            .post(`/api/newsletters/${newsletter.id}/summary`)
+            .set('Cookie', cookie)
+            .send({ language: 'en' });
+        expect(res.status).toBe(200);
+        expect(res.body.summary).toBe('summary in english');
+        expect(res.body.language).toBe('en');
+    });
+
     it('gates the knowledge graph behind Standard+', async () => {
         const { cookie, user } = await registerUser(app);
         await setPlan(user.id, 'free');
