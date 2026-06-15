@@ -8,7 +8,37 @@ import { maskEmail } from '../utils/logger.js';
 import { asyncHandler } from '../utils/errors.js';
 import { sendEmail, emailEnabled } from '../services/email.js';
 import { authMiddleware } from '../middleware/auth.js';
-import { authLimiter, registerLimiter } from '../middleware/rate-limits.js';
+import { authLimiter, registerLimiter, refreshLimiter } from '../middleware/rate-limits.js';
+import { issueRefreshToken, rotateRefreshToken, revokeRefreshToken, revokeAllForUser } from '../services/refresh-token.js';
+
+// Access-token cookie: sent to every API route. Short-lived JWT inside; the
+// cookie itself persists 30d so a browser restart doesn't drop the session
+// before the SPA can refresh.
+const ACCESS_COOKIE = (isProd) => ({
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    secure: isProd,
+    path: '/',
+});
+
+// Refresh-token cookie: scoped to /api/auth so it never travels with data
+// requests, limiting exposure. The SPA calls the unversioned /api/auth/refresh.
+const REFRESH_COOKIE = (isProd) => ({
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    secure: isProd,
+    path: '/api/auth',
+});
+
+// Issue an access JWT + a rotating refresh token and set both cookies.
+async function setAuthCookies(res, user) {
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('token', generateToken(user), ACCESS_COOKIE(isProd));
+    const refreshRaw = await issueRefreshToken(user.id);
+    res.cookie('refresh_token', refreshRaw, REFRESH_COOKIE(isProd));
+}
 
 export function createAuthRouter() {
 const router = express.Router();
@@ -45,14 +75,7 @@ router.post('/api/auth/register', registerLimiter, [
 
     const plan = (process.env.ACCESS_CODE && accessCode === process.env.ACCESS_CODE) ? 'premium' : 'pro';
     const user = await dbHelpers.createUser(email, password, name, plan);
-    const token = generateToken(user);
-
-    res.cookie('token', token, {
-        httpOnly: true,
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
-    });
+    await setAuthCookies(res, user);
 
     console.log('✅ User registered:', maskEmail(email));
 
@@ -130,13 +153,7 @@ router.post('/api/auth/login', authLimiter, [
         user.plan = currentPlan;
     }
 
-    const token = generateToken(user);
-    res.cookie('token', token, {
-        httpOnly: true,
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
-    });
+    await setAuthCookies(res, user);
 
     console.log('✅ User logged in:', maskEmail(email));
 
@@ -260,6 +277,10 @@ router.post('/api/auth/reset-password', authLimiter, [
     }
 
     await dbHelpers.updatePasswordHash(resetRecord.user_id, password);
+    // updatePasswordHash already bumps token_version (kills access tokens);
+    // also revoke refresh tokens so a stolen refresh cookie can't outlive the
+    // password change.
+    await revokeAllForUser(resetRecord.user_id);
 
     console.log('✅ Password reset for user:', resetRecord.user_id);
     res.json({ success: true });
@@ -361,32 +382,46 @@ router.patch('/api/auth/profile', authMiddleware, [
 }));
 
 router.post('/api/auth/logout', asyncHandler(async (req, res) => {
-    // Extract user ID from JWT (if present) and bump token_version
-    // to invalidate ALL existing tokens for this user (including other devices).
-    const token = req.cookies?.token;
-    if (token) {
-        try {
-            const decoded = verifyToken(token);
-            if (decoded && decoded.id) {
-                const db = dbHelpers.getDb();
-                await db.query(
-                    'UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1',
-                    [decoded.id]
-                );
-                console.log('✅ Token version bumped for user:', decoded.id);
-            }
-        } catch (e) {
-            // Token may be expired/invalid — still clear the cookie
-            console.warn('⚠️ Could not bump token_version on logout:', e.message);
+    const isProd = process.env.NODE_ENV === 'production';
+    // Identify the user from the access token (if still valid) and revoke
+    // everything: bumps token_version (kills all access tokens) AND revokes all
+    // refresh tokens — preserves the existing "logout signs out all devices"
+    // semantics. If the access token has already expired, still revoke the
+    // presented refresh token so this device's session can't be refreshed.
+    const decoded = req.cookies?.token ? verifyToken(req.cookies.token) : null;
+    try {
+        if (decoded?.id) {
+            await revokeAllForUser(decoded.id);
+            console.log('✅ Sessions revoked for user:', decoded.id);
+        } else if (req.cookies?.refresh_token) {
+            await revokeRefreshToken(req.cookies.refresh_token);
         }
+    } catch (e) {
+        console.warn('⚠️ Could not revoke sessions on logout:', e.message);
     }
-    res.clearCookie('token', {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/'
-    });
+    res.clearCookie('token', { httpOnly: true, sameSite: 'lax', secure: isProd, path: '/' });
+    res.clearCookie('refresh_token', { httpOnly: true, sameSite: 'lax', secure: isProd, path: '/api/auth' });
     console.log('✅ User logged out');
+    res.json({ success: true });
+}));
+
+// Silent re-authentication: the SPA calls this on a 401. Rotates the refresh
+// token (single-use) and issues a fresh access token. Reuse of an already-
+// rotated token is treated as theft — the chain is burned and the client must
+// log in again.
+router.post('/api/auth/refresh', refreshLimiter, asyncHandler(async (req, res) => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const result = await rotateRefreshToken(req.cookies?.refresh_token);
+    if (!result.ok) {
+        res.clearCookie('refresh_token', { httpOnly: true, sameSite: 'lax', secure: isProd, path: '/api/auth' });
+        return res.status(401).json({ error: 'Session expired. Please log in again.', reason: result.reason });
+    }
+    const user = await dbHelpers.findUserById(result.userId);
+    if (!user) {
+        return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
+    res.cookie('token', generateToken(user), ACCESS_COOKIE(isProd));
+    res.cookie('refresh_token', result.raw, REFRESH_COOKIE(isProd));
     res.json({ success: true });
 }));
 
@@ -473,13 +508,7 @@ router.get('/api/auth/google/callback', asyncHandler(async (req, res) => {
             await dbHelpers.updateUser(user.id, { email_verified: 1 });
         }
 
-        const token = generateToken(user);
-        res.cookie('token', token, {
-            httpOnly: true,
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production'
-        });
+        await setAuthCookies(res, user);
 
         console.log('✅ Google login successful:', maskEmail(profile.email));
         res.redirect('/');

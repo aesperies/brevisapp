@@ -81,9 +81,19 @@ canonical route table, both prefixes supported forever. New clients should use
 
 ### Auth
 
-JWT in an httpOnly cookie (30d). Every authenticated request re-checks
-`users.token_version` in the DB; logout/password-change bumps it, revoking all
-sessions everywhere. The middleware fails CLOSED (503) if the DB check errors.
+Short-lived access JWT (default 15m, `ACCESS_TOKEN_TTL`) in an httpOnly cookie,
+plus a long-lived **rotating refresh token** (`refresh_tokens` table, migration
+005) in an httpOnly cookie scoped to `/api/auth`. The raw refresh token is never
+stored — only `sha256(raw)`. Every authenticated request re-checks
+`users.token_version`; logout/password-reset bump it (revoking all access tokens)
+and revoke all refresh tokens. The middleware fails CLOSED (503) on DB error.
+
+`POST /api/auth/refresh` rotates: each refresh is single-use and issues a new
+pair. Presenting an already-rotated token is treated as theft — the whole chain
+is burned and `token_version` bumped. The SPA refreshes transparently: a single
+global `fetch` interceptor (`web/src/auth-refresh.js`, installed in `main.jsx`)
+catches any API 401, calls `/api/auth/refresh` once (single-flight across
+concurrent 401s), and retries — so the ~20 call sites need no per-site changes.
 
 ### Plans
 
@@ -150,14 +160,26 @@ summary via the cheap `translate` prompt instead of re-summarizing, and caches
 the result in `summary_translations` (JSONB, lang → text, migration 006). So
 each language costs one translation at most, never a re-summarization.
 
+### Observability
+
+`src/observability.js`: Sentry (inert without `SENTRY_DSN`; unexpected 5xx +
+process-level failures, PII scrubbed in `beforeSend`), Prometheus metrics at
+`GET /metrics` (Bearer `METRICS_TOKEN`, 404 when unset; request duration
+histogram + counters with low-cardinality route labels), and one structured
+log line per API request (request id, user id, duration). Background AI tasks
+(graph extraction, KB compilation) persist to the `background_tasks` table
+(migration 004) — they survive restarts, are owner-scoped, auto-pruned after
+7 days, and counted in `brevis_background_tasks_total`.
+
 ## Known debt (tracked in tasks/todo.md)
 
 - `App.jsx` is still one ~990-line component — decompose only after E2E
-  coverage exists. Import-modal PDF/Manual tabs are dead buttons (never wired).
+  coverage exists.
+- No automated Playwright E2E yet — integration tests + manual browser
+  verification cover the journeys for now.
 - Legacy `public/app.html` kept as a loud fallback — delete once the built
   bundle has shipped cleanly for a while.
-- `newsletters.is_read` is INTEGER (SQLite heritage) — route coerces; migrate
-  to BOOLEAN eventually.
-- Graph/KB background tasks keep state in in-memory Maps (lost on restart).
-- graph-ai.js / kb-service.js prompts not yet in prompts/ (ai-service.js done).
-- No refresh-token rotation (token_version revocation is the interim).
+- Per-card / reader "Send to Kindle" buttons are still stubbed.
+- Remaining brief tail: security (2FA, account lockout, zxcvbn, CSRF tokens,
+  field-level encryption) and resilience (circuit breaker, retry/backoff,
+  graceful Claude-failure degradation).

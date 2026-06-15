@@ -5,11 +5,16 @@ if (!process.env.JWT_SECRET) {
 }
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Access tokens are now short-lived; the SPA silently refreshes via the
+// rotating refresh token (src/services/refresh-token.js). Overridable for
+// tests that need to exercise the expiry → refresh path quickly.
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '15m';
+
 export function generateToken(user) {
     return jwt.sign(
         { id: user.id, email: user.email, tv: user.token_version ?? 0 },
         JWT_SECRET,
-        { expiresIn: '30d' }
+        { expiresIn: ACCESS_TOKEN_TTL }
     );
 }
 

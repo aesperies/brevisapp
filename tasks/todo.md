@@ -63,7 +63,21 @@ route extraction → /api/v1 → hardening batch → prompt-injection Highs → 
 - [x] **graph-ai.js prompts into registry** (fixtures-first, 7 new snapshots byte-identical): graph-extraction.v1 + graph-query.v1; kb-service/graph-extractor confirmed prompt-free — registry now covers EVERY Claude prompt in the codebase. 115/115 tests.
 - [x] **is_read INTEGER→BOOLEAN** (migration 003, guarded) + **self-migrating deploys**: runMigrations() runs at boot before setupDatabase (brief 6A "migration on deploy") — code can never run ahead of schema.
 - [x] **Quick wins**: @anthropic-ai/sdk ^0.98 + nodemailer bumps (review's safe list); structured log.error w/ stack for graph/KB background-task failures; CI workflow_dispatch; unit tests for content utils + logger PII redaction.
-- [ ] **Deferred**: A/B variant assignment + multi-model support (structure ready: per-prompt `model` field); satisfaction tracking; graph/KB task state → DB (next sprint).
+- [ ] **Deferred**: A/B variant assignment + multi-model support (structure ready: per-prompt `model` field); satisfaction tracking.
+
+---
+
+## SPRINT 4 — 10x Phase 4a: Observability + task persistence (2026-06-12, branch `feat/observability-task-persistence`)
+
+- [x] **Sentry (brief 3A/6C)**: @sentry/node gated on SENTRY_DSN (inert until Antonio creates the account + sets the var). Captures unexpected 5xx + uncaughtException/unhandledRejection; beforeSend scrubs cookies/headers/query + redacts the webhook-secret path.
+- [x] **Prometheus (brief 3C)**: prom-client at GET /metrics behind Bearer METRICS_TOKEN (404 when unset). Request duration histogram + request/task counters; route labels cardinality-bounded (ids→:id, static collapsed).
+- [x] **Request logging (brief 3A)**: one structured log line per API request — reqId, userId, method, route, status, durationMs.
+- [x] **Background-task persistence (Medium from 2026-05-18 review)**: background_tasks table (migration 004) + src/services/task-store.js; graph extraction + KB compilation tasks survive restarts, owner-scoped reads, 7-day retention sweep, outcome metrics. Killed the in-memory Maps.
+- [x] **Bonus fix**: my earlier logging patch had `kbId: id` (undefined var) in kb-routes' failure handler — would have crashed the error logger inside setImmediate. Replaced by the persistence refactor.
+- [x] 5 new tests (120 total): metrics gating + Prometheus output, route-label cardinality, task lifecycle persisted in DB w/ failure state, cross-user task isolation.
+- [ ] **Deferred to 4b**: refresh-token rotation (needs SPA fetch-wrapper — do together with E2E tests); Slack alerting (brief 6C — needs webhook decision); slow-query log.
+
+**Antonio's inputs needed**: create Sentry project + set SENTRY_DSN in Railway; pick a METRICS_TOKEN (and a scraper, e.g. Grafana Cloud free tier) when wanted.
 
 ### Deliberately deferred to later PRs (flagged trade-offs)
 - Frontend build step + componentization (brief Phase 7) — big, independent; PR 2.

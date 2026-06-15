@@ -19,6 +19,17 @@ export const registerLimiter = rateLimit({
     legacyHeaders: false
 });
 
+// Token refresh is frequent legitimate traffic (every ~15 min per active user,
+// plus load-time bursts), so it gets a generous bound — just enough to stop a
+// bot hammering the endpoint with garbage tokens. NOT the strict login limiter.
+export const refreshLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    message: { error: 'Too many refresh attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 // Rate limiter for AI/expensive operations (summaries, briefs, reports, audio, news builder)
 export const aiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

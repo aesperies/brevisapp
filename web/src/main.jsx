@@ -4,7 +4,11 @@
 import * as ReactDOM from 'react-dom/client';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { Root } from './components/Root.jsx';
+import { installAuthRefresh } from './auth-refresh.js';
 import './styles.css';
+
+        // Transparent silent re-auth on 401 via the rotating refresh token.
+        installAuthRefresh();
 
         const rootEl = document.getElementById('app');
         if (!rootEl) {
