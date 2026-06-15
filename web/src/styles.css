@@ -1170,9 +1170,52 @@
         /* ============ PLAN CARDS ============ */
         .plan-cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin: 24px 0;
+        }
+
+        /* Monthly / Annual toggle in the upgrade modal */
+        .billing-toggle {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 16px;
+            padding: 4px;
+            background: var(--bg-cream);
+            border: 2px solid var(--ink);
+            border-radius: 10px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .billing-toggle-btn {
+            border: none;
+            background: transparent;
+            padding: 8px 18px;
+            border-radius: 7px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .billing-toggle-btn.active {
+            background: var(--bg-yellow);
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        .billing-save {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--ink);
+            background: var(--bg-mint);
+            border: 1px solid var(--ink);
+            border-radius: 4px;
+            padding: 1px 5px;
         }
 
         .upgrade-plan-card {

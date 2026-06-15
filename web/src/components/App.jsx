@@ -7,6 +7,10 @@ import { BRLogo } from './BRLogo.jsx';
 import { normalizeNewsletter, formatSummaryHTML } from '../utils/newsletters.js';
 import { SummaryToggle } from './SummaryToggle.jsx';
 
+// Display label for a plan key. 'pro'/'standard' are both the "Basic" plan.
+const PLAN_LABELS = { free: 'FREE', pro: 'BASIC', standard: 'BASIC', premium: 'PREMIUM' };
+const planLabel = (plan) => PLAN_LABELS[plan] || (plan ? plan.toUpperCase() : 'FREE');
+
 export function App() {
             const [currentView, setCurrentView] = useState('newsletters');
             const [selectedNewsletter, setSelectedNewsletter] = useState(null);
@@ -30,6 +34,7 @@ export function App() {
             const [importing, setImporting] = useState(false);
             const [importError, setImportError] = useState(null);
             const [importTab, setImportTab] = useState('url'); // 'url' | 'pdf' | 'manual'
+            const [billingInterval, setBillingInterval] = useState('month'); // 'month' | 'year' (upgrade modal)
             const [emailDomain, setEmailDomain] = useState('mail.brevisapp.com');
             // Per-newsletter "summarizing" flags. Set<number> of newsletter ids.
             // Cleared when the request resolves (success or error) so the button
@@ -322,7 +327,7 @@ export function App() {
                             <div className="sidebar-brand">
                                 <div className="sidebar-wordmark">BREVIS</div>
                                 <div className="plan-badge" onClick={() => setActiveModal('upgrade')} style={{ cursor: 'pointer' }}>
-                                    {(user && user.plan) ? user.plan.toUpperCase() : 'FREE'}
+                                    {planLabel(user && user.plan)}
                                 </div>
                             </div>
                         </div>
@@ -950,17 +955,37 @@ export function App() {
                                 <button className="modal-close-btn" onClick={() => setActiveModal(null)}>✕</button>
                                 <h2 className="modal-title">{t('upgradePlan')}</h2>
 
+                                {/* Monthly / Annual toggle */}
+                                <div className="billing-toggle">
+                                    <button
+                                        className={`billing-toggle-btn ${billingInterval === 'month' ? 'active' : ''}`}
+                                        onClick={() => setBillingInterval('month')}
+                                    >
+                                        {t('monthly')}
+                                    </button>
+                                    <button
+                                        className={`billing-toggle-btn ${billingInterval === 'year' ? 'active' : ''}`}
+                                        onClick={() => setBillingInterval('year')}
+                                    >
+                                        {t('annual')} <span className="billing-save">{t('annualSave')}</span>
+                                    </button>
+                                </div>
+
                                 <div className="plan-cards">
                                     {[
-                                        { id: 'free', name: 'Free', price: '$0', features: ['5 newsletters', 'Basic summaries'] },
-                                        { id: 'standard', name: 'Standard', price: '$12/mo', features: ['Unlimited newsletters', 'AI summaries', 'Tags & folders'] },
-                                        { id: 'premium', name: 'Premium', price: '$29/mo', features: ['Everything in Standard', 'Knowledge Graph', 'Custom AI rules'] },
+                                        { id: 'standard', name: 'Basic', monthly: 2.99, annual: 29.90, features: [t('featUnlimited'), t('featSummaries'), t('featBriefs'), t('featGraph')] },
+                                        { id: 'premium', name: 'Premium', monthly: 4.99, annual: 49.90, features: [t('featEverythingBasic'), t('featReports'), t('featKb'), t('featCustomRules')] },
                                     ].map((plan) => {
-                                        const isCurrent = user && user.plan && user.plan.toLowerCase() === plan.id;
+                                        // 'pro' is the legacy alias for Basic ('standard').
+                                        const current = user && user.plan && (user.plan.toLowerCase() === 'pro' ? 'standard' : user.plan.toLowerCase());
+                                        const isCurrent = current === plan.id;
+                                        const price = billingInterval === 'year'
+                                            ? `$${plan.annual.toFixed(2)}/yr`
+                                            : `$${plan.monthly.toFixed(2)}/mo`;
                                         return (
-                                            <div key={plan.name} className="upgrade-plan-card" style={isCurrent ? { border: '3px solid var(--yellow)', boxShadow: '5px 5px 0 var(--yellow)' } : {}}>
+                                            <div key={plan.id} className="upgrade-plan-card" style={isCurrent ? { border: '3px solid var(--yellow)', boxShadow: '5px 5px 0 var(--yellow)' } : {}}>
                                                 <h4 className="plan-card-name">{plan.name}</h4>
-                                                <div className="plan-card-price">{plan.price}</div>
+                                                <div className="plan-card-price">{price}</div>
                                                 <div className="plan-features">
                                                     {plan.features.map((feature) => (
                                                         <div key={feature} className="feature-item">
@@ -982,10 +1007,8 @@ export function App() {
                                                             } catch (e) { alert('Error: ' + e.message); }
                                                         }}
                                                     >
-                                                        Manage Plan
+                                                        {t('managePlan')}
                                                     </button>
-                                                ) : plan.id === 'free' ? (
-                                                    <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>Free forever</div>
                                                 ) : (
                                                     <button
                                                         className="btn btn-primary"
@@ -996,7 +1019,7 @@ export function App() {
                                                                     method: 'POST',
                                                                     headers: { 'Content-Type': 'application/json' },
                                                                     credentials: 'include',
-                                                                    body: JSON.stringify({ plan: plan.id, interval: 'month' }),
+                                                                    body: JSON.stringify({ plan: plan.id, interval: billingInterval }),
                                                                 });
                                                                 const data = await res.json();
                                                                 if (data.url) window.location.href = data.url;
@@ -1134,7 +1157,7 @@ export function App() {
                                     <div className="form-group">
                                         <label className="form-label">Plan</label>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <div className="plan-badge" style={{ margin: 0 }}>{(user && user.plan) ? user.plan.toUpperCase() : 'FREE'}</div>
+                                            <div className="plan-badge" style={{ margin: 0 }}>{planLabel(user && user.plan)}</div>
                                             <button type="button" className="btn" onClick={() => setActiveModal('upgrade')} style={{ fontSize: '12px' }}>
                                                 Change Plan
                                             </button>

@@ -239,9 +239,8 @@ if (process.env.NODE_ENV !== 'test') app.listen(PORT, '0.0.0.0', () => {
 ║   Stripe: ${stripe ? '✅ Connected' : '❌ Not configured'}                              ║
 ║                                                        ║
 ║   Plans (unlimited newsletters):                       ║
-║   • Free: No AI features (hidden from web)            ║
-║   • Standard: Summaries + Briefs ($12/mo, 15d trial) ║
-║   • Premium: + Reports ($29/mo, 15d trial)            ║
+║   • Basic: Summaries + Briefs ($2.99/mo, 14d trial)  ║
+║   • Premium: + Reports ($4.99/mo, 14d trial)         ║
 ╚════════════════════════════════════════════════════════╝
     `);
 }); 
