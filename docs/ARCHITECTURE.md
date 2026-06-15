@@ -179,7 +179,8 @@ log line per API request (request id, user id, duration). Background AI tasks
   verification cover the journeys for now.
 - Legacy `public/app.html` kept as a loud fallback — delete once the built
   bundle has shipped cleanly for a while.
-- Per-card / reader "Send to Kindle" buttons are still stubbed.
+- No per-newsletter manual tag editor — auto-tagging only (the attach/detach
+  endpoints exist; the "Edit tags" card menu item was removed pending a real UI).
 - Remaining brief tail: security (2FA, account lockout, zxcvbn, CSRF tokens,
   field-level encryption) and resilience (circuit breaker, retry/backoff,
   graceful Claude-failure degradation).

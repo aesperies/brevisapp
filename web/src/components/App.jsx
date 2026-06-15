@@ -35,6 +35,8 @@ export function App() {
             // Cleared when the request resolves (success or error) so the button
             // can be retried.
             const [summarizingIds, setSummarizingIds] = useState(() => new Set());
+            // Per-newsletter "sending to Kindle" flags, like summarizingIds.
+            const [kindleSendingIds, setKindleSendingIds] = useState(() => new Set());
 
             // Snapshot of the user's settings at the moment the settings modal opens.
             // Used to dirty-check on save: the auto-tag toggle is a controlled checkbox
@@ -234,6 +236,60 @@ export function App() {
                     console.error('[brevis] markRead failed:', err);
                     setNewsletters(prev => prev.map(n => n.id === id ? { ...n, isRead: !isRead, isUnread: isRead } : n));
                     setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, isRead: !isRead, isUnread: isRead } : prev);
+                }
+            };
+
+            // Email a newsletter to the user's Kindle. Guides the user to set
+            // their Kindle email if it isn't configured yet (400 from the API).
+            const sendToKindle = async (id) => {
+                if (kindleSendingIds.has(id)) return;
+                setKindleSendingIds(prev => { const next = new Set(prev); next.add(id); return next; });
+                try {
+                    const res = await fetch(`/api/newsletters/${id}/kindle`, {
+                        method: 'POST',
+                        credentials: 'include',
+                    });
+                    if (res.status === 400) {
+                        alert(t('kindleNoEmail'));
+                        setActiveModal('settings');
+                        return;
+                    }
+                    if (res.status === 503) {
+                        alert(t('kindleNotConfigured'));
+                        return;
+                    }
+                    if (!res.ok) {
+                        const body = await res.json().catch(() => ({}));
+                        throw new Error(body.error || `HTTP ${res.status}`);
+                    }
+                    alert(t('kindleSent'));
+                } catch (err) {
+                    console.error('[brevis] kindle send failed:', err);
+                    alert(t('kindleFailed') + ': ' + err.message);
+                } finally {
+                    setKindleSendingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                }
+            };
+
+            // Delete a newsletter (confirm first). Optimistic removal with rollback.
+            const deleteNewsletter = async (id) => {
+                if (!window.confirm(t('confirmDelete'))) return;
+                const prevList = newsLetters;
+                setNewsletters(prev => prev.filter(n => n.id !== id));
+                if (selectedNewsletter && selectedNewsletter.id === id) {
+                    setSelectedNewsletter(null);
+                    setCurrentView('newsletters');
+                }
+                try {
+                    const res = await fetch(`/api/newsletters/${id}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                } catch (err) {
+                    console.error('[brevis] delete failed:', err);
+                    setNewsletters(prevList);
+                    alert(t('deleteFailed') + ': ' + err.message);
                 }
             };
 
@@ -571,10 +627,11 @@ export function App() {
                                         )}
                                         <button
                                             className="action-btn"
-                                            onClick={(e) => { e.stopPropagation(); }}
+                                            onClick={(e) => { e.stopPropagation(); sendToKindle(newsletter.id); }}
+                                            disabled={kindleSendingIds.has(newsletter.id)}
                                             title={t('sendToKindle')}
                                         >
-                                            📧
+                                            {kindleSendingIds.has(newsletter.id) ? '⏳' : '📧'}
                                         </button>
                                         <div className="action-menu">
                                             <button className="action-btn" onClick={(e) => {
@@ -585,9 +642,13 @@ export function App() {
                                                 ⋯
                                             </button>
                                             <div className="action-menu-dropdown">
-                                                <div className="action-menu-item">Edit tags</div>
-                                                <div className="action-menu-item">Move to folder</div>
-                                                <div className="action-menu-item" style={{ color: 'var(--red)' }}>Delete</div>
+                                                <div
+                                                    className="action-menu-item"
+                                                    style={{ color: 'var(--red)' }}
+                                                    onClick={(e) => { e.stopPropagation(); deleteNewsletter(newsletter.id); }}
+                                                >
+                                                    {t('delete')}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -618,8 +679,13 @@ export function App() {
                                     >
                                         ✓ {selectedNewsletter.isRead ? t('markUnread') : t('markRead')}
                                     </button>
-                                    <button className="btn" style={{ padding: '8px 12px', fontSize: '12px' }}>
-                                        {t('sendToKindle')}
+                                    <button
+                                        className="btn"
+                                        style={{ padding: '8px 12px', fontSize: '12px' }}
+                                        onClick={() => sendToKindle(selectedNewsletter.id)}
+                                        disabled={kindleSendingIds.has(selectedNewsletter.id)}
+                                    >
+                                        📧 {kindleSendingIds.has(selectedNewsletter.id) ? t('sendingToKindle') : t('sendToKindle')}
                                     </button>
                                 </div>
                             </div>
