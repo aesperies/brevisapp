@@ -81,9 +81,19 @@ canonical route table, both prefixes supported forever. New clients should use
 
 ### Auth
 
-JWT in an httpOnly cookie (30d). Every authenticated request re-checks
-`users.token_version` in the DB; logout/password-change bumps it, revoking all
-sessions everywhere. The middleware fails CLOSED (503) if the DB check errors.
+Short-lived access JWT (default 15m, `ACCESS_TOKEN_TTL`) in an httpOnly cookie,
+plus a long-lived **rotating refresh token** (`refresh_tokens` table, migration
+005) in an httpOnly cookie scoped to `/api/auth`. The raw refresh token is never
+stored — only `sha256(raw)`. Every authenticated request re-checks
+`users.token_version`; logout/password-reset bump it (revoking all access tokens)
+and revoke all refresh tokens. The middleware fails CLOSED (503) on DB error.
+
+`POST /api/auth/refresh` rotates: each refresh is single-use and issues a new
+pair. Presenting an already-rotated token is treated as theft — the whole chain
+is burned and `token_version` bumped. The SPA refreshes transparently: a single
+global `fetch` interceptor (`web/src/auth-refresh.js`, installed in `main.jsx`)
+catches any API 401, calls `/api/auth/refresh` once (single-flight across
+concurrent 401s), and retries — so the ~20 call sites need no per-site changes.
 
 ### Plans
 
