@@ -14,6 +14,7 @@
 
 import { Router } from 'express';
 import { log } from './src/utils/logger.js';
+import { createTask, updateTask, getTask } from './src/services/task-store.js';
 import { body, param, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import {
@@ -79,28 +80,8 @@ const extractionLimiter = rateLimit({
     message: { error: 'Too many extraction requests, please wait', code: 'RATE_LIMITED' }
 });
 
-// ============= IN-MEMORY EXTRACTION TASKS (DX fix: async extraction) =============
-
-const extractionTasks = new Map();
-
-function createExtractionTask(taskId, userId, newsletterId) {
-    const task = {
-        taskId,
-        userId,
-        newsletterId,
-        status: 'running',
-        progress: 0,
-        result: null,
-        error: null,
-        startedAt: new Date().toISOString()
-    };
-    extractionTasks.set(taskId, task);
-
-    // Auto-cleanup after 10 minutes
-    setTimeout(() => extractionTasks.delete(taskId), 10 * 60 * 1000);
-
-    return task;
-}
+// Extraction task state lives in background_tasks (src/services/task-store.js)
+// so tasks survive restarts/redeploys. Migration 004.
 
 // ============= ROUTER =============
 
@@ -262,14 +243,19 @@ export function createGraphRouter() {
         const userId = req.user.id;
         const taskId = `extract-${userId}-${newsletterId}-${Date.now()}`;
 
-        // Create task and return immediately
-        const task = createExtractionTask(taskId, userId, newsletterId);
+        // Persist task and return immediately
+        try {
+            await createTask({ id: taskId, userId, kind: 'extract', meta: { newsletterId } });
+        } catch (err) {
+            console.error('📊 [Graph API] Failed to create task:', err.message);
+            return res.status(500).json({ error: 'Failed to start extraction', code: 'INTERNAL_ERROR' });
+        }
         res.json({ taskId, status: 'running', message: 'Extraction started' });
 
         // Run extraction in background
         setImmediate(async () => {
             try {
-                task.progress = 10;
+                await updateTask(taskId, { progress: 10 });
                 const result = await extractAndStoreGraph(
                     newsletterId,
                     userId,
@@ -278,27 +264,23 @@ export function createGraphRouter() {
                         language: req.user.language || 'en'
                     }
                 );
-                task.status = 'completed';
-                task.progress = 100;
-                task.result = result;
+                await updateTask(taskId, { status: 'completed', progress: 100, result });
             } catch (err) {
-                task.status = 'failed';
-                task.error = err.message;
                 // Structured log with stack — these cost-bearing AI calls run after
-                // the response was sent, so this log is the ONLY failure record
-                // (task map is in-memory; DB persistence tracked in tasks/todo.md).
+                // the response was sent; the task row is the durable failure record.
                 log.error('[graph] background extraction failed', {
                     taskId, newsletterId, userId, message: err.message, stack: err.stack,
                 });
+                await updateTask(taskId, { status: 'failed', error: err.message })
+                    .catch(e => log.error('[graph] failed to persist task failure', { taskId, message: e.message }));
             }
         });
     });
 
     // --- Check Extraction Task Status ---
-    router.get('/tasks/:taskId', graphReadLimiter, (req, res) => {
-        const task = extractionTasks.get(req.params.taskId);
+    router.get('/tasks/:taskId', graphReadLimiter, async (req, res) => {
+        const task = await getTask(req.params.taskId, req.user.id);
         if (!task) return res.status(404).json({ error: 'Task not found or expired', code: 'NOT_FOUND' });
-        if (task.userId !== req.user.id) return res.status(404).json({ error: 'Task not found', code: 'NOT_FOUND' });
         res.json(task);
     });
 

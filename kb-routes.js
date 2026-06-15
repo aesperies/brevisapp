@@ -14,6 +14,7 @@
 
 import { Router } from 'express';
 import { log } from './src/utils/logger.js';
+import { createTask, updateTask, getTask } from './src/services/task-store.js';
 import { body, param, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import {
@@ -76,27 +77,8 @@ const kbQueryLimiter = rateLimit({
 
 // ============= IN-MEMORY COMPILATION TASKS =============
 
-const compilationTasks = new Map();
-
-function createCompilationTask(taskId, userId, kbId) {
-    const task = {
-        taskId,
-        userId,
-        kbId,
-        status: 'running',
-        progress: 0,
-        articlesGenerated: 0,
-        result: null,
-        error: null,
-        startedAt: new Date().toISOString()
-    };
-    compilationTasks.set(taskId, task);
-
-    // Auto-cleanup after 10 minutes
-    setTimeout(() => compilationTasks.delete(taskId), 10 * 60 * 1000);
-
-    return task;
-}
+// Compilation task state lives in background_tasks (src/services/task-store.js)
+// so tasks survive restarts/redeploys. Migration 004.
 
 // ============= ROUTER =============
 
@@ -167,32 +149,28 @@ export function createKBRouter() {
 
             const taskId = `compile-${userId}-${kbId}-${Date.now()}`;
 
-            // Create task and return immediately
-            const task = createCompilationTask(taskId, userId, kbId);
+            // Persist task and return immediately
+            await createTask({ id: taskId, userId, kind: 'compile', meta: { kbId } });
             res.json({ taskId, status: 'started', message: 'Compilation started' });
 
             // Run compilation in background
             setImmediate(async () => {
                 try {
-                    task.progress = 10;
+                    await updateTask(taskId, { progress: 10 });
                     const result = await compileKB(
                         userId,
                         kb.tag_id,
                         req.user.language || 'en'
                     );
-                    task.status = 'completed';
-                    task.progress = 100;
-                    task.articlesGenerated = result.articlesGenerated || 0;
-                    task.result = result;
+                    await updateTask(taskId, { status: 'completed', progress: 100, result: { ...result, articlesGenerated: result.articlesGenerated || 0 } });
                 } catch (err) {
-                    task.status = 'failed';
-                    task.error = err.message;
-                    // Structured log with stack — the only failure record for this
-                    // post-response AI call (in-memory task map; DB persistence is
-                    // tracked in tasks/todo.md).
+                    // Structured log with stack — the task row is the durable
+                    // failure record for this post-response AI call.
                     log.error('[kb] background compilation failed', {
-                        taskId, kbId: id, userId: req.user.id, message: err.message, stack: err.stack,
+                        taskId, kbId, userId, message: err.message, stack: err.stack,
                     });
+                    await updateTask(taskId, { status: 'failed', error: err.message })
+                        .catch(e => log.error('[kb] failed to persist task failure', { taskId, message: e.message }));
                 }
             });
         } catch (error) {
@@ -212,9 +190,8 @@ export function createKBRouter() {
             const taskId = req.query.taskId;
             if (!taskId) return res.status(400).json({ error: 'Missing taskId query parameter', code: 'VALIDATION_ERROR' });
 
-            const task = compilationTasks.get(taskId);
+            const task = await getTask(taskId, req.user.id);
             if (!task) return res.status(404).json({ error: 'Task not found or expired', code: 'NOT_FOUND' });
-            if (task.userId !== req.user.id) return res.status(404).json({ error: 'Task not found', code: 'NOT_FOUND' });
 
             const status = await getCompilationStatus(taskId) || task;
             res.json(status);
