@@ -189,6 +189,11 @@ export function App() {
                     const res = await fetch(`/api/newsletters/${id}/summary`, {
                         method: 'POST',
                         credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Ask for the summary in the language the user is viewing.
+                        // The backend translates a cached summary (cheap) rather
+                        // than regenerating when only the language differs.
+                        body: JSON.stringify({ language }),
                     });
                     if (res.status === 403) {
                         setActiveModal('upgrade');
@@ -199,7 +204,7 @@ export function App() {
                         throw new Error(body.error || `HTTP ${res.status}`);
                     }
                     const data = await res.json();
-                    const patch = { summary: data.summary, summary_language: language };
+                    const patch = { summary: data.summary, summary_language: data.language || language };
                     setNewsletters(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
                     setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, ...patch } : prev);
                 } catch (err) {
@@ -207,6 +212,28 @@ export function App() {
                     alert(t('summaryFailed') + ': ' + err.message);
                 } finally {
                     setSummarizingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                }
+            };
+
+            // Persist read/unread to the backend and optimistically update the UI.
+            // Keeps the existing object (tags etc.) and only flips the read flags.
+            const markRead = async (id, isRead) => {
+                // Optimistic flip so the UI responds instantly.
+                setNewsletters(prev => prev.map(n => n.id === id ? { ...n, isRead, isUnread: !isRead } : n));
+                setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, isRead, isUnread: !isRead } : prev);
+                try {
+                    const res = await fetch(`/api/newsletters/${id}`, {
+                        method: 'PATCH',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_read: isRead }),
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                } catch (err) {
+                    // Roll back the optimistic update on failure.
+                    console.error('[brevis] markRead failed:', err);
+                    setNewsletters(prev => prev.map(n => n.id === id ? { ...n, isRead: !isRead, isUnread: isRead } : n));
+                    setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, isRead: !isRead, isUnread: isRead } : prev);
                 }
             };
 
@@ -424,11 +451,16 @@ export function App() {
                                 <span className="bulk-count">
                                     {selectedItems.length} selected
                                 </span>
-                                <button className="btn" style={{ background: 'var(--bg-cream)' }}>
+                                <button
+                                    className="btn"
+                                    style={{ background: 'var(--bg-cream)' }}
+                                    onClick={() => {
+                                        selectedItems.forEach(id => markRead(id, true));
+                                        setSelectedItems([]);
+                                        setSelectionMode(false);
+                                    }}
+                                >
                                     ✓ {t('markRead')}
-                                </button>
-                                <button className="btn" style={{ background: 'var(--bg-cream)' }}>
-                                    📧 {t('sendToKindle')}
                                 </button>
                                 <button
                                     className="btn"
@@ -511,15 +543,12 @@ export function App() {
 
                                     <div className="newsletter-actions">
                                         <button
-                                            className="action-btn"
+                                            className={`action-btn ${newsletter.isRead ? 'action-btn--active' : ''}`}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setSelectedNewsletter(prev => ({
-                                                    ...prev,
-                                                    isRead: !prev.isRead,
-                                                }));
+                                                markRead(newsletter.id, !newsletter.isRead);
                                             }}
-                                            title={t('markRead')}
+                                            title={newsletter.isRead ? t('markUnread') : t('markRead')}
                                         >
                                             ✓
                                         </button>
@@ -582,8 +611,12 @@ export function App() {
                                 </button>
                                 <h1 className="reader-title">{selectedNewsletter.title}</h1>
                                 <div className="reader-actions">
-                                    <button className="btn" style={{ padding: '8px 12px', fontSize: '12px' }}>
-                                        {t('markRead')}
+                                    <button
+                                        className="btn"
+                                        style={{ padding: '8px 12px', fontSize: '12px' }}
+                                        onClick={() => markRead(selectedNewsletter.id, !selectedNewsletter.isRead)}
+                                    >
+                                        ✓ {selectedNewsletter.isRead ? t('markUnread') : t('markRead')}
                                     </button>
                                     <button className="btn" style={{ padding: '8px 12px', fontSize: '12px' }}>
                                         {t('sendToKindle')}

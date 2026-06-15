@@ -151,6 +151,15 @@ Or full stack in Docker: `docker compose up --build` (app on :3000, Postgres on
 host :5433). Production deploy is Railway via nixpacks (`node server.js`); the
 Dockerfile exists for parity and future hosts.
 
+### Summaries & translation
+
+A newsletter summary is generated once in the user's selected language and
+stored in `summary` (+ `summary_language`). When the user switches UI language,
+`POST /api/newsletters/:id/summary` (with `{language}`) **translates** the stored
+summary via the cheap `translate` prompt instead of re-summarizing, and caches
+the result in `summary_translations` (JSONB, lang → text, migration 006). So
+each language costs one translation at most, never a re-summarization.
+
 ### Observability
 
 `src/observability.js`: Sentry (inert without `SENTRY_DSN`; unexpected 5xx +
@@ -165,11 +174,12 @@ log line per API request (request id, user id, duration). Background AI tasks
 ## Known debt (tracked in tasks/todo.md)
 
 - `App.jsx` is still one ~990-line component — decompose only after E2E
-  coverage exists. Import-modal PDF/Manual tabs are dead buttons (never wired).
+  coverage exists.
+- No automated Playwright E2E yet — integration tests + manual browser
+  verification cover the journeys for now.
 - Legacy `public/app.html` kept as a loud fallback — delete once the built
   bundle has shipped cleanly for a while.
-- `newsletters.is_read` is INTEGER (SQLite heritage) — route coerces; migrate
-  to BOOLEAN eventually.
-- Graph/KB background tasks keep state in in-memory Maps (lost on restart).
-- graph-ai.js / kb-service.js prompts not yet in prompts/ (ai-service.js done).
-- No refresh-token rotation (token_version revocation is the interim).
+- Per-card / reader "Send to Kindle" buttons are still stubbed.
+- Remaining brief tail: security (2FA, account lockout, zxcvbn, CSRF tokens,
+  field-level encryption) and resilience (circuit breaker, retry/backoff,
+  graceful Claude-failure degradation).
