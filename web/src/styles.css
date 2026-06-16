@@ -455,6 +455,11 @@
             box-shadow: 2px 2px 0 var(--ink);
         }
 
+        /* Sidebar hamburger: hidden on desktop, shown on mobile (see @media below). */
+        .sidebar-toggle {
+            display: none;
+        }
+
         .user-avatar {
             width: 40px;
             height: 40px;
@@ -1265,6 +1270,10 @@
 
             .main-content {
                 width: 100%;
+            }
+
+            .sidebar-toggle {
+                display: flex;
             }
 
             .top-bar {
