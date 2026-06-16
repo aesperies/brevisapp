@@ -460,9 +460,9 @@ export function App() {
                         {/* TOP BAR */}
                         <div className="top-bar">
                             <button
-                                className="icon-btn"
+                                className="icon-btn sidebar-toggle"
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                                style={{ display: 'none', '@media (max-width: 768px)': { display: 'block' } }}
+                                aria-label="Menu"
                             >
                                 ☰
                             </button>
