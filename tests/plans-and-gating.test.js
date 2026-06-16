@@ -16,6 +16,13 @@ describe('plans & AI gating', () => {
         expect(plans.premium.canReport).toBe(true);
         // 'pro' is the legacy alias for standard — must stay for old clients
         expect(plans.pro.canSummarize).toBe(true);
+        // Two-plan pricing: Basic $2.99, Premium $4.99 (annual ~2 months free).
+        expect(plans.standard.name).toBe('Basic');
+        expect(plans.standard.priceMonthly).toBe(2.99);
+        expect(plans.standard.priceAnnual).toBe(29.90);
+        expect(plans.premium.name).toBe('Premium');
+        expect(plans.premium.priceMonthly).toBe(4.99);
+        expect(plans.premium.priceAnnual).toBe(49.90);
     });
 
     it('blocks summary generation for free users (403, no AI call)', async () => {

@@ -97,6 +97,12 @@ async function anthropicRequest(body, timeoutMs = 30000) {
 }
 
 // Plan definitions — prices must match Stripe configuration and frontend display
+// Two paid plans: Basic ($2.99/mo) and Premium ($4.99/mo), each with an annual
+// option (~2 months free). `free` is NOT an offered/purchasable plan — it is the
+// internal no-access fallback for trial-expired / payment-failed / canceled
+// accounts, so the gating fallback (`PLANS[user.plan] || PLANS.free`) still works.
+// `pro` is the legacy DB alias for Basic (key `standard`) — keep both so existing
+// subscriber rows and Stripe metadata keep resolving.
 export const PLANS = {
     free: {
         name: 'Free',
@@ -105,28 +111,27 @@ export const PLANS = {
         priceMonthly: 0,
         priceAnnual: 0
     },
-    // Keep 'pro' for backward compatibility with existing users
+    // Legacy alias for Basic — existing 'pro' rows must keep working.
     pro: {
-        name: 'Standard',
+        name: 'Basic',
         canSummarize: true,
         canReport: false,
-        priceMonthly: 12,
-        priceAnnual: 119.99
+        priceMonthly: 2.99,
+        priceAnnual: 29.90
     },
-    // 'standard' is the new name for pro
     standard: {
-        name: 'Standard',
+        name: 'Basic',
         canSummarize: true,
         canReport: false,
-        priceMonthly: 12,
-        priceAnnual: 119.99
+        priceMonthly: 2.99,
+        priceAnnual: 29.90
     },
     premium: {
         name: 'Premium',
         canSummarize: true,
         canReport: true,
-        priceMonthly: 29,
-        priceAnnual: 289.99
+        priceMonthly: 4.99,
+        priceAnnual: 49.90
     }
 };
 

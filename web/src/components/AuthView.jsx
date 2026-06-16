@@ -128,9 +128,8 @@ export function AuthView({ onSuccess }) {
                                         <label className="form-label">{t('selectPlan')}</label>
                                         <div className="plan-selector">
                                             {[
-                                                { id: 'free', name: t('free'), price: '$0' },
-                                                { id: 'standard', name: t('standard'), price: '$12' },
-                                                { id: 'premium', name: t('premium'), price: '$29' },
+                                                { id: 'standard', name: t('standard'), price: '$2.99/mo' },
+                                                { id: 'premium', name: t('premium'), price: '$4.99/mo' },
                                             ].map((plan) => (
                                                 <div
                                                     key={plan.id}

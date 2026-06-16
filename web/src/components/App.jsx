@@ -7,6 +7,10 @@ import { BRLogo } from './BRLogo.jsx';
 import { normalizeNewsletter, formatSummaryHTML } from '../utils/newsletters.js';
 import { SummaryToggle } from './SummaryToggle.jsx';
 
+// Display label for a plan key. 'pro'/'standard' are both the "Basic" plan.
+const PLAN_LABELS = { free: 'FREE', pro: 'BASIC', standard: 'BASIC', premium: 'PREMIUM' };
+const planLabel = (plan) => PLAN_LABELS[plan] || (plan ? plan.toUpperCase() : 'FREE');
+
 export function App() {
             const [currentView, setCurrentView] = useState('newsletters');
             const [selectedNewsletter, setSelectedNewsletter] = useState(null);
@@ -30,6 +34,7 @@ export function App() {
             const [importing, setImporting] = useState(false);
             const [importError, setImportError] = useState(null);
             const [importTab, setImportTab] = useState('url'); // 'url' | 'pdf' | 'manual'
+            const [billingInterval, setBillingInterval] = useState('month'); // 'month' | 'year' (upgrade modal)
             const [emailDomain, setEmailDomain] = useState('mail.brevisapp.com');
             // Per-newsletter "summarizing" flags. Set<number> of newsletter ids.
             // Cleared when the request resolves (success or error) so the button
@@ -37,6 +42,16 @@ export function App() {
             const [summarizingIds, setSummarizingIds] = useState(() => new Set());
             // Per-newsletter "sending to Kindle" flags, like summarizingIds.
             const [kindleSendingIds, setKindleSendingIds] = useState(() => new Set());
+
+            // Toast notifications (replaces blocking native alert()s).
+            const [toasts, setToasts] = useState([]);
+            const toastIdRef = useRef(0);
+            const showToast = useCallback((message, type = 'info') => {
+                const id = ++toastIdRef.current;
+                setToasts(prev => [...prev, { id, message, type }]);
+                setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3800);
+            }, []);
+            const dismissToast = (id) => setToasts(prev => prev.filter(x => x.id !== id));
 
             // Snapshot of the user's settings at the moment the settings modal opens.
             // Used to dirty-check on save: the auto-tag toggle is a controlled checkbox
@@ -211,7 +226,7 @@ export function App() {
                     setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, ...patch } : prev);
                 } catch (err) {
                     console.error('[brevis] generateSummary failed:', err);
-                    alert(t('summaryFailed') + ': ' + err.message);
+                    showToast(t('summaryFailed') + ': ' + err.message, 'error');
                 } finally {
                     setSummarizingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
                 }
@@ -250,22 +265,22 @@ export function App() {
                         credentials: 'include',
                     });
                     if (res.status === 400) {
-                        alert(t('kindleNoEmail'));
+                        showToast(t('kindleNoEmail'), 'info');
                         setActiveModal('settings');
                         return;
                     }
                     if (res.status === 503) {
-                        alert(t('kindleNotConfigured'));
+                        showToast(t('kindleNotConfigured'), 'error');
                         return;
                     }
                     if (!res.ok) {
                         const body = await res.json().catch(() => ({}));
                         throw new Error(body.error || `HTTP ${res.status}`);
                     }
-                    alert(t('kindleSent'));
+                    showToast(t('kindleSent'), 'success');
                 } catch (err) {
                     console.error('[brevis] kindle send failed:', err);
-                    alert(t('kindleFailed') + ': ' + err.message);
+                    showToast(t('kindleFailed') + ': ' + err.message, 'error');
                 } finally {
                     setKindleSendingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
                 }
@@ -289,7 +304,7 @@ export function App() {
                 } catch (err) {
                     console.error('[brevis] delete failed:', err);
                     setNewsletters(prevList);
-                    alert(t('deleteFailed') + ': ' + err.message);
+                    showToast(t('deleteFailed') + ': ' + err.message, 'error');
                 }
             };
 
@@ -315,6 +330,23 @@ export function App() {
 
             return (
                 <>
+                    {/* TOAST NOTIFICATIONS */}
+                    <div className="toast-container">
+                        {toasts.map(toast => (
+                            <div
+                                key={toast.id}
+                                className={`toast toast--${toast.type}`}
+                                onClick={() => dismissToast(toast.id)}
+                                role="status"
+                            >
+                                <span className="toast-icon">
+                                    {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : 'ℹ'}
+                                </span>
+                                <span className="toast-msg">{toast.message}</span>
+                            </div>
+                        ))}
+                    </div>
+
                     {/* SIDEBAR */}
                     <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
                         <div className="sidebar-logo-section">
@@ -322,7 +354,7 @@ export function App() {
                             <div className="sidebar-brand">
                                 <div className="sidebar-wordmark">BREVIS</div>
                                 <div className="plan-badge" onClick={() => setActiveModal('upgrade')} style={{ cursor: 'pointer' }}>
-                                    {(user && user.plan) ? user.plan.toUpperCase() : 'FREE'}
+                                    {planLabel(user && user.plan)}
                                 </div>
                             </div>
                         </div>
@@ -460,9 +492,9 @@ export function App() {
                         {/* TOP BAR */}
                         <div className="top-bar">
                             <button
-                                className="icon-btn"
+                                className="icon-btn sidebar-toggle"
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                                style={{ display: 'none', '@media (max-width: 768px)': { display: 'block' } }}
+                                aria-label={t('menu') || 'Menu'}
                             >
                                 ☰
                             </button>
@@ -950,17 +982,37 @@ export function App() {
                                 <button className="modal-close-btn" onClick={() => setActiveModal(null)}>✕</button>
                                 <h2 className="modal-title">{t('upgradePlan')}</h2>
 
+                                {/* Monthly / Annual toggle */}
+                                <div className="billing-toggle">
+                                    <button
+                                        className={`billing-toggle-btn ${billingInterval === 'month' ? 'active' : ''}`}
+                                        onClick={() => setBillingInterval('month')}
+                                    >
+                                        {t('monthly')}
+                                    </button>
+                                    <button
+                                        className={`billing-toggle-btn ${billingInterval === 'year' ? 'active' : ''}`}
+                                        onClick={() => setBillingInterval('year')}
+                                    >
+                                        {t('annual')} <span className="billing-save">{t('annualSave')}</span>
+                                    </button>
+                                </div>
+
                                 <div className="plan-cards">
                                     {[
-                                        { id: 'free', name: 'Free', price: '$0', features: ['5 newsletters', 'Basic summaries'] },
-                                        { id: 'standard', name: 'Standard', price: '$12/mo', features: ['Unlimited newsletters', 'AI summaries', 'Tags & folders'] },
-                                        { id: 'premium', name: 'Premium', price: '$29/mo', features: ['Everything in Standard', 'Knowledge Graph', 'Custom AI rules'] },
+                                        { id: 'standard', name: 'Basic', monthly: 2.99, annual: 29.90, features: [t('featUnlimited'), t('featSummaries'), t('featBriefs'), t('featGraph')] },
+                                        { id: 'premium', name: 'Premium', monthly: 4.99, annual: 49.90, features: [t('featEverythingBasic'), t('featReports'), t('featKb'), t('featCustomRules')] },
                                     ].map((plan) => {
-                                        const isCurrent = user && user.plan && user.plan.toLowerCase() === plan.id;
+                                        // 'pro' is the legacy alias for Basic ('standard').
+                                        const current = user && user.plan && (user.plan.toLowerCase() === 'pro' ? 'standard' : user.plan.toLowerCase());
+                                        const isCurrent = current === plan.id;
+                                        const price = billingInterval === 'year'
+                                            ? `$${plan.annual.toFixed(2)}/yr`
+                                            : `$${plan.monthly.toFixed(2)}/mo`;
                                         return (
-                                            <div key={plan.name} className="upgrade-plan-card" style={isCurrent ? { border: '3px solid var(--yellow)', boxShadow: '5px 5px 0 var(--yellow)' } : {}}>
+                                            <div key={plan.id} className="upgrade-plan-card" style={isCurrent ? { border: '3px solid var(--yellow)', boxShadow: '5px 5px 0 var(--yellow)' } : {}}>
                                                 <h4 className="plan-card-name">{plan.name}</h4>
-                                                <div className="plan-card-price">{plan.price}</div>
+                                                <div className="plan-card-price">{price}</div>
                                                 <div className="plan-features">
                                                     {plan.features.map((feature) => (
                                                         <div key={feature} className="feature-item">
@@ -978,14 +1030,12 @@ export function App() {
                                                                 const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'include' });
                                                                 const data = await res.json();
                                                                 if (data.url) window.location.href = data.url;
-                                                                else alert(data.error || 'Could not open billing portal');
-                                                            } catch (e) { alert('Error: ' + e.message); }
+                                                                else showToast(data.error || 'Could not open billing portal', 'error');
+                                                            } catch (e) { showToast('Error: ' + e.message, 'error'); }
                                                         }}
                                                     >
-                                                        Manage Plan
+                                                        {t('managePlan')}
                                                     </button>
-                                                ) : plan.id === 'free' ? (
-                                                    <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>Free forever</div>
                                                 ) : (
                                                     <button
                                                         className="btn btn-primary"
@@ -996,12 +1046,12 @@ export function App() {
                                                                     method: 'POST',
                                                                     headers: { 'Content-Type': 'application/json' },
                                                                     credentials: 'include',
-                                                                    body: JSON.stringify({ plan: plan.id, interval: 'month' }),
+                                                                    body: JSON.stringify({ plan: plan.id, interval: billingInterval }),
                                                                 });
                                                                 const data = await res.json();
                                                                 if (data.url) window.location.href = data.url;
-                                                                else alert(data.error || 'Could not start checkout');
-                                                            } catch (e) { alert('Error: ' + e.message); }
+                                                                else showToast(data.error || 'Could not start checkout', 'error');
+                                                            } catch (e) { showToast('Error: ' + e.message, 'error'); }
                                                         }}
                                                     >
                                                         {t('upgrade') || 'Upgrade'}
@@ -1070,15 +1120,16 @@ export function App() {
                                         if (res.ok) {
                                             const j = await res.json();
                                             if (j && j.user) setUser(j.user);
+                                            showToast(t('settingsSaved') || 'Settings saved', 'success');
                                         } else {
                                             console.warn('[brevis] profile save failed:', res.status);
                                             // Surface failure to the user instead of silently swallowing
                                             // — they pressed Save expecting something to happen.
-                                            alert(t('error') || 'Save failed. Please try again.');
+                                            showToast(t('error') || 'Save failed. Please try again.', 'error');
                                         }
                                     } catch (err) {
                                         console.error('[brevis] profile save error:', err);
-                                        alert(t('error') || 'Save failed. Please try again.');
+                                        showToast(t('error') || 'Save failed. Please try again.', 'error');
                                     }
                                     setActiveModal(null);
                                 }}>
@@ -1096,7 +1147,7 @@ export function App() {
                                         <div className="form-group">
                                             <label className="form-label">Your forwarding address</label>
                                             <div className="form-input" style={{ background: 'var(--yellow)', fontFamily: "'Space Mono', monospace", fontSize: '13px', cursor: 'pointer' }}
-                                                 onClick={() => { navigator.clipboard.writeText(user.email_code + '@' + emailDomain); alert('Copied!'); }}>
+                                                 onClick={() => { try { navigator.clipboard && navigator.clipboard.writeText(user.email_code + '@' + emailDomain); } catch (e) { /* clipboard unavailable */ } showToast(t('copied') || 'Copied!', 'success'); }}>
                                                 {user.email_code}@{emailDomain}
                                             </div>
                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Click to copy. Forward any newsletter here to add it to Brevis.</div>
@@ -1134,7 +1185,7 @@ export function App() {
                                     <div className="form-group">
                                         <label className="form-label">Plan</label>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <div className="plan-badge" style={{ margin: 0 }}>{(user && user.plan) ? user.plan.toUpperCase() : 'FREE'}</div>
+                                            <div className="plan-badge" style={{ margin: 0 }}>{planLabel(user && user.plan)}</div>
                                             <button type="button" className="btn" onClick={() => setActiveModal('upgrade')} style={{ fontSize: '12px' }}>
                                                 Change Plan
                                             </button>
