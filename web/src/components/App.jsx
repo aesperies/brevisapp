@@ -43,6 +43,16 @@ export function App() {
             // Per-newsletter "sending to Kindle" flags, like summarizingIds.
             const [kindleSendingIds, setKindleSendingIds] = useState(() => new Set());
 
+            // Toast notifications (replaces blocking native alert()s).
+            const [toasts, setToasts] = useState([]);
+            const toastIdRef = useRef(0);
+            const showToast = useCallback((message, type = 'info') => {
+                const id = ++toastIdRef.current;
+                setToasts(prev => [...prev, { id, message, type }]);
+                setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3800);
+            }, []);
+            const dismissToast = (id) => setToasts(prev => prev.filter(x => x.id !== id));
+
             // Snapshot of the user's settings at the moment the settings modal opens.
             // Used to dirty-check on save: the auto-tag toggle is a controlled checkbox
             // that mutates `user` immediately, so without this snapshot the dirty check
@@ -216,7 +226,7 @@ export function App() {
                     setSelectedNewsletter(prev => (prev && prev.id === id) ? { ...prev, ...patch } : prev);
                 } catch (err) {
                     console.error('[brevis] generateSummary failed:', err);
-                    alert(t('summaryFailed') + ': ' + err.message);
+                    showToast(t('summaryFailed') + ': ' + err.message, 'error');
                 } finally {
                     setSummarizingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
                 }
@@ -255,22 +265,22 @@ export function App() {
                         credentials: 'include',
                     });
                     if (res.status === 400) {
-                        alert(t('kindleNoEmail'));
+                        showToast(t('kindleNoEmail'), 'info');
                         setActiveModal('settings');
                         return;
                     }
                     if (res.status === 503) {
-                        alert(t('kindleNotConfigured'));
+                        showToast(t('kindleNotConfigured'), 'error');
                         return;
                     }
                     if (!res.ok) {
                         const body = await res.json().catch(() => ({}));
                         throw new Error(body.error || `HTTP ${res.status}`);
                     }
-                    alert(t('kindleSent'));
+                    showToast(t('kindleSent'), 'success');
                 } catch (err) {
                     console.error('[brevis] kindle send failed:', err);
-                    alert(t('kindleFailed') + ': ' + err.message);
+                    showToast(t('kindleFailed') + ': ' + err.message, 'error');
                 } finally {
                     setKindleSendingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
                 }
@@ -294,7 +304,7 @@ export function App() {
                 } catch (err) {
                     console.error('[brevis] delete failed:', err);
                     setNewsletters(prevList);
-                    alert(t('deleteFailed') + ': ' + err.message);
+                    showToast(t('deleteFailed') + ': ' + err.message, 'error');
                 }
             };
 
@@ -320,6 +330,23 @@ export function App() {
 
             return (
                 <>
+                    {/* TOAST NOTIFICATIONS */}
+                    <div className="toast-container">
+                        {toasts.map(toast => (
+                            <div
+                                key={toast.id}
+                                className={`toast toast--${toast.type}`}
+                                onClick={() => dismissToast(toast.id)}
+                                role="status"
+                            >
+                                <span className="toast-icon">
+                                    {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : 'ℹ'}
+                                </span>
+                                <span className="toast-msg">{toast.message}</span>
+                            </div>
+                        ))}
+                    </div>
+
                     {/* SIDEBAR */}
                     <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
                         <div className="sidebar-logo-section">
@@ -465,9 +492,9 @@ export function App() {
                         {/* TOP BAR */}
                         <div className="top-bar">
                             <button
-                                className="icon-btn"
+                                className="icon-btn sidebar-toggle"
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                                style={{ display: 'none', '@media (max-width: 768px)': { display: 'block' } }}
+                                aria-label={t('menu') || 'Menu'}
                             >
                                 ☰
                             </button>
@@ -1003,8 +1030,8 @@ export function App() {
                                                                 const res = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'include' });
                                                                 const data = await res.json();
                                                                 if (data.url) window.location.href = data.url;
-                                                                else alert(data.error || 'Could not open billing portal');
-                                                            } catch (e) { alert('Error: ' + e.message); }
+                                                                else showToast(data.error || 'Could not open billing portal', 'error');
+                                                            } catch (e) { showToast('Error: ' + e.message, 'error'); }
                                                         }}
                                                     >
                                                         {t('managePlan')}
@@ -1023,8 +1050,8 @@ export function App() {
                                                                 });
                                                                 const data = await res.json();
                                                                 if (data.url) window.location.href = data.url;
-                                                                else alert(data.error || 'Could not start checkout');
-                                                            } catch (e) { alert('Error: ' + e.message); }
+                                                                else showToast(data.error || 'Could not start checkout', 'error');
+                                                            } catch (e) { showToast('Error: ' + e.message, 'error'); }
                                                         }}
                                                     >
                                                         {t('upgrade') || 'Upgrade'}
@@ -1093,15 +1120,16 @@ export function App() {
                                         if (res.ok) {
                                             const j = await res.json();
                                             if (j && j.user) setUser(j.user);
+                                            showToast(t('settingsSaved') || 'Settings saved', 'success');
                                         } else {
                                             console.warn('[brevis] profile save failed:', res.status);
                                             // Surface failure to the user instead of silently swallowing
                                             // — they pressed Save expecting something to happen.
-                                            alert(t('error') || 'Save failed. Please try again.');
+                                            showToast(t('error') || 'Save failed. Please try again.', 'error');
                                         }
                                     } catch (err) {
                                         console.error('[brevis] profile save error:', err);
-                                        alert(t('error') || 'Save failed. Please try again.');
+                                        showToast(t('error') || 'Save failed. Please try again.', 'error');
                                     }
                                     setActiveModal(null);
                                 }}>
@@ -1119,7 +1147,7 @@ export function App() {
                                         <div className="form-group">
                                             <label className="form-label">Your forwarding address</label>
                                             <div className="form-input" style={{ background: 'var(--yellow)', fontFamily: "'Space Mono', monospace", fontSize: '13px', cursor: 'pointer' }}
-                                                 onClick={() => { navigator.clipboard.writeText(user.email_code + '@' + emailDomain); alert('Copied!'); }}>
+                                                 onClick={() => { try { navigator.clipboard && navigator.clipboard.writeText(user.email_code + '@' + emailDomain); } catch (e) { /* clipboard unavailable */ } showToast(t('copied') || 'Copied!', 'success'); }}>
                                                 {user.email_code}@{emailDomain}
                                             </div>
                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Click to copy. Forward any newsletter here to add it to Brevis.</div>
