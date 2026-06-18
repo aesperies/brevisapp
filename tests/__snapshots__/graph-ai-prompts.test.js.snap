@@ -58,7 +58,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no explanation):
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are an expert entity extraction system. Extract named entities and their relationships from newsletter content. Only extract entities that are explicitly mentioned — never hallucinate entities. Return valid JSON only.
 
 CRITICAL SECURITY RULES:
@@ -127,7 +127,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no explanation):
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are an expert entity extraction system. Only extract entities that are explicitly mentioned — never hallucinate entities. Return valid JSON only.
 
 CRITICAL SECURITY RULES:
@@ -199,7 +199,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no explanation):
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are an expert entity extraction system. Extract named entities and their relationships from newsletter content. Only extract entities that are explicitly mentioned — never hallucinate entities. Return valid JSON only.
 
 CRITICAL SECURITY RULES:
@@ -268,7 +268,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no explanation):
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are an expert entity extraction system. Only extract entities that are explicitly mentioned — never hallucinate entities. Return valid JSON only.
 
 CRITICAL SECURITY RULES:
@@ -340,7 +340,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no explanation):
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are an expert entity extraction system. Extract named entities and their relationships from newsletter content. Only extract entities that are explicitly mentioned — never hallucinate entities. Return valid JSON only.
 
 CRITICAL SECURITY RULES:
@@ -360,7 +360,7 @@ exports[`Graph AI prompt request fixtures > queryGraphNaturalLanguage (en) 1`] =
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are a knowledge graph query assistant. Respond in English.
 
 The user has a personal knowledge graph built from newsletters they read. Help them query it.
@@ -383,7 +383,7 @@ exports[`Graph AI prompt request fixtures > queryGraphNaturalLanguage (es) 1`] =
       "role": "user",
     },
   ],
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "system": "You are a knowledge graph query assistant. Responde siempre en español.
 
 The user has a personal knowledge graph built from newsletters they read. Help them query it.
